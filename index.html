@@ -1096,3 +1096,828 @@ false
 );
 }
 }
+async function accountStatement(){
+
+const owner =
+accountOwner.value.trim();
+
+if(!owner){
+alert("اكتب الاسم");
+return;
+}
+
+const {data:lines} =
+await client
+.from("settlement_lines")
+.select("*")
+.eq("status","approved")
+.order("id");
+
+const {data:headers} =
+await client
+.from("settlement_headers")
+.select("*");
+
+let headerMap = {};
+
+(headers || []).forEach(h=>{
+headerMap[h.settlement_no] = h.owner_name;
+});
+
+let ownerLines =
+(lines || []).filter(l=>
+(l.added_to || "").trim() === owner
+);
+
+let custody = 0;
+let expenses = 0;
+let revenues = 0;
+
+ownerLines.forEach(l=>{
+
+if(
+l.main_direction === "جارى العهدة" ||
+l.sub_direction === "عهدة"
+){
+custody += Number(l.amount);
+
+}else if(l.main_direction === "مصروفات"){
+expenses += Number(l.amount);
+
+}else if(l.main_direction === "ايرادات"){
+revenues += Number(l.amount);
+}
+
+});
+
+let balance =
+custody + revenues - expenses;
+
+accountResult.innerHTML =
+`
+<div class="summary">
+
+<div class="box">
+<h3>العهدة / جارى العهدة</h3>
+<h2>${custody.toLocaleString()}</h2>
+</div>
+
+<div class="box">
+<h3>المصروفات المعتمدة</h3>
+<h2>${expenses.toLocaleString()}</h2>
+</div>
+
+<div class="box">
+<h3>الرصيد</h3>
+<h2>${balance.toLocaleString()}</h2>
+</div>
+
+</div>
+
+<table class="table">
+
+<tr>
+<th>التاريخ</th>
+<th>البيان</th>
+<th>وارد من</th>
+<th>التوجيه العام</th>
+<th>التوجيه الفرعى</th>
+<th>الموقع</th>
+<th>المبلغ</th>
+<th>الحالة</th>
+</tr>
+
+${ownerLines.map(l=>`
+
+<tr>
+<td>${l.line_date}</td>
+<td>${l.description}</td>
+
+<td>${
+(
+l.main_direction === "جارى العهدة" ||
+l.sub_direction === "عهدة"
+)
+? (headerMap[l.settlement_no] || "-")
+: "-"
+}</td>
+
+<td>${l.main_direction}</td>
+<td>${l.sub_direction}</td>
+<td>${l.site || ""}</td>
+<td>${Number(l.amount).toLocaleString()}</td>
+
+<td>
+<span class="badge approved">
+${l.status}
+</span>
+</td>
+
+</tr>
+
+`).join("")}
+
+</table>
+`;
+}
+
+async function loadPendingUsers(){
+
+const {data} =
+await client
+.from("app_users")
+.select("*")
+.eq("status","pending");
+
+let html = "";
+
+(data || []).forEach(u=>{
+
+html +=
+`<div class="card" style="margin:10px 0">
+
+<b>${u.username}</b>
+
+<br><br>
+
+<button
+class="green small"
+onclick="approveUser(${u.id})">
+Approve
+</button>
+
+<button
+class="red small"
+onclick="rejectUser(${u.id})">
+Reject
+</button>
+
+</div>`;
+});
+
+pendingUsers.innerHTML =
+html || "لا توجد طلبات";
+}
+
+async function approveUser(id){
+
+await client
+.from("app_users")
+.update({
+status:"approved"
+})
+.eq("id",id);
+
+loadPendingUsers();
+}
+
+async function rejectUser(id){
+
+await client
+.from("app_users")
+.update({
+status:"rejected"
+})
+.eq("id",id);
+
+loadPendingUsers();
+}
+
+async function loadSiteCosts(){
+
+if(currentUser.role !== "super_admin"){
+alert("هذه الصفحة للسوبر أدمن فقط");
+return;
+}
+
+const {data:lines} =
+await client
+.from("settlement_lines")
+.select("*")
+.eq("status","approved")
+.order("site");
+
+siteCostsData = lines || [];
+
+let sites = {};
+
+siteCostsData.forEach(l=>{
+
+let site =
+l.site || "بدون موقع";
+
+if(!sites[site]){
+sites[site] = {
+expenses:0,
+revenues:0
+};
+}
+
+if(l.main_direction === "مصروفات"){
+sites[site].expenses += Number(l.amount);
+}
+
+if(l.main_direction === "ايرادات"){
+sites[site].revenues += Number(l.amount);
+}
+
+});
+
+let html =
+`
+<table class="table">
+
+<tr>
+<th>اسم الموقع</th>
+<th>إجمالى المصروفات</th>
+<th>إجمالى الإيرادات</th>
+<th>الربح / الخسارة</th>
+</tr>
+`;
+
+Object.keys(sites).forEach(site=>{
+
+let exp =
+sites[site].expenses;
+
+let rev =
+sites[site].revenues;
+
+let profit =
+rev - exp;
+
+html +=
+`
+<tr>
+
+<td>${site}</td>
+
+<td>
+<button
+class="invoice-link"
+onclick="showSiteDetails('${site}','مصروفات')">
+${exp.toLocaleString()}
+</button>
+</td>
+
+<td>
+<button
+class="invoice-link"
+onclick="showSiteDetails('${site}','ايرادات')">
+${rev.toLocaleString()}
+</button>
+</td>
+
+<td>${profit.toLocaleString()}</td>
+
+</tr>
+`;
+});
+
+html += "</table>";
+
+siteCostsSummary.innerHTML = html;
+siteCostsDetails.innerHTML = "";
+profitResult.innerHTML = "";
+}
+
+function showSiteDetails(site,type){
+
+let details =
+siteCostsData.filter(l=>
+(l.site || "بدون موقع") === site &&
+l.main_direction === type
+);
+
+let html =
+`
+<h3>تفاصيل ${type} - ${site}</h3>
+
+<table class="table">
+
+<tr>
+<th>التاريخ</th>
+<th>رقم التسوية</th>
+<th>البيان</th>
+<th>التوجيه الفرعى</th>
+<th>المبلغ</th>
+</tr>
+`;
+
+details.forEach(l=>{
+
+html +=
+`
+<tr>
+<td>${l.line_date}</td>
+<td>${l.settlement_no}</td>
+<td>${l.description}</td>
+<td>${l.sub_direction}</td>
+<td>${Number(l.amount).toLocaleString()}</td>
+</tr>
+`;
+});
+
+html += "</table>";
+
+siteCostsDetails.innerHTML = html;
+}
+
+function calculateProfit(){
+
+let totalExpenses = 0;
+let totalRevenues = 0;
+
+siteCostsData.forEach(l=>{
+
+if(l.main_direction === "مصروفات"){
+totalExpenses += Number(l.amount);
+}
+
+if(l.main_direction === "ايرادات"){
+totalRevenues += Number(l.amount);
+}
+
+});
+
+let profit =
+totalRevenues - totalExpenses;
+
+profitResult.innerHTML =
+`
+<br>
+
+<div class="summary">
+
+<div class="box">
+<h3>إجمالى الإيرادات</h3>
+<h2>${totalRevenues.toLocaleString()}</h2>
+</div>
+
+<div class="box">
+<h3>إجمالى المصروفات</h3>
+<h2>${totalExpenses.toLocaleString()}</h2>
+</div>
+
+<div class="box">
+<h3>صافى الربح / الخسارة</h3>
+<h2>${profit.toLocaleString()}</h2>
+</div>
+
+</div>
+`;
+}
+  function openInvoice(){
+invoiceModal.style.display = "flex";
+}
+
+function closeInvoice(){
+invoiceModal.style.display = "none";
+}
+
+function buildInvoiceRows(){
+
+let html = "";
+
+for(let i=1;i<=10;i++){
+
+html +=
+`
+<tr>
+<td>${i}</td>
+<td><input class="inv-desc"></td>
+<td><input class="inv-unit"></td>
+<td>
+<input
+type="number"
+class="inv-qty"
+oninput="calcInvoice()">
+</td>
+<td>
+<input
+type="number"
+class="inv-price"
+oninput="calcInvoice()">
+</td>
+<td>
+<input
+class="inv-total"
+readonly>
+</td>
+</tr>
+`;
+}
+
+invoiceItems.innerHTML = html;
+}
+
+function calcInvoice(){
+
+let rows =
+document.querySelectorAll("#invoiceItems tr");
+
+let total = 0;
+
+rows.forEach(r=>{
+
+let q =
+Number(
+r.querySelector(".inv-qty").value || 0
+);
+
+let p =
+Number(
+r.querySelector(".inv-price").value || 0
+);
+
+let t =
+q * p;
+
+r.querySelector(".inv-total").value =
+t.toFixed(2);
+
+total += t;
+});
+
+let discP =
+Number(discountPercent.value || 0);
+
+let discV =
+total * discP / 100;
+
+let afterDisc =
+total - discV;
+
+let commP =
+Number(commercialTaxPercent.value || 0);
+
+let commV =
+afterDisc * commP / 100;
+
+let taxable =
+afterDisc - commV;
+
+let vat =
+invType.value === "ضريبية"
+? taxable * 0.14
+: 0;
+
+let net =
+taxable + vat;
+
+invoiceTotal.value =
+total.toFixed(2);
+
+discountValue.value =
+discV.toFixed(2);
+
+commercialTaxValue.value =
+commV.toFixed(2);
+
+vatValue.value =
+vat.toFixed(2);
+
+netTotal.value =
+net.toFixed(2);
+}
+
+async function saveInvoiceToAmount(){
+
+calcInvoice();
+
+amount.value =
+Number(netTotal.value || 0).toFixed(2);
+
+if(!description.value){
+description.value =
+"فاتورة خامات رقم " + (invNo.value || "");
+}
+
+if(!site.value){
+site.value =
+invSite.value || "";
+}
+
+if(activeSettlementNo){
+
+const inv = {
+settlement_no:activeSettlementNo,
+invoice_date:invDate.value,
+site:invSite.value,
+invoice_type:invType.value,
+invoice_no:invNo.value,
+buyer:invBuyer.value,
+seller_name:sellerName.value,
+seller_phone:sellerPhone.value,
+seller_address:sellerAddress.value,
+total_before_discount:Number(invoiceTotal.value || 0),
+discount_percent:Number(discountPercent.value || 0),
+discount_value:Number(discountValue.value || 0),
+commercial_tax_percent:Number(commercialTaxPercent.value || 0),
+commercial_tax_value:Number(commercialTaxValue.value || 0),
+vat_value:Number(vatValue.value || 0),
+net_total:Number(netTotal.value || 0),
+created_by:currentUser.username
+};
+
+const {data,error} =
+await client
+.from("material_invoices")
+.insert(inv)
+.select()
+.single();
+
+if(!error && data){
+
+let items = [];
+
+document
+.querySelectorAll("#invoiceItems tr")
+.forEach((r,i)=>{
+
+let desc =
+r.querySelector(".inv-desc").value;
+
+let unit =
+r.querySelector(".inv-unit").value;
+
+let qty =
+Number(
+r.querySelector(".inv-qty").value || 0
+);
+
+let price =
+Number(
+r.querySelector(".inv-price").value || 0
+);
+
+let total =
+qty * price;
+
+if(desc || qty || price){
+
+items.push({
+invoice_id:data.id,
+serial_no:i+1,
+description:desc,
+unit,
+quantity:qty,
+unit_price:price,
+total
+});
+}
+});
+
+if(items.length){
+await client
+.from("material_invoice_items")
+.insert(items);
+}
+}
+}
+
+closeInvoice();
+}
+
+async function openInvoiceFromLine(settlementNo){
+
+const {data:inv} =
+await client
+.from("material_invoices")
+.select("*")
+.eq("settlement_no",settlementNo)
+.order("id",{ascending:false})
+.limit(1)
+.maybeSingle();
+
+if(!inv){
+alert("لا توجد فاتورة محفوظة لهذه التسوية");
+return;
+}
+
+openInvoice();
+
+invDate.value =
+inv.invoice_date || "";
+
+invSite.value =
+inv.site || "";
+
+invType.value =
+inv.invoice_type || "ضريبية";
+
+invNo.value =
+inv.invoice_no || "";
+
+invBuyer.value =
+inv.buyer || "";
+
+sellerName.value =
+inv.seller_name || "";
+
+sellerPhone.value =
+inv.seller_phone || "";
+
+sellerAddress.value =
+inv.seller_address || "";
+
+invoiceTotal.value =
+inv.total_before_discount || 0;
+
+discountPercent.value =
+inv.discount_percent || 0;
+
+discountValue.value =
+inv.discount_value || 0;
+
+commercialTaxPercent.value =
+inv.commercial_tax_percent || 0;
+
+commercialTaxValue.value =
+inv.commercial_tax_value || 0;
+
+vatValue.value =
+inv.vat_value || 0;
+
+netTotal.value =
+inv.net_total || 0;
+
+const {data:items} =
+await client
+.from("material_invoice_items")
+.select("*")
+.eq("invoice_id",inv.id)
+.order("serial_no");
+
+buildInvoiceRows();
+
+(items || []).forEach((it,idx)=>{
+
+let row =
+document.querySelectorAll("#invoiceItems tr")[idx];
+
+if(row){
+
+row.querySelector(".inv-desc").value =
+it.description || "";
+
+row.querySelector(".inv-unit").value =
+it.unit || "";
+
+row.querySelector(".inv-qty").value =
+it.quantity || 0;
+
+row.querySelector(".inv-price").value =
+it.unit_price || 0;
+
+row.querySelector(".inv-total").value =
+it.total || 0;
+}
+});
+}
+
+function openTransport(){
+transportModal.style.display = "flex";
+}
+
+function closeTransport(){
+transportModal.style.display = "none";
+}
+
+async function getCoords(address){
+
+let url =
+"https://nominatim.openstreetmap.org/search?format=json&q="
++ encodeURIComponent(address);
+
+let res =
+await fetch(url);
+
+let data =
+await res.json();
+
+if(!data || !data.length){
+return null;
+}
+
+return {
+lat:Number(data[0].lat),
+lon:Number(data[0].lon)
+};
+}
+
+function haversine(a,b){
+
+const R = 6371;
+
+let dLat =
+(b.lat-a.lat) * Math.PI / 180;
+
+let dLon =
+(b.lon-a.lon) * Math.PI / 180;
+
+let lat1 =
+a.lat * Math.PI / 180;
+
+let lat2 =
+b.lat * Math.PI / 180;
+
+let x =
+Math.sin(dLat/2)**2 +
+Math.sin(dLon/2)**2 *
+Math.cos(lat1) *
+Math.cos(lat2);
+
+return 2 * R * Math.asin(Math.sqrt(x));
+}
+
+async function calcDistance(){
+
+if(!routeFrom.value || !routeTo.value){
+alert("اكتب من وإلى");
+return;
+}
+
+try{
+
+let a =
+await getCoords(routeFrom.value);
+
+let b =
+await getCoords(routeTo.value);
+
+if(!a || !b){
+alert("لم يتم حساب المسافة. ادخل المسافة يدوياً.");
+return;
+}
+
+distanceKm.value =
+haversine(a,b).toFixed(2);
+
+calcTransport();
+
+}catch(e){
+
+alert("تعذر حساب المسافة. ادخل المسافة يدوياً.");
+}
+}
+
+function calcTransport(){
+
+let d =
+Number(distanceKm.value || 0);
+
+let r =
+Number(ratePerKm.value || 0);
+
+transportTotal.value =
+(d*r).toFixed(2);
+}
+
+async function saveTransportToAmount(){
+
+calcTransport();
+
+let finalAmount =
+Number(manualTransportAmount.value || 0);
+
+if(!finalAmount){
+finalAmount =
+Number(transportTotal.value || 0);
+}
+
+amount.value =
+finalAmount.toFixed(2);
+
+if(!description.value){
+
+description.value =
+"انتقالات من " +
+routeFrom.value +
+" إلى " +
+routeTo.value;
+}
+
+if(activeSettlementNo){
+
+await client
+.from("transport_routes")
+.insert({
+settlement_no:activeSettlementNo,
+route_from:routeFrom.value,
+route_to:routeTo.value,
+distance_km:Number(distanceKm.value || 0),
+rate_per_km:Number(ratePerKm.value || 0),
+manual_amount:Number(manualTransportAmount.value || 0),
+total_amount:finalAmount,
+created_by:currentUser.username
+});
+}
+
+closeTransport();
+}
+
+</script>
+
+</body>
+</html>
