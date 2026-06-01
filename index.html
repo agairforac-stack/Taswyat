@@ -6,231 +6,48 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
-body{
-margin:0;
-font-family:Arial;
-background:#eef2f7;
-color:#1f2937;
-}
-
-.login-wrap{
-height:100vh;
-display:flex;
-align-items:center;
-justify-content:center;
-}
-
-.card{
-background:white;
-border-radius:18px;
-box-shadow:0 10px 30px rgba(0,0,0,.12);
-padding:28px;
-}
-
-.login-card{
-width:390px;
-text-align:center;
-}
-
-h1,h2,h3{
-margin-top:0;
-color:#0f172a;
-}
-
-input,select,button,textarea{
-padding:12px;
-border-radius:10px;
-border:1px solid #cbd5e1;
-font-size:15px;
-box-sizing:border-box;
-}
-
-input,select,textarea{
-width:100%;
-background:white;
-}
-
-button{
-border:none;
-background:#0a6cff;
-color:white;
-font-weight:bold;
-cursor:pointer;
-}
-
-button:hover{
-background:#0058d4;
-}
-
+body{margin:0;font-family:Arial;background:#eef2f7;color:#1f2937}
+.login-wrap{height:100vh;display:flex;align-items:center;justify-content:center}
+.card{background:white;border-radius:18px;box-shadow:0 10px 30px rgba(0,0,0,.12);padding:28px}
+.login-card{width:390px;text-align:center}
+h1,h2,h3{margin-top:0;color:#0f172a}
+input,select,button,textarea{padding:12px;border-radius:10px;border:1px solid #cbd5e1;font-size:15px;box-sizing:border-box}
+input,select,textarea{width:100%;background:white}
+button{border:none;background:#0a6cff;color:white;font-weight:bold;cursor:pointer}
+button:hover{background:#0058d4}
 button.gray{background:#475569}
 button.green{background:#198754}
 button.red{background:#dc3545}
 button.orange{background:#f59e0b}
 button.small{padding:7px 12px;font-size:13px}
-
-.link{
-color:#0a6cff;
-cursor:pointer;
-margin-top:12px;
-}
-
-.msg{
-font-weight:bold;
-margin-top:12px;
-}
-
-.hidden{
-display:none!important;
-}
-
-.app{
-display:none;
-}
-
-.sidebar{
-width:245px;
-background:#0f172a;
-color:white;
-position:fixed;
-right:0;
-top:0;
-bottom:0;
-padding:20px;
-overflow:auto;
-}
-
-.sidebar h2{
-color:white;
-text-align:center;
-}
-
-.sidebar button{
-width:100%;
-margin:6px 0;
-background:#1e293b;
-text-align:right;
-}
-
-.main{
-margin-right:285px;
-padding:25px;
-}
-
-.grid{
-display:grid;
-grid-template-columns:repeat(3,1fr);
-gap:12px;
-}
-
-.grid2{
-display:grid;
-grid-template-columns:repeat(2,1fr);
-gap:12px;
-}
-
-.table{
-width:100%;
-border-collapse:collapse;
-margin-top:15px;
-background:white;
-}
-
-.table th,
-.table td{
-border:1px solid #e5e7eb;
-padding:10px;
-text-align:center;
-}
-
-.table th{
-background:#f8fafc;
-}
-
-.badge{
-padding:4px 10px;
-border-radius:20px;
-font-size:13px;
-font-weight:bold;
-}
-
-.pending{
-background:#fff3cd;
-color:#856404;
-}
-
-.approved{
-background:#d1e7dd;
-color:#0f5132;
-}
-
-.summary{
-display:grid;
-grid-template-columns:repeat(3,1fr);
-gap:15px;
-}
-
-.summary .box{
-background:white;
-border-radius:15px;
-padding:20px;
-box-shadow:0 4px 16px rgba(0,0,0,.08);
-}
-
-.modal-bg{
-position:fixed;
-inset:0;
-background:rgba(0,0,0,.55);
-display:none;
-align-items:center;
-justify-content:center;
-z-index:999;
-}
-
-.modal{
-background:white;
-width:94%;
-max-width:1250px;
-max-height:90vh;
-overflow:auto;
-border-radius:18px;
-padding:25px;
-}
-
-.modal-header{
-display:flex;
-justify-content:space-between;
-align-items:center;
-}
-
-.calc-box{
-background:#f8fafc;
-border:1px solid #e5e7eb;
-border-radius:14px;
-padding:15px;
-margin-top:15px;
-}
-
-.invoice-link{
-background:#0a6cff;
-color:white;
-border:none;
-border-radius:8px;
-padding:6px 10px;
-cursor:pointer;
-font-size:13px;
-}
+.link{color:#0a6cff;cursor:pointer;margin-top:12px}
+.msg{font-weight:bold;margin-top:12px}
+.hidden{display:none!important}
+.app{display:none}
+.sidebar{width:245px;background:#0f172a;color:white;position:fixed;right:0;top:0;bottom:0;padding:20px;overflow:auto}
+.sidebar h2{color:white;text-align:center}
+.sidebar button{width:100%;margin:6px 0;background:#1e293b;text-align:right}
+.main{margin-right:285px;padding:25px}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.table{width:100%;border-collapse:collapse;margin-top:15px;background:white}
+.table th,.table td{border:1px solid #e5e7eb;padding:10px;text-align:center}
+.table th{background:#f8fafc}
+.badge{padding:4px 10px;border-radius:20px;font-size:13px;font-weight:bold}
+.pending{background:#fff3cd;color:#856404}
+.approved{background:#d1e7dd;color:#0f5132}
+.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:15px}
+.summary .box{background:white;border-radius:15px;padding:20px;box-shadow:0 4px 16px rgba(0,0,0,.08)}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;z-index:999}
+.modal{background:white;width:94%;max-width:1250px;max-height:90vh;overflow:auto;border-radius:18px;padding:25px}
+.modal-header{display:flex;justify-content:space-between;align-items:center}
+.calc-box{background:#f8fafc;border:1px solid #e5e7eb;border-radius:14px;padding:15px;margin-top:15px}
+.invoice-link{background:#0a6cff;color:white;border:none;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:13px}
 
 @media(max-width:900px){
-.sidebar{
-position:static;
-width:auto;
-}
-.main{
-margin:0;
-}
-.grid,.grid2,.summary{
-grid-template-columns:1fr;
-}
+.sidebar{position:static;width:auto}
+.main{margin:0}
+.grid,.grid2,.summary{grid-template-columns:1fr}
 }
 </style>
 </head>
@@ -239,7 +56,6 @@ grid-template-columns:1fr;
 
 <div id="loginPage" class="login-wrap">
 <div class="card login-card">
-
 <h1>برنامج التسويات</h1>
 
 <div id="loginBox">
@@ -261,16 +77,13 @@ grid-template-columns:1fr;
 </div>
 
 <div id="loginMsg" class="msg"></div>
-
 </div>
 </div>
 
 <div id="app" class="app">
 
 <div class="sidebar">
-
 <h2>Taswyat</h2>
-
 <p id="currentUserText"></p>
 
 <button onclick="showPage('homePage')">الرئيسية</button>
@@ -278,22 +91,15 @@ grid-template-columns:1fr;
 <button onclick="showPage('searchPage')">بحث بالاسم أو رقم التسوية</button>
 <button onclick="showPage('accountPage')">كشف حساب</button>
 
-<button
-id="siteCostsBtn"
-class="hidden"
-onclick="showPage('siteCostsPage');loadSiteCosts()">
+<button id="siteCostsBtn" class="hidden" onclick="showPage('siteCostsPage');loadSiteCosts()">
 📊 تكاليف المواقع
 </button>
 
-<button
-id="usersBtn"
-class="hidden"
-onclick="showPage('usersPage');loadPendingUsers()">
+<button id="usersBtn" class="hidden" onclick="showPage('usersPage');loadPendingUsers()">
 اعتماد المستخدمين
 </button>
 
 <button class="red" onclick="logout()">تسجيل خروج</button>
-
 </div>
 
 <div class="main">
@@ -304,7 +110,6 @@ onclick="showPage('usersPage');loadPendingUsers()">
 </div>
 
 <div id="newSettlementPage" class="card page hidden">
-
 <h2>بيانات التسوية</h2>
 
 <div class="grid">
@@ -314,17 +119,13 @@ onclick="showPage('usersPage');loadPendingUsers()">
 </div>
 
 <br>
-
 <button onclick="createHeader()">دخول</button>
 
 <div id="lineSection" class="hidden">
-
 <hr>
-
 <h2>إدخال بنود التسوية</h2>
 
 <div class="grid">
-
 <input id="lineDate" type="date">
 <input id="description" placeholder="البيان">
 <input id="addedTo" placeholder="مضاف إلى">
@@ -353,20 +154,15 @@ onclick="showPage('usersPage');loadPendingUsers()">
 
 <input id="site" placeholder="الموقع">
 <input id="amount" type="number" placeholder="المبلغ">
-
 </div>
 
 <br>
-
 <button onclick="addLine()">إدخال</button>
-
 <div id="linesArea"></div>
 
 </div>
 </div>
-
 <div id="searchPage" class="card page hidden">
-
 <h2>بحث بالاسم أو رقم التسوية</h2>
 
 <div class="grid2">
@@ -375,11 +171,9 @@ onclick="showPage('usersPage');loadPendingUsers()">
 </div>
 
 <div id="searchResult"></div>
-
 </div>
 
 <div id="accountPage" class="card page hidden">
-
 <h2>كشف حساب</h2>
 
 <div class="grid2">
@@ -388,11 +182,9 @@ onclick="showPage('usersPage');loadPendingUsers()">
 </div>
 
 <div id="accountResult"></div>
-
 </div>
 
 <div id="siteCostsPage" class="card page hidden">
-
 <h2>📊 تكاليف المواقع</h2>
 
 <div id="siteCostsSummary"></div>
@@ -408,7 +200,6 @@ onclick="showPage('usersPage');loadPendingUsers()">
 <h3>تفاصيل الموقع</h3>
 
 <div id="siteCostsDetails"></div>
-
 </div>
 
 <div id="usersPage" class="card page hidden">
@@ -418,8 +209,8 @@ onclick="showPage('usersPage');loadPendingUsers()">
 
 </div>
 </div>
-<div id="invoiceModal" class="modal-bg">
 
+<div id="invoiceModal" class="modal-bg">
 <div class="modal">
 
 <div class="modal-header">
@@ -460,21 +251,9 @@ onclick="showPage('usersPage');loadPendingUsers()">
 <div class="calc-box">
 <div class="grid">
 <input id="invoiceTotal" readonly placeholder="الإجمالى العام">
-
-<input
-id="discountPercent"
-type="number"
-placeholder="نسبة الخصم %"
-oninput="calcInvoice()">
-
+<input id="discountPercent" type="number" placeholder="نسبة الخصم %" oninput="calcInvoice()">
 <input id="discountValue" readonly placeholder="قيمة الخصم">
-
-<input
-id="commercialTaxPercent"
-type="number"
-placeholder="ضريبة أ.ت.ص %"
-oninput="calcInvoice()">
-
+<input id="commercialTaxPercent" type="number" placeholder="ضريبة أ.ت.ص %" oninput="calcInvoice()">
 <input id="commercialTaxValue" readonly placeholder="قيمة أ.ت.ص">
 <input id="vatValue" readonly placeholder="ضريبة 14%">
 <input id="netTotal" readonly placeholder="الصافى">
@@ -482,20 +261,12 @@ oninput="calcInvoice()">
 </div>
 
 <br>
-
-<button
-class="green"
-onclick="saveInvoiceToAmount()">
-
-إدخال الفاتورة وترحيل الصافى
-
-</button>
+<button class="green" onclick="saveInvoiceToAmount()">إدخال الفاتورة وترحيل الصافى</button>
 
 </div>
 </div>
 
 <div id="transportModal" class="modal-bg">
-
 <div class="modal">
 
 <div class="modal-header">
@@ -504,63 +275,25 @@ onclick="saveInvoiceToAmount()">
 </div>
 
 <div class="grid">
-
 <input id="routeFrom" placeholder="من">
-
 <input id="routeTo" placeholder="إلى">
-
 <button onclick="calcDistance()">حساب المسافة</button>
-
-<input
-id="distanceKm"
-type="number"
-placeholder="المسافة كم"
-oninput="calcTransport()">
-
-<input
-id="ratePerKm"
-type="number"
-placeholder="القيمة لكل كم"
-oninput="calcTransport()">
-
-<input
-id="transportTotal"
-readonly
-placeholder="الإجمالى">
-
-<input
-id="manualTransportAmount"
-type="number"
-placeholder="أو المبلغ مباشرة">
-
+<input id="distanceKm" type="number" placeholder="المسافة كم" oninput="calcTransport()">
+<input id="ratePerKm" type="number" placeholder="القيمة لكل كم" oninput="calcTransport()">
+<input id="transportTotal" readonly placeholder="الإجمالى">
+<input id="manualTransportAmount" type="number" placeholder="أو المبلغ مباشرة">
 </div>
 
 <br>
-
-<button
-class="green"
-onclick="saveTransportToAmount()">
-
-إدخال وترحيل المبلغ
-
-</button>
+<button class="green" onclick="saveTransportToAmount()">إدخال وترحيل المبلغ</button>
 
 </div>
 </div>
 
 <script>
-
-const SUPABASE_URL =
-"https://qsfbbsnjwoltvppfmgvi.supabase.co";
-
-const SUPABASE_KEY =
-"sb_publishable_Nhl9BWQngYQKiz140tYYHg_Qe-Xa2wQ";
-
-const client =
-supabase.createClient(
-SUPABASE_URL,
-SUPABASE_KEY
-);
+const SUPABASE_URL = "https://qsfbbsnjwoltvppfmgvi.supabase.co";
+const SUPABASE_KEY = "sb_publishable_Nhl9BWQngYQKiz140tYYHg_Qe-Xa2wQ";
+const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let currentUser = null;
 let activeSettlementNo = null;
@@ -584,40 +317,23 @@ msg("");
 }
 
 async function sha256(text){
-
-const data =
-new TextEncoder().encode(text);
-
-const hash =
-await crypto.subtle.digest(
-"SHA-256",
-data
-);
-
-return Array
-.from(new Uint8Array(hash))
-.map(b=>b.toString(16).padStart(2,"0"))
-.join("");
+const data = new TextEncoder().encode(text);
+const hash = await crypto.subtle.digest("SHA-256", data);
+return Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,"0")).join("");
 }
+  async function login(){
 
-async function login(){
-
-const username =
-loginUser.value.trim();
-
-const password =
-loginPass.value.trim();
+const username = loginUser.value.trim();
+const password = loginPass.value.trim();
 
 if(!username || !password){
 msg("اكتب اسم المستخدم وكلمة المرور");
 return;
 }
 
-const passwordHash =
-await sha256(password);
+const passwordHash = await sha256(password);
 
-const {data,error} =
-await client
+const {data,error} = await client
 .from("app_users")
 .select("*")
 .eq("username",username)
@@ -635,33 +351,23 @@ return;
 }
 
 currentUser = data;
-
-localStorage.setItem(
-"taswyat_user",
-JSON.stringify(data)
-);
-
+localStorage.setItem("taswyat_user",JSON.stringify(data));
 openApp();
 }
 
 async function registerUser(){
 
-const username =
-regUser.value.trim();
-
-const password =
-regPass.value.trim();
+const username = regUser.value.trim();
+const password = regPass.value.trim();
 
 if(!username || !password){
 msg("اكتب اسم المستخدم وكلمة المرور");
 return;
 }
 
-const passwordHash =
-await sha256(password);
+const passwordHash = await sha256(password);
 
-const {error} =
-await client
+const {error} = await client
 .from("app_users")
 .insert({
 username,
@@ -675,11 +381,7 @@ msg("اسم المستخدم موجود بالفعل");
 return;
 }
 
-msg(
-"تم التسجيل - فى انتظار موافقة السوبر أدمن",
-"green"
-);
-
+msg("تم التسجيل - فى انتظار موافقة السوبر أدمن","green");
 showLogin();
 }
 
@@ -688,8 +390,7 @@ function openApp(){
 loginPage.style.display = "none";
 app.style.display = "block";
 
-currentUserText.innerHTML =
-"المستخدم : " + currentUser.username;
+currentUserText.innerHTML = "المستخدم : " + currentUser.username;
 
 if(currentUser.role === "super_admin"){
 usersBtn.classList.remove("hidden");
@@ -706,16 +407,14 @@ location.reload();
 
 window.onload = () => {
 
-const saved =
-localStorage.getItem("taswyat_user");
+const saved = localStorage.getItem("taswyat_user");
 
 if(saved){
 currentUser = JSON.parse(saved);
 openApp();
 }
 
-let today =
-new Date().toISOString().slice(0,10);
+let today = new Date().toISOString().slice(0,10);
 
 entryDate.value = today;
 lineDate.value = today;
@@ -726,60 +425,38 @@ buildInvoiceRows();
 
 function showPage(id){
 
-document
-.querySelectorAll(".page")
-.forEach(
-p=>p.classList.add("hidden")
-);
-
-document
-.getElementById(id)
-.classList.remove("hidden");
+document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));
+document.getElementById(id).classList.remove("hidden");
 }
-  async function createHeader(){
 
-const owner =
-ownerName.value.trim();
+async function createHeader(){
 
-const no =
-settlementNo.value.trim();
-
-const date =
-entryDate.value;
+const owner = ownerName.value.trim();
+const no = settlementNo.value.trim();
+const date = entryDate.value;
 
 if(!owner || !no || !date){
 alert("اكمل البيانات");
 return;
 }
 
-const {data:existing} =
-await client
+const {data:existing} = await client
 .from("settlement_headers")
 .select("*")
 .eq("settlement_no",no)
 .maybeSingle();
 
 if(existing){
-
-ownerName.value =
-existing.owner_name;
-
-entryDate.value =
-existing.entry_date;
-
+ownerName.value = existing.owner_name;
+entryDate.value = existing.entry_date;
 activeSettlementNo = no;
-
 lineSection.classList.remove("hidden");
-
 loadLines(no);
-
 alert("تم فتح التسوية الموجودة");
-
 return;
 }
 
-const {error} =
-await client
+const {error} = await client
 .from("settlement_headers")
 .insert({
 owner_name:owner,
@@ -794,9 +471,7 @@ return;
 }
 
 activeSettlementNo = no;
-
 lineSection.classList.remove("hidden");
-
 loadLines(no);
 }
 
@@ -818,19 +493,12 @@ alert("ادخل التسوية");
 return;
 }
 
-if(
-!lineDate.value ||
-!description.value ||
-!mainDirection.value ||
-!subDirection.value ||
-!amount.value
-){
+if(!lineDate.value || !description.value || !mainDirection.value || !subDirection.value || !amount.value){
 alert("اكمل البيانات");
 return;
 }
 
-const {error} =
-await client
+const {error} = await client
 .from("settlement_lines")
 .insert({
 settlement_no:activeSettlementNo,
@@ -860,24 +528,18 @@ loadLines(activeSettlementNo);
 
 async function loadLines(no){
 
-const {data} =
-await client
+const {data} = await client
 .from("settlement_lines")
 .select("*")
 .eq("settlement_no",no)
 .order("id");
 
-renderLines(
-data || [],
-linesArea,
-true
-);
+renderLines(data || [],linesArea,true);
 }
+  function renderLines(data,container,showActions){
 
-function renderLines(data,container,showActions){
-
-let html =
-`<table class="table">
+let html = `
+<table class="table">
 <tr>
 <th>التاريخ</th>
 <th>البيان</th>
@@ -892,13 +554,11 @@ let html =
 
 data.forEach(r=>{
 
-let sub =
-r.sub_direction;
+let sub = r.sub_direction;
 
 if(r.sub_direction === "خامات"){
-
-sub =
-`<button
+sub = `
+<button
 class="invoice-link"
 onclick="openInvoiceFromLine('${r.settlement_no}')">
 خامات
@@ -912,9 +572,8 @@ if(showActions){
 actions = "";
 
 if(r.status !== "approved"){
-
-actions +=
-`<button
+actions += `
+<button
 class="small orange"
 onclick="editLine(${r.id})">
 تعديل
@@ -924,17 +583,16 @@ onclick="editLine(${r.id})">
 if(currentUser.role === "super_admin"){
 
 if(r.status !== "approved"){
-
-actions +=
-`<button
+actions += `
+<button
 class="small green"
 onclick="approveLine(${r.id})">
 اعتماد
 </button> `;
 }
 
-actions +=
-`<button
+actions += `
+<button
 class="small red"
 onclick="deleteLine(${r.id})">
 حذف
@@ -942,8 +600,8 @@ onclick="deleteLine(${r.id})">
 }
 }
 
-html +=
-`<tr>
+html += `
+<tr>
 <td>${r.line_date}</td>
 <td>${r.description}</td>
 <td>${r.added_to || ""}</td>
@@ -973,9 +631,7 @@ return;
 
 await client
 .from("settlement_lines")
-.update({
-status:"approved"
-})
+.update({status:"approved"})
 .eq("id",id);
 
 loadLines(activeSettlementNo);
@@ -1002,8 +658,7 @@ loadLines(activeSettlementNo);
 
 async function editLine(id){
 
-const {data} =
-await client
+const {data} = await client
 .from("settlement_lines")
 .select("*")
 .eq("id",id)
@@ -1013,10 +668,7 @@ if(!data){
 return;
 }
 
-if(
-data.status === "approved" &&
-currentUser.role !== "super_admin"
-){
+if(data.status === "approved" && currentUser.role !== "super_admin"){
 alert("لا يمكن تعديل المعتمد");
 return;
 }
@@ -1039,25 +691,18 @@ loadLines(activeSettlementNo);
 
 async function searchSettlement(){
 
-const key =
-searchNo.value.trim();
+const key = searchNo.value.trim();
 
 if(!key){
 alert("اكتب الاسم أو الرقم");
 return;
 }
 
-const {data:headers} =
-await client
+const {data:headers} = await client
 .from("settlement_headers")
 .select("*")
-.or(
-`settlement_no.ilike.%${key}%,owner_name.ilike.%${key}%`
-)
-.order(
-"created_at",
-{ascending:false}
-);
+.or(`settlement_no.ilike.%${key}%,owner_name.ilike.%${key}%`)
+.order("created_at",{ascending:false});
 
 if(!headers || headers.length === 0){
 searchResult.innerHTML = "لا توجد نتائج";
@@ -1068,8 +713,8 @@ let html = "";
 
 for(const h of headers){
 
-html +=
-`<div class="card" style="margin-top:20px">
+html += `
+<div class="card" style="margin-top:20px">
 <h3>رقم التسوية : ${h.settlement_no}</h3>
 <p>صاحب التسوية : ${h.owner_name}</p>
 <p>تاريخ الإدخال : ${h.entry_date}</p>
@@ -1081,53 +726,51 @@ searchResult.innerHTML = html;
 
 for(const h of headers){
 
-const {data:lines} =
-await client
+const {data:lines} = await client
 .from("settlement_lines")
 .select("*")
 .eq("settlement_no",h.settlement_no)
 .eq("status","approved")
 .order("id");
 
-renderLines(
-lines || [],
-document.getElementById("r"+h.id),
-false
-);
+renderLines(lines || [],document.getElementById("r"+h.id),false);
 }
 }
-async function accountStatement(){
+  async function accountStatement(){
 
-const owner =
-accountOwner.value.trim();
+const owner = accountOwner.value.trim();
 
 if(!owner){
 alert("اكتب الاسم");
 return;
 }
 
-const {data:lines} =
-await client
+const {data:headers} = await client
+.from("settlement_headers")
+.select("*");
+
+const {data:lines} = await client
 .from("settlement_lines")
 .select("*")
 .eq("status","approved")
 .order("id");
 
-const {data:headers} =
-await client
-.from("settlement_headers")
-.select("*");
-
 let headerMap = {};
+let ownerSettlementNos = [];
 
 (headers || []).forEach(h=>{
 headerMap[h.settlement_no] = h.owner_name;
+
+if((h.owner_name || "").trim() === owner){
+ownerSettlementNos.push(h.settlement_no);
+}
 });
 
-let ownerLines =
-(lines || []).filter(l=>
-(l.added_to || "").trim() === owner
-);
+let ownerLines = (lines || []).filter(l=>{
+let addedToMatch = (l.added_to || "").trim() === owner;
+let ownerSettlementMatch = ownerSettlementNos.includes(l.settlement_no);
+return addedToMatch || ownerSettlementMatch;
+});
 
 let custody = 0;
 let expenses = 0;
@@ -1150,11 +793,9 @@ revenues += Number(l.amount);
 
 });
 
-let balance =
-custody + revenues - expenses;
+let balance = custody + revenues - expenses;
 
-accountResult.innerHTML =
-`
+accountResult.innerHTML = `
 <div class="summary">
 
 <div class="box">
@@ -1178,8 +819,10 @@ accountResult.innerHTML =
 
 <tr>
 <th>التاريخ</th>
+<th>رقم التسوية</th>
 <th>البيان</th>
 <th>وارد من</th>
+<th>مضاف إلى</th>
 <th>التوجيه العام</th>
 <th>التوجيه الفرعى</th>
 <th>الموقع</th>
@@ -1191,28 +834,15 @@ ${ownerLines.map(l=>`
 
 <tr>
 <td>${l.line_date}</td>
+<td>${l.settlement_no}</td>
 <td>${l.description}</td>
-
-<td>${
-(
-l.main_direction === "جارى العهدة" ||
-l.sub_direction === "عهدة"
-)
-? (headerMap[l.settlement_no] || "-")
-: "-"
-}</td>
-
+<td>${headerMap[l.settlement_no] || "-"}</td>
+<td>${l.added_to || ""}</td>
 <td>${l.main_direction}</td>
 <td>${l.sub_direction}</td>
 <td>${l.site || ""}</td>
 <td>${Number(l.amount).toLocaleString()}</td>
-
-<td>
-<span class="badge approved">
-${l.status}
-</span>
-</td>
-
+<td><span class="badge approved">${l.status}</span></td>
 </tr>
 
 `).join("")}
@@ -1223,8 +853,7 @@ ${l.status}
 
 async function loadPendingUsers(){
 
-const {data} =
-await client
+const {data} = await client
 .from("app_users")
 .select("*")
 .eq("status","pending");
@@ -1233,39 +862,29 @@ let html = "";
 
 (data || []).forEach(u=>{
 
-html +=
-`<div class="card" style="margin:10px 0">
-
+html += `
+<div class="card" style="margin:10px 0">
 <b>${u.username}</b>
-
 <br><br>
 
-<button
-class="green small"
-onclick="approveUser(${u.id})">
+<button class="green small" onclick="approveUser(${u.id})">
 Approve
 </button>
 
-<button
-class="red small"
-onclick="rejectUser(${u.id})">
+<button class="red small" onclick="rejectUser(${u.id})">
 Reject
 </button>
-
 </div>`;
 });
 
-pendingUsers.innerHTML =
-html || "لا توجد طلبات";
+pendingUsers.innerHTML = html || "لا توجد طلبات";
 }
 
 async function approveUser(id){
 
 await client
 .from("app_users")
-.update({
-status:"approved"
-})
+.update({status:"approved"})
 .eq("id",id);
 
 loadPendingUsers();
@@ -1275,9 +894,7 @@ async function rejectUser(id){
 
 await client
 .from("app_users")
-.update({
-status:"rejected"
-})
+.update({status:"rejected"})
 .eq("id",id);
 
 loadPendingUsers();
@@ -1290,8 +907,7 @@ alert("هذه الصفحة للسوبر أدمن فقط");
 return;
 }
 
-const {data:lines} =
-await client
+const {data:lines} = await client
 .from("settlement_lines")
 .select("*")
 .eq("status","approved")
@@ -1303,8 +919,7 @@ let sites = {};
 
 siteCostsData.forEach(l=>{
 
-let site =
-l.site || "بدون موقع";
+let site = l.site || "بدون موقع";
 
 if(!sites[site]){
 sites[site] = {
@@ -1323,10 +938,8 @@ sites[site].revenues += Number(l.amount);
 
 });
 
-let html =
-`
+let html = `
 <table class="table">
-
 <tr>
 <th>اسم الموقع</th>
 <th>إجمالى المصروفات</th>
@@ -1337,41 +950,28 @@ let html =
 
 Object.keys(sites).forEach(site=>{
 
-let exp =
-sites[site].expenses;
+let exp = sites[site].expenses;
+let rev = sites[site].revenues;
+let profit = rev - exp;
 
-let rev =
-sites[site].revenues;
-
-let profit =
-rev - exp;
-
-html +=
-`
+html += `
 <tr>
-
 <td>${site}</td>
 
 <td>
-<button
-class="invoice-link"
-onclick="showSiteDetails('${site}','مصروفات')">
+<button class="invoice-link" onclick="showSiteDetails('${site}','مصروفات')">
 ${exp.toLocaleString()}
 </button>
 </td>
 
 <td>
-<button
-class="invoice-link"
-onclick="showSiteDetails('${site}','ايرادات')">
+<button class="invoice-link" onclick="showSiteDetails('${site}','ايرادات')">
 ${rev.toLocaleString()}
 </button>
 </td>
 
 <td>${profit.toLocaleString()}</td>
-
-</tr>
-`;
+</tr>`;
 });
 
 html += "</table>";
@@ -1383,18 +983,15 @@ profitResult.innerHTML = "";
 
 function showSiteDetails(site,type){
 
-let details =
-siteCostsData.filter(l=>
+let details = siteCostsData.filter(l=>
 (l.site || "بدون موقع") === site &&
 l.main_direction === type
 );
 
-let html =
-`
+let html = `
 <h3>تفاصيل ${type} - ${site}</h3>
 
 <table class="table">
-
 <tr>
 <th>التاريخ</th>
 <th>رقم التسوية</th>
@@ -1406,16 +1003,14 @@ let html =
 
 details.forEach(l=>{
 
-html +=
-`
+html += `
 <tr>
 <td>${l.line_date}</td>
 <td>${l.settlement_no}</td>
 <td>${l.description}</td>
 <td>${l.sub_direction}</td>
 <td>${Number(l.amount).toLocaleString()}</td>
-</tr>
-`;
+</tr>`;
 });
 
 html += "</table>";
@@ -1440,13 +1035,10 @@ totalRevenues += Number(l.amount);
 
 });
 
-let profit =
-totalRevenues - totalExpenses;
+let profit = totalRevenues - totalExpenses;
 
-profitResult.innerHTML =
-`
+profitResult.innerHTML = `
 <br>
-
 <div class="summary">
 
 <div class="box">
@@ -1464,8 +1056,7 @@ profitResult.innerHTML =
 <h2>${profit.toLocaleString()}</h2>
 </div>
 
-</div>
-`;
+</div>`;
 }
   function openInvoice(){
 invoiceModal.style.display = "flex";
@@ -1481,31 +1072,15 @@ let html = "";
 
 for(let i=1;i<=10;i++){
 
-html +=
-`
+html += `
 <tr>
 <td>${i}</td>
 <td><input class="inv-desc"></td>
 <td><input class="inv-unit"></td>
-<td>
-<input
-type="number"
-class="inv-qty"
-oninput="calcInvoice()">
-</td>
-<td>
-<input
-type="number"
-class="inv-price"
-oninput="calcInvoice()">
-</td>
-<td>
-<input
-class="inv-total"
-readonly>
-</td>
-</tr>
-`;
+<td><input type="number" class="inv-qty" oninput="calcInvoice()"></td>
+<td><input type="number" class="inv-price" oninput="calcInvoice()"></td>
+<td><input class="inv-total" readonly></td>
+</tr>`;
 }
 
 invoiceItems.innerHTML = html;
@@ -1513,89 +1088,54 @@ invoiceItems.innerHTML = html;
 
 function calcInvoice(){
 
-let rows =
-document.querySelectorAll("#invoiceItems tr");
-
+let rows = document.querySelectorAll("#invoiceItems tr");
 let total = 0;
 
 rows.forEach(r=>{
 
-let q =
-Number(
-r.querySelector(".inv-qty").value || 0
-);
+let q = Number(r.querySelector(".inv-qty").value || 0);
+let p = Number(r.querySelector(".inv-price").value || 0);
+let t = q * p;
 
-let p =
-Number(
-r.querySelector(".inv-price").value || 0
-);
-
-let t =
-q * p;
-
-r.querySelector(".inv-total").value =
-t.toFixed(2);
+r.querySelector(".inv-total").value = t.toFixed(2);
 
 total += t;
 });
 
-let discP =
-Number(discountPercent.value || 0);
+let discP = Number(discountPercent.value || 0);
+let discV = total * discP / 100;
+let afterDisc = total - discV;
 
-let discV =
-total * discP / 100;
+let commP = Number(commercialTaxPercent.value || 0);
+let commV = afterDisc * commP / 100;
 
-let afterDisc =
-total - discV;
+let taxable = afterDisc - commV;
 
-let commP =
-Number(commercialTaxPercent.value || 0);
-
-let commV =
-afterDisc * commP / 100;
-
-let taxable =
-afterDisc - commV;
-
-let vat =
-invType.value === "ضريبية"
+let vat = invType.value === "ضريبية"
 ? taxable * 0.14
 : 0;
 
-let net =
-taxable + vat;
+let net = taxable + vat;
 
-invoiceTotal.value =
-total.toFixed(2);
-
-discountValue.value =
-discV.toFixed(2);
-
-commercialTaxValue.value =
-commV.toFixed(2);
-
-vatValue.value =
-vat.toFixed(2);
-
-netTotal.value =
-net.toFixed(2);
+invoiceTotal.value = total.toFixed(2);
+discountValue.value = discV.toFixed(2);
+commercialTaxValue.value = commV.toFixed(2);
+vatValue.value = vat.toFixed(2);
+netTotal.value = net.toFixed(2);
 }
 
 async function saveInvoiceToAmount(){
 
 calcInvoice();
 
-amount.value =
-Number(netTotal.value || 0).toFixed(2);
+amount.value = Number(netTotal.value || 0).toFixed(2);
 
 if(!description.value){
-description.value =
-"فاتورة خامات رقم " + (invNo.value || "");
+description.value = "فاتورة خامات رقم " + (invNo.value || "");
 }
 
 if(!site.value){
-site.value =
-invSite.value || "";
+site.value = invSite.value || "";
 }
 
 if(activeSettlementNo){
@@ -1620,8 +1160,7 @@ net_total:Number(netTotal.value || 0),
 created_by:currentUser.username
 };
 
-const {data,error} =
-await client
+const {data,error} = await client
 .from("material_invoices")
 .insert(inv)
 .select()
@@ -1631,28 +1170,13 @@ if(!error && data){
 
 let items = [];
 
-document
-.querySelectorAll("#invoiceItems tr")
-.forEach((r,i)=>{
+document.querySelectorAll("#invoiceItems tr").forEach((r,i)=>{
 
-let desc =
-r.querySelector(".inv-desc").value;
-
-let unit =
-r.querySelector(".inv-unit").value;
-
-let qty =
-Number(
-r.querySelector(".inv-qty").value || 0
-);
-
-let price =
-Number(
-r.querySelector(".inv-price").value || 0
-);
-
-let total =
-qty * price;
+let desc = r.querySelector(".inv-desc").value;
+let unit = r.querySelector(".inv-unit").value;
+let qty = Number(r.querySelector(".inv-qty").value || 0);
+let price = Number(r.querySelector(".inv-price").value || 0);
+let total = qty * price;
 
 if(desc || qty || price){
 
@@ -1681,8 +1205,7 @@ closeInvoice();
 
 async function openInvoiceFromLine(settlementNo){
 
-const {data:inv} =
-await client
+const {data:inv} = await client
 .from("material_invoices")
 .select("*")
 .eq("settlement_no",settlementNo)
@@ -1697,53 +1220,24 @@ return;
 
 openInvoice();
 
-invDate.value =
-inv.invoice_date || "";
+invDate.value = inv.invoice_date || "";
+invSite.value = inv.site || "";
+invType.value = inv.invoice_type || "ضريبية";
+invNo.value = inv.invoice_no || "";
+invBuyer.value = inv.buyer || "";
+sellerName.value = inv.seller_name || "";
+sellerPhone.value = inv.seller_phone || "";
+sellerAddress.value = inv.seller_address || "";
 
-invSite.value =
-inv.site || "";
+invoiceTotal.value = inv.total_before_discount || 0;
+discountPercent.value = inv.discount_percent || 0;
+discountValue.value = inv.discount_value || 0;
+commercialTaxPercent.value = inv.commercial_tax_percent || 0;
+commercialTaxValue.value = inv.commercial_tax_value || 0;
+vatValue.value = inv.vat_value || 0;
+netTotal.value = inv.net_total || 0;
 
-invType.value =
-inv.invoice_type || "ضريبية";
-
-invNo.value =
-inv.invoice_no || "";
-
-invBuyer.value =
-inv.buyer || "";
-
-sellerName.value =
-inv.seller_name || "";
-
-sellerPhone.value =
-inv.seller_phone || "";
-
-sellerAddress.value =
-inv.seller_address || "";
-
-invoiceTotal.value =
-inv.total_before_discount || 0;
-
-discountPercent.value =
-inv.discount_percent || 0;
-
-discountValue.value =
-inv.discount_value || 0;
-
-commercialTaxPercent.value =
-inv.commercial_tax_percent || 0;
-
-commercialTaxValue.value =
-inv.commercial_tax_value || 0;
-
-vatValue.value =
-inv.vat_value || 0;
-
-netTotal.value =
-inv.net_total || 0;
-
-const {data:items} =
-await client
+const {data:items} = await client
 .from("material_invoice_items")
 .select("*")
 .eq("invoice_id",inv.id)
@@ -1753,25 +1247,14 @@ buildInvoiceRows();
 
 (items || []).forEach((it,idx)=>{
 
-let row =
-document.querySelectorAll("#invoiceItems tr")[idx];
+let row = document.querySelectorAll("#invoiceItems tr")[idx];
 
 if(row){
-
-row.querySelector(".inv-desc").value =
-it.description || "";
-
-row.querySelector(".inv-unit").value =
-it.unit || "";
-
-row.querySelector(".inv-qty").value =
-it.quantity || 0;
-
-row.querySelector(".inv-price").value =
-it.unit_price || 0;
-
-row.querySelector(".inv-total").value =
-it.total || 0;
+row.querySelector(".inv-desc").value = it.description || "";
+row.querySelector(".inv-unit").value = it.unit || "";
+row.querySelector(".inv-qty").value = it.quantity || 0;
+row.querySelector(".inv-price").value = it.unit_price || 0;
+row.querySelector(".inv-total").value = it.total || 0;
 }
 });
 }
@@ -1790,11 +1273,8 @@ let url =
 "https://nominatim.openstreetmap.org/search?format=json&q="
 + encodeURIComponent(address);
 
-let res =
-await fetch(url);
-
-let data =
-await res.json();
+let res = await fetch(url);
+let data = await res.json();
 
 if(!data || !data.length){
 return null;
@@ -1810,17 +1290,11 @@ function haversine(a,b){
 
 const R = 6371;
 
-let dLat =
-(b.lat-a.lat) * Math.PI / 180;
+let dLat = (b.lat-a.lat) * Math.PI / 180;
+let dLon = (b.lon-a.lon) * Math.PI / 180;
 
-let dLon =
-(b.lon-a.lon) * Math.PI / 180;
-
-let lat1 =
-a.lat * Math.PI / 180;
-
-let lat2 =
-b.lat * Math.PI / 180;
+let lat1 = a.lat * Math.PI / 180;
+let lat2 = b.lat * Math.PI / 180;
 
 let x =
 Math.sin(dLat/2)**2 +
@@ -1840,19 +1314,15 @@ return;
 
 try{
 
-let a =
-await getCoords(routeFrom.value);
-
-let b =
-await getCoords(routeTo.value);
+let a = await getCoords(routeFrom.value);
+let b = await getCoords(routeTo.value);
 
 if(!a || !b){
 alert("لم يتم حساب المسافة. ادخل المسافة يدوياً.");
 return;
 }
 
-distanceKm.value =
-haversine(a,b).toFixed(2);
+distanceKm.value = haversine(a,b).toFixed(2);
 
 calcTransport();
 
@@ -1864,38 +1334,27 @@ alert("تعذر حساب المسافة. ادخل المسافة يدوياً.")
 
 function calcTransport(){
 
-let d =
-Number(distanceKm.value || 0);
+let d = Number(distanceKm.value || 0);
+let r = Number(ratePerKm.value || 0);
 
-let r =
-Number(ratePerKm.value || 0);
-
-transportTotal.value =
-(d*r).toFixed(2);
+transportTotal.value = (d*r).toFixed(2);
 }
 
 async function saveTransportToAmount(){
 
 calcTransport();
 
-let finalAmount =
-Number(manualTransportAmount.value || 0);
+let finalAmount = Number(manualTransportAmount.value || 0);
 
 if(!finalAmount){
-finalAmount =
-Number(transportTotal.value || 0);
+finalAmount = Number(transportTotal.value || 0);
 }
 
-amount.value =
-finalAmount.toFixed(2);
+amount.value = finalAmount.toFixed(2);
 
 if(!description.value){
-
 description.value =
-"انتقالات من " +
-routeFrom.value +
-" إلى " +
-routeTo.value;
+"انتقالات من " + routeFrom.value + " إلى " + routeTo.value;
 }
 
 if(activeSettlementNo){
