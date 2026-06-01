@@ -11,8 +11,8 @@ body{margin:0;font-family:Arial;background:#eef2f7;color:#1f2937}
 .card{background:white;border-radius:18px;box-shadow:0 10px 30px rgba(0,0,0,.12);padding:28px}
 .login-card{width:380px;text-align:center}
 h1,h2,h3{margin-top:0;color:#0f172a}
-input,select,button{padding:12px;border-radius:10px;border:1px solid #cbd5e1;font-size:15px;box-sizing:border-box}
-input,select{width:100%;background:white}
+input,select,button,textarea{padding:12px;border-radius:10px;border:1px solid #cbd5e1;font-size:15px;box-sizing:border-box}
+input,select,textarea{width:100%;background:white}
 button{border:none;background:#0a6cff;color:white;font-weight:bold;cursor:pointer}
 button:hover{background:#0058d4}
 button.gray{background:#475569}
@@ -39,6 +39,10 @@ button.small{padding:7px 12px;font-size:13px}
 .approved{background:#d1e7dd;color:#0f5132}
 .summary{display:grid;grid-template-columns:repeat(3,1fr);gap:15px}
 .summary .box{background:white;border-radius:15px;padding:20px;box-shadow:0 4px 16px rgba(0,0,0,.08)}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;z-index:999}
+.modal{background:white;width:92%;max-width:1200px;max-height:90vh;overflow:auto;border-radius:18px;padding:25px}
+.modal-header{display:flex;justify-content:space-between;align-items:center}
+.calc-box{background:#f8fafc;border:1px solid #e5e7eb;border-radius:14px;padding:15px;margin-top:15px}
 @media(max-width:900px){.sidebar{position:static;width:auto}.main{margin:0}.grid,.grid2,.summary{grid-template-columns:1fr}}
 </style>
 </head>
@@ -107,13 +111,15 @@ button.small{padding:7px 12px;font-size:13px}
 <input id="lineDate" type="date">
 <input id="description" placeholder="البيان">
 <input id="addedTo" placeholder="مضاف إلى">
+
 <select id="mainDirection">
 <option value="">التوجيه العام</option>
 <option>مصروفات</option>
 <option>ايرادات</option>
 <option>تمويل</option>
 </select>
-<select id="subDirection">
+
+<select id="subDirection" onchange="handleSubDirection()">
 <option value="">التوجيه الفرعى</option>
 <option>خامات</option>
 <option>انتقالات</option>
@@ -125,6 +131,7 @@ button.small{padding:7px 12px;font-size:13px}
 <option>مصروفات المكتب</option>
 <option>اجرة عمال يومية</option>
 </select>
+
 <input id="site" placeholder="الموقع">
 <input id="amount" type="number" placeholder="المبلغ">
 </div>
@@ -157,6 +164,75 @@ button.small{padding:7px 12px;font-size:13px}
 <div id="pendingUsers"></div>
 </div>
 
+</div>
+</div>
+
+<div id="invoiceModal" class="modal-bg">
+<div class="modal">
+<div class="modal-header">
+<h2>فاتورة خامات</h2>
+<button class="red small" onclick="closeInvoice()">إغلاق</button>
+</div>
+
+<div class="grid">
+<input id="invDate" type="date">
+<input id="invSite" placeholder="الموقع">
+<select id="invType" onchange="calcInvoice()">
+<option>ضريبية</option>
+<option>بدون ضريبة</option>
+</select>
+<input id="invNo" placeholder="رقم الفاتورة">
+<input id="invBuyer" placeholder="المشترى">
+<input id="sellerName" placeholder="اسم البائع">
+<input id="sellerPhone" placeholder="رقم تليفون البائع">
+<input id="sellerAddress" placeholder="عنوان البائع">
+</div>
+
+<table class="table" id="invoiceItemsTable">
+<thead>
+<tr>
+<th>م</th><th>البيان</th><th>الوحدة</th><th>الكمية</th><th>سعر الوحدة</th><th>الإجمالى</th>
+</tr>
+</thead>
+<tbody id="invoiceItems"></tbody>
+</table>
+
+<div class="calc-box">
+<div class="grid">
+<input id="invoiceTotal" readonly placeholder="الإجمالي العام">
+<input id="discountPercent" type="number" placeholder="نسبة الخصم %" oninput="calcInvoice()">
+<input id="discountValue" readonly placeholder="قيمة الخصم">
+<input id="commercialTaxPercent" type="number" placeholder="ضريبة أ.ت.ص %" oninput="calcInvoice()">
+<input id="commercialTaxValue" readonly placeholder="قيمة ضريبة أ.ت.ص">
+<input id="vatValue" readonly placeholder="ضريبة القيمة المضافة 14%">
+<input id="netTotal" readonly placeholder="الصافي">
+</div>
+</div>
+
+<br>
+<button class="green" onclick="saveInvoiceToAmount()">إدخال الفاتورة وترحيل الصافي للمبلغ</button>
+</div>
+</div>
+
+<div id="transportModal" class="modal-bg">
+<div class="modal">
+<div class="modal-header">
+<h2>انتقالات / خط سير</h2>
+<button class="red small" onclick="closeTransport()">إغلاق</button>
+</div>
+
+<div class="grid">
+<input id="routeFrom" placeholder="من">
+<input id="routeTo" placeholder="إلى">
+<button onclick="calcDistance()">حساب المسافة</button>
+<input id="distanceKm" type="number" placeholder="المسافة كم" oninput="calcTransport()">
+<input id="ratePerKm" type="number" placeholder="القيمة لكل كم" oninput="calcTransport()">
+<input id="transportTotal" readonly placeholder="الإجمالي المحسوب">
+<input id="manualTransportAmount" type="number" placeholder="أو أدخل المبلغ مباشرة">
+</div>
+
+<br>
+<button class="green" onclick="saveTransportToAmount()">إدخال وترحيل المبلغ</button>
 </div>
 </div>
 
@@ -217,6 +293,8 @@ const saved=localStorage.getItem("taswyat_user");
 if(saved){currentUser=JSON.parse(saved);openApp()}
 entryDate.value=new Date().toISOString().slice(0,10);
 lineDate.value=new Date().toISOString().slice(0,10);
+invDate.value=new Date().toISOString().slice(0,10);
+buildInvoiceRows();
 }
 
 function showPage(id){
@@ -239,6 +317,11 @@ if(error){alert("رقم التسوية موجود أو يوجد خطأ");return}
 activeSettlementNo=no;
 lineSection.classList.remove("hidden");
 loadLines(no);
+}
+
+function handleSubDirection(){
+if(subDirection.value==="خامات"){openInvoice()}
+if(subDirection.value==="انتقالات"){openTransport()}
 }
 
 async function addLine(){
@@ -362,6 +445,139 @@ pendingUsers.innerHTML=html||"لا توجد طلبات";
 
 async function approveUser(id){await client.from("app_users").update({status:"approved"}).eq("id",id);loadPendingUsers()}
 async function rejectUser(id){await client.from("app_users").update({status:"rejected"}).eq("id",id);loadPendingUsers()}
+
+function openInvoice(){invoiceModal.style.display="flex"}
+function closeInvoice(){invoiceModal.style.display="none"}
+
+function buildInvoiceRows(){
+let html="";
+for(let i=1;i<=10;i++){
+html+=`<tr>
+<td>${i}</td>
+<td><input class="inv-desc"></td>
+<td><input class="inv-unit"></td>
+<td><input type="number" class="inv-qty" oninput="calcInvoice()"></td>
+<td><input type="number" class="inv-price" oninput="calcInvoice()"></td>
+<td><input class="inv-total" readonly></td>
+</tr>`;
+}
+invoiceItems.innerHTML=html;
+}
+
+function calcInvoice(){
+let rows=document.querySelectorAll("#invoiceItems tr");
+let total=0;
+rows.forEach(r=>{
+let q=Number(r.querySelector(".inv-qty").value||0);
+let p=Number(r.querySelector(".inv-price").value||0);
+let t=q*p;
+r.querySelector(".inv-total").value=t.toFixed(2);
+total+=t;
+});
+let discP=Number(discountPercent.value||0);
+let discV=total*discP/100;
+let afterDisc=total-discV;
+let commP=Number(commercialTaxPercent.value||0);
+let commV=afterDisc*commP/100;
+let taxable=afterDisc-commV;
+let vat=invType.value==="ضريبية"?taxable*0.14:0;
+let net=taxable+vat;
+
+invoiceTotal.value=total.toFixed(2);
+discountValue.value=discV.toFixed(2);
+commercialTaxValue.value=commV.toFixed(2);
+vatValue.value=vat.toFixed(2);
+netTotal.value=net.toFixed(2);
+}
+
+async function saveInvoiceToAmount(){
+calcInvoice();
+amount.value=Number(netTotal.value||0).toFixed(2);
+if(!description.value) description.value="فاتورة خامات رقم " + (invNo.value||"");
+if(!site.value) site.value=invSite.value||"";
+
+if(activeSettlementNo){
+const inv={settlement_no:activeSettlementNo,invoice_date:invDate.value,site:invSite.value,invoice_type:invType.value,invoice_no:invNo.value,buyer:invBuyer.value,seller_name:sellerName.value,seller_phone:sellerPhone.value,seller_address:sellerAddress.value,total_before_discount:Number(invoiceTotal.value||0),discount_percent:Number(discountPercent.value||0),discount_value:Number(discountValue.value||0),commercial_tax_percent:Number(commercialTaxPercent.value||0),commercial_tax_value:Number(commercialTaxValue.value||0),vat_value:Number(vatValue.value||0),net_total:Number(netTotal.value||0),created_by:currentUser.username};
+const {data,error}=await client.from("material_invoices").insert(inv).select().single();
+if(!error&&data){
+let items=[];
+document.querySelectorAll("#invoiceItems tr").forEach((r,i)=>{
+let desc=r.querySelector(".inv-desc").value;
+let unit=r.querySelector(".inv-unit").value;
+let qty=Number(r.querySelector(".inv-qty").value||0);
+let price=Number(r.querySelector(".inv-price").value||0);
+let total=qty*price;
+if(desc||qty||price){
+items.push({invoice_id:data.id,serial_no:i+1,description:desc,unit,quantity:qty,unit_price:price,total});
+}
+});
+if(items.length) await client.from("material_invoice_items").insert(items);
+}
+}
+
+closeInvoice();
+}
+
+function openTransport(){transportModal.style.display="flex"}
+function closeTransport(){transportModal.style.display="none"}
+
+async function getCoords(address){
+let url="https://nominatim.openstreetmap.org/search?format=json&q="+encodeURIComponent(address);
+let res=await fetch(url);
+let data=await res.json();
+if(!data||!data.length) return null;
+return {lat:Number(data[0].lat),lon:Number(data[0].lon)};
+}
+
+function haversine(a,b){
+const R=6371;
+let dLat=(b.lat-a.lat)*Math.PI/180;
+let dLon=(b.lon-a.lon)*Math.PI/180;
+let lat1=a.lat*Math.PI/180;
+let lat2=b.lat*Math.PI/180;
+let x=Math.sin(dLat/2)**2+Math.sin(dLon/2)**2*Math.cos(lat1)*Math.cos(lat2);
+return 2*R*Math.asin(Math.sqrt(x));
+}
+
+async function calcDistance(){
+if(!routeFrom.value||!routeTo.value){alert("اكتب من وإلى");return}
+try{
+let a=await getCoords(routeFrom.value);
+let b=await getCoords(routeTo.value);
+if(!a||!b){alert("لم يتم حساب المسافة. ادخل المسافة يدوياً.");return}
+distanceKm.value=haversine(a,b).toFixed(2);
+calcTransport();
+}catch(e){alert("تعذر حساب المسافة. ادخل المسافة يدوياً.")}
+}
+
+function calcTransport(){
+let d=Number(distanceKm.value||0);
+let r=Number(ratePerKm.value||0);
+transportTotal.value=(d*r).toFixed(2);
+}
+
+async function saveTransportToAmount(){
+calcTransport();
+let finalAmount=Number(manualTransportAmount.value||0);
+if(!finalAmount) finalAmount=Number(transportTotal.value||0);
+amount.value=finalAmount.toFixed(2);
+if(!description.value) description.value="انتقالات من " + routeFrom.value + " إلى " + routeTo.value;
+
+if(activeSettlementNo){
+await client.from("transport_routes").insert({
+settlement_no:activeSettlementNo,
+route_from:routeFrom.value,
+route_to:routeTo.value,
+distance_km:Number(distanceKm.value||0),
+rate_per_km:Number(ratePerKm.value||0),
+manual_amount:Number(manualTransportAmount.value||0),
+total_amount:finalAmount,
+created_by:currentUser.username
+});
+}
+
+closeTransport();
+}
 </script>
 
 </body>
