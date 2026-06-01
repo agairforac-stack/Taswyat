@@ -11,15 +11,15 @@ body{margin:0;font-family:Arial;background:#eef2f7;color:#1f2937}
 .card{background:white;border-radius:18px;box-shadow:0 10px 30px rgba(0,0,0,.12);padding:28px}
 .login-card{width:390px;text-align:center}
 h1,h2,h3{margin-top:0;color:#0f172a}
-input,select,button,textarea{padding:12px;border-radius:10px;border:1px solid #cbd5e1;font-size:15px;box-sizing:border-box}
+input,select,button,textarea{padding:10px;border-radius:8px;border:1px solid #cbd5e1;font-size:14px;box-sizing:border-box}
 input,select,textarea{width:100%;background:white}
 button{border:none;background:#0a6cff;color:white;font-weight:bold;cursor:pointer}
 button:hover{background:#0058d4}
-button.gray{background:#475569}
 button.green{background:#198754}
 button.red{background:#dc3545}
 button.orange{background:#f59e0b}
-button.small{padding:7px 12px;font-size:13px}
+button.gray{background:#475569}
+button.small{padding:6px 10px;font-size:12px}
 .link{color:#0a6cff;cursor:pointer;margin-top:12px}
 .msg{font-weight:bold;margin-top:12px}
 .hidden{display:none!important}
@@ -31,7 +31,7 @@ button.small{padding:7px 12px;font-size:13px}
 .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
 .grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
 .table{width:100%;border-collapse:collapse;margin-top:15px;background:white}
-.table th,.table td{border:1px solid #e5e7eb;padding:10px;text-align:center}
+.table th,.table td{border:1px solid #e5e7eb;padding:8px;text-align:center}
 .table th{background:#f8fafc}
 .badge{padding:4px 10px;border-radius:20px;font-size:13px;font-weight:bold}
 .pending{background:#fff3cd;color:#856404}
@@ -39,10 +39,25 @@ button.small{padding:7px 12px;font-size:13px}
 .summary{display:grid;grid-template-columns:repeat(3,1fr);gap:15px}
 .summary .box{background:white;border-radius:15px;padding:20px;box-shadow:0 4px 16px rgba(0,0,0,.08)}
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;z-index:999}
-.modal{background:white;width:94%;max-width:1250px;max-height:90vh;overflow:auto;border-radius:18px;padding:25px}
+.modal{background:white;width:96%;max-width:1250px;max-height:92vh;overflow:auto;border-radius:10px;padding:18px}
 .modal-header{display:flex;justify-content:space-between;align-items:center}
-.calc-box{background:#f8fafc;border:1px solid #e5e7eb;border-radius:14px;padding:15px;margin-top:15px}
 .invoice-link{background:#0a6cff;color:white;border:none;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:13px}
+
+/* invoice design */
+.invoice-box{border:1px solid #000;background:white;color:#000;font-size:14px}
+.invoice-top{display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:1px solid #000}
+.invoice-top div{border-left:1px solid #000;padding:6px;min-height:34px}
+.invoice-top div:last-child{border-left:none}
+.invoice-title{font-weight:bold;text-align:center;background:#f8fafc}
+.invoice-seller{display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:1px solid #000}
+.invoice-seller div{border-left:1px solid #000;padding:6px}
+.invoice-seller div:last-child{border-left:none}
+.invoice-table{width:100%;border-collapse:collapse}
+.invoice-table th,.invoice-table td{border:1px solid #000;padding:4px;text-align:center}
+.invoice-table input{border:none;border-radius:0;padding:5px}
+.invoice-summary{width:100%;border-collapse:collapse}
+.invoice-summary td{border:1px solid #000;padding:6px;text-align:center}
+.invoice-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:15px}
 
 @media(max-width:900px){
 .sidebar{position:static;width:auto}
@@ -186,19 +201,12 @@ button.small{padding:7px 12px;font-size:13px}
 
 <div id="siteCostsPage" class="card page hidden">
 <h2>📊 تكاليف المواقع</h2>
-
 <div id="siteCostsSummary"></div>
-
 <br>
-
 <button class="green" onclick="calculateProfit()">حساب الأرباح</button>
-
 <div id="profitResult"></div>
-
 <hr>
-
 <h3>تفاصيل الموقع</h3>
-
 <div id="siteCostsDetails"></div>
 </div>
 
@@ -218,23 +226,63 @@ button.small{padding:7px 12px;font-size:13px}
 <button class="red small" onclick="closeInvoice()">إغلاق</button>
 </div>
 
-<div class="grid">
-<input id="invDate" type="date">
-<input id="invSite" placeholder="الموقع">
+<div class="invoice-box">
 
+<div class="invoice-top">
+<div>
+<label>المشترى</label>
+<input id="invBuyer" placeholder="المشترى">
+</div>
+
+<div>
+<label>التاريخ</label>
+<input id="invDate" type="date">
+</div>
+
+<div>
+<label>الموقع</label>
+<input id="invSite" placeholder="الموقع">
+</div>
+</div>
+
+<div class="invoice-top">
+<div>
+<label>البائع</label>
+<input id="sellerName" placeholder="البائع">
+</div>
+
+<div>
+<label>رقم الفاتورة</label>
+<input id="invNo" placeholder="رقم الفاتورة">
+</div>
+
+<div>
+<label>نوع الفاتورة</label>
 <select id="invType" onchange="calcInvoice()">
 <option>ضريبية</option>
 <option>بدون ضريبة</option>
 </select>
-
-<input id="invNo" placeholder="رقم الفاتورة">
-<input id="invBuyer" placeholder="المشترى">
-<input id="sellerName" placeholder="اسم البائع">
-<input id="sellerPhone" placeholder="رقم التليفون">
-<input id="sellerAddress" placeholder="العنوان">
+</div>
 </div>
 
-<table class="table">
+<div class="invoice-seller">
+<div>
+<label>رقم تليفون البائع</label>
+<input id="sellerPhone" placeholder="رقم تليفون البائع">
+</div>
+
+<div>
+<label>عنوان البائع</label>
+<input id="sellerAddress" placeholder="عنوان البائع">
+</div>
+
+<div>
+<label>بيانات إضافية</label>
+<input id="invoiceNotes" placeholder="بيانات إضافية">
+</div>
+</div>
+
+<table class="invoice-table">
 <thead>
 <tr>
 <th>م</th>
@@ -248,20 +296,45 @@ button.small{padding:7px 12px;font-size:13px}
 <tbody id="invoiceItems"></tbody>
 </table>
 
-<div class="calc-box">
-<div class="grid">
-<input id="invoiceTotal" readonly placeholder="الإجمالى العام">
-<input id="discountPercent" type="number" placeholder="نسبة الخصم %" oninput="calcInvoice()">
-<input id="discountValue" readonly placeholder="قيمة الخصم">
-<input id="commercialTaxPercent" type="number" placeholder="ضريبة أ.ت.ص %" oninput="calcInvoice()">
-<input id="commercialTaxValue" readonly placeholder="قيمة أ.ت.ص">
-<input id="vatValue" readonly placeholder="ضريبة 14%">
-<input id="netTotal" readonly placeholder="الصافى">
-</div>
+<table class="invoice-summary">
+<tr>
+<td colspan="4">الإجمالى</td>
+<td colspan="2"><input id="invoiceTotal" readonly></td>
+</tr>
+
+<tr>
+<td colspan="3">نسبة الخصم</td>
+<td><input id="discountPercent" type="number" oninput="calcInvoice()"> %</td>
+<td>قيمة الخصم</td>
+<td><input id="discountValue" readonly></td>
+</tr>
+
+<tr>
+<td colspan="3">ضريبة القيمة المضافة</td>
+<td>14%</td>
+<td>قيمة الضريبة</td>
+<td><input id="vatValue" readonly></td>
+</tr>
+
+<tr>
+<td colspan="3">الأرباح التجارية والصناعية</td>
+<td><input id="commercialTaxPercent" type="number" oninput="calcInvoice()"> %</td>
+<td>قيمة أ.ت.ص</td>
+<td><input id="commercialTaxValue" readonly></td>
+</tr>
+
+<tr>
+<td colspan="4">الصافى</td>
+<td colspan="2"><input id="netTotal" readonly></td>
+</tr>
+</table>
+
 </div>
 
-<br>
-<button class="green" onclick="saveInvoiceToAmount()">إدخال الفاتورة وترحيل الصافى</button>
+<div class="invoice-actions">
+<button class="green" onclick="saveInvoiceToAmount()">حفظ الفاتورة وترحيل الصافى</button>
+<button id="deleteInvoiceBtn" class="red hidden" onclick="deleteCurrentInvoice()">حذف الفاتورة</button>
+</div>
 
 </div>
 </div>
@@ -298,8 +371,8 @@ const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let currentUser = null;
 let activeSettlementNo = null;
 let siteCostsData = [];
-
-function msg(t,c="red"){
+let currentInvoiceId = null;
+  function msg(t,c="red"){
 loginMsg.innerHTML = t;
 loginMsg.style.color = c;
 }
@@ -321,7 +394,8 @@ const data = new TextEncoder().encode(text);
 const hash = await crypto.subtle.digest("SHA-256", data);
 return Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,"0")).join("");
 }
-  async function login(){
+
+async function login(){
 
 const username = loginUser.value.trim();
 const password = loginPass.value.trim();
@@ -476,11 +550,9 @@ loadLines(no);
 }
 
 function handleSubDirection(){
-
 if(subDirection.value === "خامات"){
 openInvoice();
 }
-
 if(subDirection.value === "انتقالات"){
 openTransport();
 }
@@ -778,10 +850,7 @@ let revenues = 0;
 
 ownerLines.forEach(l=>{
 
-if(
-l.main_direction === "جارى العهدة" ||
-l.sub_direction === "عهدة"
-){
+if(l.main_direction === "جارى العهدة" || l.sub_direction === "عهدة"){
 custody += Number(l.amount);
 
 }else if(l.main_direction === "مصروفات"){
@@ -1059,11 +1128,37 @@ profitResult.innerHTML = `
 </div>`;
 }
   function openInvoice(){
+currentInvoiceId = null;
+clearInvoiceForm();
+deleteInvoiceBtn.classList.add("hidden");
 invoiceModal.style.display = "flex";
 }
 
 function closeInvoice(){
 invoiceModal.style.display = "none";
+}
+
+function clearInvoiceForm(){
+
+invDate.value = new Date().toISOString().slice(0,10);
+invSite.value = site.value || "";
+invType.value = "ضريبية";
+invNo.value = "";
+invBuyer.value = ownerName.value || "";
+sellerName.value = "";
+sellerPhone.value = "";
+sellerAddress.value = "";
+invoiceNotes.value = "";
+
+invoiceTotal.value = "";
+discountPercent.value = "";
+discountValue.value = "";
+commercialTaxPercent.value = "";
+commercialTaxValue.value = "";
+vatValue.value = "";
+netTotal.value = "";
+
+buildInvoiceRows();
 }
 
 function buildInvoiceRows(){
@@ -1111,9 +1206,7 @@ let commV = afterDisc * commP / 100;
 
 let taxable = afterDisc - commV;
 
-let vat = invType.value === "ضريبية"
-? taxable * 0.14
-: 0;
+let vat = invType.value === "ضريبية" ? taxable * 0.14 : 0;
 
 let net = taxable + vat;
 
@@ -1128,24 +1221,44 @@ async function saveInvoiceToAmount(){
 
 calcInvoice();
 
+if(!invNo.value.trim()){
+alert("اكتب رقم الفاتورة");
+return;
+}
+
+/* منع تكرار رقم الفاتورة */
+let q = client
+.from("material_invoices")
+.select("*")
+.eq("invoice_no",invNo.value.trim());
+
+if(currentInvoiceId){
+q = q.neq("id",currentInvoiceId);
+}
+
+const {data:duplicate} = await q.maybeSingle();
+
+if(duplicate){
+alert("رقم الفاتورة موجود بالفعل ولا يمكن تكراره");
+return;
+}
+
 amount.value = Number(netTotal.value || 0).toFixed(2);
 
 if(!description.value){
-description.value = "فاتورة خامات رقم " + (invNo.value || "");
+description.value = "فاتورة خامات رقم " + invNo.value;
 }
 
 if(!site.value){
 site.value = invSite.value || "";
 }
 
-if(activeSettlementNo){
-
 const inv = {
 settlement_no:activeSettlementNo,
 invoice_date:invDate.value,
 site:invSite.value,
 invoice_type:invType.value,
-invoice_no:invNo.value,
+invoice_no:invNo.value.trim(),
 buyer:invBuyer.value,
 seller_name:sellerName.value,
 seller_phone:sellerPhone.value,
@@ -1160,13 +1273,41 @@ net_total:Number(netTotal.value || 0),
 created_by:currentUser.username
 };
 
+let invoiceId = currentInvoiceId;
+
+if(currentInvoiceId){
+
+const {error:updateError} = await client
+.from("material_invoices")
+.update(inv)
+.eq("id",currentInvoiceId);
+
+if(updateError){
+alert("حدث خطأ أثناء تعديل الفاتورة");
+return;
+}
+
+await client
+.from("material_invoice_items")
+.delete()
+.eq("invoice_id",currentInvoiceId);
+
+}else{
+
 const {data,error} = await client
 .from("material_invoices")
 .insert(inv)
 .select()
 .single();
 
-if(!error && data){
+if(error){
+alert("حدث خطأ أثناء حفظ الفاتورة");
+return;
+}
+
+invoiceId = data.id;
+currentInvoiceId = data.id;
+}
 
 let items = [];
 
@@ -1181,7 +1322,7 @@ let total = qty * price;
 if(desc || qty || price){
 
 items.push({
-invoice_id:data.id,
+invoice_id:invoiceId,
 serial_no:i+1,
 description:desc,
 unit,
@@ -1197,9 +1338,8 @@ await client
 .from("material_invoice_items")
 .insert(items);
 }
-}
-}
 
+alert("تم حفظ الفاتورة وترحيل الصافي إلى خانة المبلغ");
 closeInvoice();
 }
 
@@ -1218,7 +1358,13 @@ alert("لا توجد فاتورة محفوظة لهذه التسوية");
 return;
 }
 
+currentInvoiceId = inv.id;
+
 openInvoice();
+
+currentInvoiceId = inv.id;
+
+deleteInvoiceBtn.classList.remove("hidden");
 
 invDate.value = inv.invoice_date || "";
 invSite.value = inv.site || "";
@@ -1257,6 +1403,38 @@ row.querySelector(".inv-price").value = it.unit_price || 0;
 row.querySelector(".inv-total").value = it.total || 0;
 }
 });
+}
+  async function deleteCurrentInvoice(){
+
+if(currentUser.role !== "super_admin"){
+alert("حذف الفاتورة للسوبر أدمن فقط");
+return;
+}
+
+if(!currentInvoiceId){
+alert("لا توجد فاتورة محددة");
+return;
+}
+
+if(!confirm("هل تريد حذف الفاتورة؟")){
+return;
+}
+
+await client
+.from("material_invoice_items")
+.delete()
+.eq("invoice_id",currentInvoiceId);
+
+await client
+.from("material_invoices")
+.delete()
+.eq("id",currentInvoiceId);
+
+currentInvoiceId = null;
+
+alert("تم حذف الفاتورة");
+
+closeInvoice();
 }
 
 function openTransport(){
