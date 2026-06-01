@@ -2,280 +2,366 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<title>Taswyat Login</title>
-
+<title>Taswyat System</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
-
-body{
-font-family:Arial;
-background:#f4f4f4;
-display:flex;
-justify-content:center;
-align-items:center;
-height:100vh;
-margin:0;
-}
-
-.box{
-background:white;
-padding:35px;
-border-radius:15px;
-width:360px;
-box-shadow:0 0 15px rgba(0,0,0,.15);
-text-align:center;
-}
-
-h2{
-color:#0a6cff;
-margin-bottom:25px;
-}
-
-input{
-width:100%;
-padding:12px;
-margin:8px 0;
-border:1px solid #ccc;
-border-radius:8px;
-font-size:15px;
-box-sizing:border-box;
-}
-
-button{
-width:100%;
-padding:12px;
-margin-top:10px;
-border:none;
-border-radius:8px;
-background:#0a6cff;
-color:white;
-font-size:15px;
-cursor:pointer;
-}
-
-button:hover{
-background:#0056d6;
-}
-
-.link{
-margin-top:15px;
-color:#0a6cff;
-cursor:pointer;
-}
-
-.msg{
-margin-top:15px;
-font-weight:bold;
-}
-
-.admin{
-display:none;
-}
-
+body{margin:0;font-family:Arial;background:#eef2f7;color:#1f2937}
+.login-wrap{height:100vh;display:flex;align-items:center;justify-content:center}
+.card{background:white;border-radius:18px;box-shadow:0 10px 30px rgba(0,0,0,.12);padding:28px}
+.login-card{width:380px;text-align:center}
+h1,h2,h3{margin-top:0;color:#0f172a}
+input,select,button{padding:12px;border-radius:10px;border:1px solid #cbd5e1;font-size:15px;box-sizing:border-box}
+input,select{width:100%;background:white}
+button{border:none;background:#0a6cff;color:white;font-weight:bold;cursor:pointer}
+button:hover{background:#0058d4}
+button.gray{background:#475569}
+button.green{background:#198754}
+button.red{background:#dc3545}
+button.orange{background:#f59e0b}
+button.small{padding:7px 12px;font-size:13px}
+.link{color:#0a6cff;cursor:pointer;margin-top:12px}
+.msg{font-weight:bold;margin-top:12px}
+.hidden{display:none!important}
+.app{display:none}
+.sidebar{width:240px;background:#0f172a;color:white;position:fixed;right:0;top:0;bottom:0;padding:20px}
+.sidebar h2{color:white}
+.sidebar button{width:100%;margin:6px 0;background:#1e293b;text-align:right}
+.main{margin-right:280px;padding:25px}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.full{grid-column:1/-1}
+.table{width:100%;border-collapse:collapse;margin-top:15px;background:white}
+.table th,.table td{border:1px solid #e5e7eb;padding:10px;text-align:center}
+.table th{background:#f8fafc}
+.badge{padding:4px 10px;border-radius:20px;font-size:13px;font-weight:bold}
+.pending{background:#fff3cd;color:#856404}
+.approved{background:#d1e7dd;color:#0f5132}
+.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:15px}
+.summary .box{background:white;border-radius:15px;padding:20px;box-shadow:0 4px 16px rgba(0,0,0,.08)}
+@media(max-width:900px){.sidebar{position:static;width:auto}.main{margin:0}.grid,.grid2,.summary{grid-template-columns:1fr}}
 </style>
 </head>
 
 <body>
 
-<div class="box">
-
-<h2>Taswyat System</h2>
+<div id="loginPage" class="login-wrap">
+<div class="card login-card">
+<h1>برنامج التسويات</h1>
 
 <div id="loginBox">
-
-<input id="username" placeholder="User Name">
-<input id="password" type="password" placeholder="Password">
-
+<input id="loginUser" placeholder="User Name">
+<br><br>
+<input id="loginPass" type="password" placeholder="Password">
+<br><br>
 <button onclick="login()">Login</button>
-
-<div class="link" onclick="showRegister()">
-تسجيل مستخدم جديد
+<div class="link" onclick="showRegister()">تسجيل مستخدم جديد</div>
 </div>
 
-</div>
-
-<div id="registerBox" style="display:none">
-
-<input id="newUser" placeholder="User Name">
-<input id="newPass" type="password" placeholder="Password">
-
+<div id="registerBox" class="hidden">
+<input id="regUser" placeholder="User Name">
+<br><br>
+<input id="regPass" type="password" placeholder="Password">
+<br><br>
 <button onclick="registerUser()">Register</button>
+<div class="link" onclick="showLogin()">Back to login</div>
+</div>
 
-<div class="link" onclick="showLogin()">
-عودة لتسجيل الدخول
+<div id="loginMsg" class="msg"></div>
+</div>
+</div>
+
+<div id="app" class="app">
+<div class="sidebar">
+<h2>Taswyat</h2>
+<p id="currentUserText"></p>
+<button onclick="showPage('homePage')">الرئيسية</button>
+<button onclick="showPage('newSettlementPage')">إدخال تسوية</button>
+<button onclick="showPage('searchPage')">بحث برقم التسوية</button>
+<button onclick="showPage('accountPage')">كشف حساب</button>
+<button id="usersBtn" class="hidden" onclick="showPage('usersPage');loadPendingUsers()">اعتماد المستخدمين</button>
+<button class="red" onclick="logout()">تسجيل خروج</button>
+</div>
+
+<div class="main">
+
+<div id="homePage" class="card page">
+<h1>لوحة التحكم</h1>
+<p>اختر من القائمة الجانبية.</p>
+</div>
+
+<div id="newSettlementPage" class="card page hidden">
+<h2>بيانات التسوية</h2>
+<div class="grid">
+<input id="ownerName" placeholder="اسم صاحب التسوية">
+<input id="settlementNo" placeholder="رقم التسوية">
+<input id="entryDate" type="date">
+</div>
+<br>
+<button onclick="createHeader()">دخول</button>
+
+<div id="lineSection" class="hidden">
+<hr>
+<h2>إدخال بنود التسوية</h2>
+<div class="grid">
+<input id="lineDate" type="date">
+<input id="description" placeholder="البيان">
+<input id="addedTo" placeholder="مضاف إلى">
+<select id="mainDirection">
+<option value="">التوجيه العام</option>
+<option>مصروفات</option>
+<option>ايرادات</option>
+<option>تمويل</option>
+</select>
+<select id="subDirection">
+<option value="">التوجيه الفرعى</option>
+<option>خامات</option>
+<option>انتقالات</option>
+<option>بدلات</option>
+<option>مرتبات</option>
+<option>مصروفات ادارية وعمومية</option>
+<option>نثريات</option>
+<option>تأمينات اجتماعية</option>
+<option>مصروفات المكتب</option>
+<option>اجرة عمال يومية</option>
+</select>
+<input id="site" placeholder="الموقع">
+<input id="amount" type="number" placeholder="المبلغ">
+</div>
+<br>
+<button onclick="addLine()">إدخال</button>
+<div id="linesArea"></div>
+</div>
+</div>
+
+<div id="searchPage" class="card page hidden">
+<h2>بحث برقم التسوية</h2>
+<div class="grid2">
+<input id="searchNo" placeholder="رقم التسوية">
+<button onclick="searchSettlement()">بحث</button>
+</div>
+<div id="searchResult"></div>
+</div>
+
+<div id="accountPage" class="card page hidden">
+<h2>كشف حساب صاحب التسوية</h2>
+<div class="grid2">
+<input id="accountOwner" placeholder="اسم صاحب التسوية">
+<button onclick="accountStatement()">عرض كشف الحساب</button>
+</div>
+<div id="accountResult"></div>
+</div>
+
+<div id="usersPage" class="card page hidden">
+<h2>طلبات تسجيل المستخدمين</h2>
+<div id="pendingUsers"></div>
 </div>
 
 </div>
-
-<div id="adminPanel" class="admin">
-
-<h3>طلبات التسجيل</h3>
-
-<div id="usersList"></div>
-
-</div>
-
-<div class="msg" id="msg"></div>
-
 </div>
 
 <script>
+const SUPABASE_URL = "https://qsfbbsnjwoltvppfmgvi.supabase.co";
+const SUPABASE_KEY = "sb_publishable_Nhl9BWQngYQKiz140tYYHg_Qe-Xa2wQ";
+const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-const SUPABASE_URL =
-"https://qsfbbsnjwoltvppfmgvi.supabase.co";
+let currentUser = null;
+let activeSettlementNo = null;
 
-const SUPABASE_KEY =
-"sb_publishable_Nhl9BWQngYQKiz140tYYHg_Qe-Xa2wQ";
+function msg(t,c="red"){let m=document.getElementById("loginMsg");m.innerHTML=t;m.style.color=c}
+function showRegister(){loginBox.classList.add("hidden");registerBox.classList.remove("hidden");msg("")}
+function showLogin(){registerBox.classList.add("hidden");loginBox.classList.remove("hidden");msg("")}
 
-const client = supabase.createClient(
-SUPABASE_URL,
-SUPABASE_KEY
-);
-
-function msg(t){
-document.getElementById("msg").innerHTML=t;
-}
-
-function showRegister(){
-document.getElementById("loginBox").style.display="none";
-document.getElementById("registerBox").style.display="block";
-}
-
-function showLogin(){
-document.getElementById("loginBox").style.display="block";
-document.getElementById("registerBox").style.display="none";
-}
-
-async function registerUser(){
-
-let u=document.getElementById("newUser").value;
-let p=document.getElementById("newPass").value;
-
-if(!u||!p){
-msg("أدخل البيانات");
-return;
-}
-
-const hash=await sha256(p);
-
-const {error}=await client
-.from("app_users")
-.insert({
-username:u,
-password_hash:hash,
-role:"user",
-status:"pending"
-});
-
-if(error){
-msg(error.message);
-}
-else{
-msg("تم التسجيل — فى انتظار موافقة السوبر أدمن");
-showLogin();
-}
-
+async function sha256(text){
+const data=new TextEncoder().encode(text);
+const hash=await crypto.subtle.digest("SHA-256",data);
+return Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,"0")).join("");
 }
 
 async function login(){
-
-let u=document.getElementById("username").value;
-let p=document.getElementById("password").value;
-
-const hash=await sha256(p);
-
-const {data,error}=await client
-.from("app_users")
-.select("*")
-.eq("username",u)
-.eq("password_hash",hash)
-.single();
-
-if(error||!data){
-msg("بيانات غير صحيحة");
-return;
+const username=loginUser.value.trim();
+const password=loginPass.value.trim();
+if(!username||!password){msg("اكتب اسم المستخدم وكلمة المرور");return}
+const passwordHash=await sha256(password);
+const {data,error}=await client.from("app_users").select("*").eq("username",username).eq("password_hash",passwordHash).maybeSingle();
+if(error||!data){msg("بيانات غير صحيحة");return}
+if(data.status!=="approved"){msg("الحساب غير مفعل بعد");return}
+currentUser=data;
+localStorage.setItem("taswyat_user",JSON.stringify(data));
+openApp();
 }
 
-if(data.status!="approved"){
-msg("الحساب غير مفعل");
-return;
+async function registerUser(){
+const username=regUser.value.trim();
+const password=regPass.value.trim();
+if(!username||!password){msg("اكتب اسم المستخدم وكلمة المرور");return}
+const passwordHash=await sha256(password);
+const {error}=await client.from("app_users").insert({username,password_hash:passwordHash,role:"user",status:"pending"});
+if(error){msg("اسم المستخدم موجود بالفعل أو يوجد خطأ");return}
+msg("تم التسجيل بنجاح - في انتظار موافقة السوبر أدمن","green");
+showLogin();
 }
 
-if(data.role=="super_admin"){
-
-document.getElementById("adminPanel")
-.style.display="block";
-
-loadUsers();
-
-msg("مرحبا Admin");
-
-}
-else{
-
-msg("تم تسجيل الدخول بنجاح");
-
+function openApp(){
+loginPage.style.display="none";
+app.style.display="block";
+currentUserText.innerHTML="المستخدم: "+currentUser.username;
+if(currentUser.role==="super_admin") usersBtn.classList.remove("hidden");
+showPage("homePage");
 }
 
+function logout(){localStorage.removeItem("taswyat_user");location.reload()}
+
+window.onload=()=>{
+const saved=localStorage.getItem("taswyat_user");
+if(saved){currentUser=JSON.parse(saved);openApp()}
+entryDate.value=new Date().toISOString().slice(0,10);
+lineDate.value=new Date().toISOString().slice(0,10);
 }
 
-async function loadUsers(){
+function showPage(id){
+document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));
+document.getElementById(id).classList.remove("hidden");
+}
 
-const {data}=await client
-.from("app_users")
-.select("*")
-.eq("status","pending");
-
-let html="";
-
-data.forEach(u=>{
-
-html+=`
-<div style='border:1px solid #ccc;
-padding:10px;
-margin:10px;
-border-radius:8px'>
-
-${u.username}
-
-<button onclick='approve(${u.id})'>
-Approve
-</button>
-
-</div>
-`;
-
+async function createHeader(){
+const owner=ownerName.value.trim();
+const no=settlementNo.value.trim();
+const date=entryDate.value;
+if(!owner||!no||!date){alert("اكمل بيانات التسوية");return}
+const {error}=await client.from("settlement_headers").insert({
+owner_name:owner,
+settlement_no:no,
+entry_date:date,
+created_by:currentUser.username
 });
-
-document.getElementById("usersList").innerHTML=html;
-
+if(error){alert("رقم التسوية موجود أو يوجد خطأ");return}
+activeSettlementNo=no;
+lineSection.classList.remove("hidden");
+loadLines(no);
 }
 
-async function approve(id){
-
-await client
-.from("app_users")
-.update({status:"approved"})
-.eq("id",id);
-
-loadUsers();
-
+async function addLine(){
+if(!activeSettlementNo){alert("ادخل بيانات التسوية أولا");return}
+if(!lineDate.value||!description.value||!mainDirection.value||!subDirection.value||!amount.value){
+alert("اكمل بيانات البند");return
+}
+const {error}=await client.from("settlement_lines").insert({
+settlement_no:activeSettlementNo,
+line_date:lineDate.value,
+description:description.value,
+added_to:addedTo.value,
+site:site.value,
+main_direction:mainDirection.value,
+sub_direction:subDirection.value,
+amount:Number(amount.value),
+status:"pending",
+created_by:currentUser.username
+});
+if(error){alert("حدث خطأ أثناء الحفظ");return}
+description.value="";addedTo.value="";site.value="";amount.value="";
+loadLines(activeSettlementNo);
 }
 
-async function sha256(str){
-
-const buf=await crypto.subtle.digest(
-"SHA-256",
-new TextEncoder().encode(str)
-);
-
-return Array.from(new Uint8Array(buf))
-.map(b=>b.toString(16).padStart(2,"0"))
-.join("");
-
+async function loadLines(no){
+const {data}=await client.from("settlement_lines").select("*").eq("settlement_no",no).order("id");
+renderLines(data||[],linesArea,true);
 }
 
+function renderLines(data,container,showActions){
+let html=`<table class="table"><tr>
+<th>التاريخ</th><th>البيان</th><th>مضاف إلى</th><th>التوجيه العام</th><th>التوجيه الفرعى</th><th>الموقع</th><th>المبلغ</th><th>الحالة</th><th>إجراء</th>
+</tr>`;
+data.forEach(r=>{
+let statusClass=r.status==="approved"?"approved":"pending";
+let actions="-";
+if(showActions && r.status!=="approved"){
+actions=`<button class="small orange" onclick="editLine(${r.id})">تعديل</button>`;
+if(currentUser.role==="super_admin") actions+=` <button class="small green" onclick="approveLine(${r.id})">اعتماد</button>`;
+}
+html+=`<tr>
+<td>${r.line_date}</td>
+<td>${r.description}</td>
+<td>${r.added_to||""}</td>
+<td>${r.main_direction}</td>
+<td>${r.sub_direction}</td>
+<td>${r.site||""}</td>
+<td>${Number(r.amount).toLocaleString()}</td>
+<td><span class="badge ${statusClass}">${r.status}</span></td>
+<td>${actions}</td>
+</tr>`;
+});
+html+="</table>";
+container.innerHTML=html;
+}
+
+async function approveLine(id){
+await client.from("settlement_lines").update({status:"approved"}).eq("id",id);
+loadLines(activeSettlementNo);
+}
+
+async function editLine(id){
+const {data}=await client.from("settlement_lines").select("*").eq("id",id).maybeSingle();
+if(!data||data.status==="approved"){alert("لا يمكن التعديل بعد الاعتماد");return}
+lineDate.value=data.line_date;
+description.value=data.description;
+addedTo.value=data.added_to||"";
+site.value=data.site||"";
+mainDirection.value=data.main_direction;
+subDirection.value=data.sub_direction;
+amount.value=data.amount;
+await client.from("settlement_lines").delete().eq("id",id);
+loadLines(activeSettlementNo);
+}
+
+async function searchSettlement(){
+const no=searchNo.value.trim();
+if(!no){alert("اكتب رقم التسوية");return}
+const {data:header}=await client.from("settlement_headers").select("*").eq("settlement_no",no).maybeSingle();
+const {data:lines}=await client.from("settlement_lines").select("*").eq("settlement_no",no).eq("status","approved").order("id");
+if(!header){searchResult.innerHTML="<p>لا توجد تسوية بهذا الرقم</p>";return}
+searchResult.innerHTML=`<h3>صاحب التسوية: ${header.owner_name}</h3><p>تاريخ الإدخال: ${header.entry_date}</p><div id="approvedLines"></div>`;
+renderLines(lines||[],document.getElementById("approvedLines"),false);
+}
+
+async function accountStatement(){
+const owner=accountOwner.value.trim();
+if(!owner){alert("اكتب اسم صاحب التسوية");return}
+const {data:headers}=await client.from("settlement_headers").select("*").eq("owner_name",owner);
+if(!headers||headers.length===0){accountResult.innerHTML="<p>لا توجد تسويات لهذا الاسم</p>";return}
+const nos=headers.map(h=>h.settlement_no);
+const {data:lines}=await client.from("settlement_lines").select("*").in("settlement_no",nos).eq("status","approved");
+let funding=0,expenses=0,revenues=0;
+(lines||[]).forEach(l=>{
+if(l.main_direction==="تمويل") funding+=Number(l.amount);
+else if(l.main_direction==="مصروفات") expenses+=Number(l.amount);
+else if(l.main_direction==="ايرادات") revenues+=Number(l.amount);
+});
+let balance=funding+revenues-expenses;
+accountResult.innerHTML=`
+<div class="summary">
+<div class="box"><h3>إجمالي العهدة / التمويل</h3><h2>${funding.toLocaleString()}</h2></div>
+<div class="box"><h3>إجمالي المصروفات المعتمدة</h3><h2>${expenses.toLocaleString()}</h2></div>
+<div class="box"><h3>الرصيد</h3><h2>${balance.toLocaleString()}</h2></div>
+</div>
+<h3>البنود المعتمدة</h3>
+<div id="accountLines"></div>`;
+renderLines(lines||[],document.getElementById("accountLines"),false);
+}
+
+async function loadPendingUsers(){
+const {data}=await client.from("app_users").select("*").eq("status","pending");
+let html="";
+(data||[]).forEach(u=>{
+html+=`<div class="card" style="margin:10px 0"><b>${u.username}</b><br><br>
+<button class="green small" onclick="approveUser(${u.id})">Approve</button>
+<button class="red small" onclick="rejectUser(${u.id})">Reject</button></div>`;
+});
+pendingUsers.innerHTML=html||"لا توجد طلبات";
+}
+
+async function approveUser(id){await client.from("app_users").update({status:"approved"}).eq("id",id);loadPendingUsers()}
+async function rejectUser(id){await client.from("app_users").update({status:"rejected"}).eq("id",id);loadPendingUsers()}
 </script>
 
 </body>
