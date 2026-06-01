@@ -28,7 +28,7 @@ padding:28px;
 }
 
 .login-card{
-width:380px;
+width:390px;
 text-align:center;
 }
 
@@ -62,26 +62,11 @@ button:hover{
 background:#0058d4;
 }
 
-button.gray{
-background:#475569;
-}
-
-button.green{
-background:#198754;
-}
-
-button.red{
-background:#dc3545;
-}
-
-button.orange{
-background:#f59e0b;
-}
-
-button.small{
-padding:7px 12px;
-font-size:13px;
-}
+button.gray{background:#475569}
+button.green{background:#198754}
+button.red{background:#dc3545}
+button.orange{background:#f59e0b}
+button.small{padding:7px 12px;font-size:13px}
 
 .link{
 color:#0a6cff;
@@ -103,7 +88,7 @@ display:none;
 }
 
 .sidebar{
-width:240px;
+width:245px;
 background:#0f172a;
 color:white;
 position:fixed;
@@ -116,6 +101,7 @@ overflow:auto;
 
 .sidebar h2{
 color:white;
+text-align:center;
 }
 
 .sidebar button{
@@ -126,7 +112,7 @@ text-align:right;
 }
 
 .main{
-margin-right:280px;
+margin-right:285px;
 padding:25px;
 }
 
@@ -202,8 +188,8 @@ z-index:999;
 
 .modal{
 background:white;
-width:92%;
-max-width:1200px;
+width:94%;
+max-width:1250px;
 max-height:90vh;
 overflow:auto;
 border-radius:18px;
@@ -222,6 +208,16 @@ border:1px solid #e5e7eb;
 border-radius:14px;
 padding:15px;
 margin-top:15px;
+}
+
+.invoice-link{
+background:#0a6cff;
+color:white;
+border:none;
+border-radius:8px;
+padding:6px 10px;
+cursor:pointer;
+font-size:13px;
 }
 
 @media(max-width:900px){
@@ -249,29 +245,19 @@ grid-template-columns:1fr;
 <div id="loginBox">
 <input id="loginUser" placeholder="User Name">
 <br><br>
-
 <input id="loginPass" type="password" placeholder="Password">
 <br><br>
-
 <button onclick="login()">Login</button>
-
-<div class="link" onclick="showRegister()">
-تسجيل مستخدم جديد
-</div>
+<div class="link" onclick="showRegister()">تسجيل مستخدم جديد</div>
 </div>
 
 <div id="registerBox" class="hidden">
 <input id="regUser" placeholder="User Name">
 <br><br>
-
 <input id="regPass" type="password" placeholder="Password">
 <br><br>
-
 <button onclick="registerUser()">Register</button>
-
-<div class="link" onclick="showLogin()">
-Back to login
-</div>
+<div class="link" onclick="showLogin()">Back to login</div>
 </div>
 
 <div id="loginMsg" class="msg"></div>
@@ -287,34 +273,19 @@ Back to login
 
 <p id="currentUserText"></p>
 
-<button onclick="showPage('homePage')">
-الرئيسية
-</button>
-
-<button onclick="showPage('newSettlementPage')">
-إدخال تسوية
-</button>
-
-<button onclick="showPage('searchPage')">
-بحث بالاسم أو رقم التسوية
-</button>
-
-<button onclick="showPage('accountPage')">
-كشف حساب
-</button>
+<button onclick="showPage('homePage')">الرئيسية</button>
+<button onclick="showPage('newSettlementPage')">إدخال تسوية</button>
+<button onclick="showPage('searchPage')">بحث بالاسم أو رقم التسوية</button>
+<button onclick="showPage('accountPage')">كشف حساب</button>
 
 <button
 id="usersBtn"
 class="hidden"
 onclick="showPage('usersPage');loadPendingUsers()">
-
 اعتماد المستخدمين
-
 </button>
 
-<button class="red" onclick="logout()">
-تسجيل خروج
-</button>
+<button class="red" onclick="logout()">تسجيل خروج</button>
 
 </div>
 
@@ -324,6 +295,7 @@ onclick="showPage('usersPage');loadPendingUsers()">
 <h1>لوحة التحكم</h1>
 <p>اختر من القائمة الجانبية.</p>
 </div>
+
 <div id="newSettlementPage" class="card page hidden">
 
 <h2>بيانات التسوية</h2>
@@ -336,9 +308,7 @@ onclick="showPage('usersPage');loadPendingUsers()">
 
 <br>
 
-<button onclick="createHeader()">
-دخول
-</button>
+<button onclick="createHeader()">دخول</button>
 
 <div id="lineSection" class="hidden">
 
@@ -349,9 +319,7 @@ onclick="showPage('usersPage');loadPendingUsers()">
 <div class="grid">
 
 <input id="lineDate" type="date">
-
 <input id="description" placeholder="البيان">
-
 <input id="addedTo" placeholder="مضاف إلى">
 
 <select id="mainDirection">
@@ -359,12 +327,10 @@ onclick="showPage('usersPage');loadPendingUsers()">
 <option>مصروفات</option>
 <option>ايرادات</option>
 <option>تمويل</option>
+<option>جارى العهدة</option>
 </select>
 
-<select
-id="subDirection"
-onchange="handleSubDirection()">
-
+<select id="subDirection" onchange="handleSubDirection()">
 <option value="">التوجيه الفرعى</option>
 <option>خامات</option>
 <option>انتقالات</option>
@@ -375,43 +341,28 @@ onchange="handleSubDirection()">
 <option>تأمينات اجتماعية</option>
 <option>مصروفات المكتب</option>
 <option>اجرة عمال يومية</option>
-
 </select>
 
 <input id="site" placeholder="الموقع">
-
-<input
-id="amount"
-type="number"
-placeholder="المبلغ">
+<input id="amount" type="number" placeholder="المبلغ">
 
 </div>
 
 <br>
 
-<button onclick="addLine()">
-إدخال
-</button>
+<button onclick="addLine()">إدخال</button>
 
 <div id="linesArea"></div>
 
 </div>
 </div>
-
 <div id="searchPage" class="card page hidden">
 
 <h2>بحث بالاسم أو رقم التسوية</h2>
 
 <div class="grid2">
-
-<input
-id="searchNo"
-placeholder="اكتب اسم صاحب التسوية أو رقم التسوية">
-
-<button onclick="searchSettlement()">
-بحث
-</button>
-
+<input id="searchNo" placeholder="اكتب اسم صاحب التسوية أو رقم التسوية">
+<button onclick="searchSettlement()">بحث</button>
 </div>
 
 <div id="searchResult"></div>
@@ -420,18 +371,11 @@ placeholder="اكتب اسم صاحب التسوية أو رقم التسوية"
 
 <div id="accountPage" class="card page hidden">
 
-<h2>كشف حساب صاحب التسوية</h2>
+<h2>كشف حساب</h2>
 
 <div class="grid2">
-
-<input
-id="accountOwner"
-placeholder="اسم صاحب التسوية">
-
-<button onclick="accountStatement()">
-عرض كشف الحساب
-</button>
-
+<input id="accountOwner" placeholder="اكتب اسم صاحب العهدة">
+<button onclick="accountStatement()">عرض كشف الحساب</button>
 </div>
 
 <div id="accountResult"></div>
@@ -439,63 +383,40 @@ placeholder="اسم صاحب التسوية">
 </div>
 
 <div id="usersPage" class="card page hidden">
-
 <h2>طلبات تسجيل المستخدمين</h2>
-
 <div id="pendingUsers"></div>
-
 </div>
 
 </div>
 </div>
-
-<!-- MATERIAL INVOICE MODAL -->
 
 <div id="invoiceModal" class="modal-bg">
 
 <div class="modal">
 
 <div class="modal-header">
-
 <h2>فاتورة خامات</h2>
-
-<button
-class="red small"
-onclick="closeInvoice()">
-
-إغلاق
-
+<button class="red small" onclick="closeInvoice()">إغلاق</
+  إغلاق
 </button>
-
 </div>
 
 <div class="grid">
-
 <input id="invDate" type="date">
-
 <input id="invSite" placeholder="الموقع">
-
 <select id="invType" onchange="calcInvoice()">
 <option>ضريبية</option>
 <option>بدون ضريبة</option>
 </select>
-
 <input id="invNo" placeholder="رقم الفاتورة">
-
 <input id="invBuyer" placeholder="المشترى">
-
 <input id="sellerName" placeholder="اسم البائع">
-
 <input id="sellerPhone" placeholder="رقم التليفون">
-
 <input id="sellerAddress" placeholder="العنوان">
-
 </div>
 
 <table class="table">
-
 <thead>
-
 <tr>
 <th>م</th>
 <th>البيان</th>
@@ -504,158 +425,64 @@ onclick="closeInvoice()">
 <th>سعر الوحدة</th>
 <th>الإجمالى</th>
 </tr>
-
 </thead>
-
 <tbody id="invoiceItems"></tbody>
-
 </table>
 
 <div class="calc-box">
-
 <div class="grid">
-
-<input
-id="invoiceTotal"
-readonly
-placeholder="الإجمالى العام">
-
-<input
-id="discountPercent"
-type="number"
-placeholder="نسبة الخصم %"
-oninput="calcInvoice()">
-
-<input
-id="discountValue"
-readonly
-placeholder="قيمة الخصم">
-
-<input
-id="commercialTaxPercent"
-type="number"
-placeholder="ضريبة أ.ت.ص %"
-oninput="calcInvoice()">
-
-<input
-id="commercialTaxValue"
-readonly
-placeholder="قيمة أ.ت.ص">
-
-<input
-id="vatValue"
-readonly
-placeholder="ضريبة 14%">
-
-<input
-id="netTotal"
-readonly
-placeholder="الصافى">
-
+<input id="invoiceTotal" readonly placeholder="الإجمالى العام">
+<input id="discountPercent" type="number" placeholder="نسبة الخصم %" oninput="calcInvoice()">
+<input id="discountValue" readonly placeholder="قيمة الخصم">
+<input id="commercialTaxPercent" type="number" placeholder="ضريبة أ.ت.ص %" oninput="calcInvoice()">
+<input id="commercialTaxValue" readonly placeholder="قيمة أ.ت.ص">
+<input id="vatValue" readonly placeholder="ضريبة 14%">
+<input id="netTotal" readonly placeholder="الصافى">
 </div>
-
 </div>
 
 <br>
-
-<button
-class="green"
-onclick="saveInvoiceToAmount()">
-
-إدخال الفاتورة وترحيل الصافى
-
-</button>
+<button class="green" onclick="saveInvoiceToAmount()">إدخال الفاتورة وترحيل الصافى</button>
 
 </div>
 </div>
-
-<!-- TRANSPORT MODAL -->
 
 <div id="transportModal" class="modal-bg">
-
 <div class="modal">
 
 <div class="modal-header">
-
 <h2>انتقالات / خط سير</h2>
-
-<button
-class="red small"
-onclick="closeTransport()">
-
-إغلاق
-
-</button>
-
+<button class="red small" onclick="closeTransport()">إغلاق</button>
 </div>
 
 <div class="grid">
-
 <input id="routeFrom" placeholder="من">
-
 <input id="routeTo" placeholder="إلى">
-
-<button onclick="calcDistance()">
-حساب المسافة
-</button>
-
-<input
-id="distanceKm"
-type="number"
-placeholder="المسافة كم"
-oninput="calcTransport()">
-
-<input
-id="ratePerKm"
-type="number"
-placeholder="القيمة لكل كم"
-oninput="calcTransport()">
-
-<input
-id="transportTotal"
-readonly
-placeholder="الإجمالى">
-
-<input
-id="manualTransportAmount"
-type="number"
-placeholder="أو المبلغ مباشرة">
-
+<button onclick="calcDistance()">حساب المسافة</button>
+<input id="distanceKm" type="number" placeholder="المسافة كم" oninput="calcTransport()">
+<input id="ratePerKm" type="number" placeholder="القيمة لكل كم" oninput="calcTransport()">
+<input id="transportTotal" readonly placeholder="الإجمالى">
+<input id="manualTransportAmount" type="number" placeholder="أو المبلغ مباشرة">
 </div>
 
 <br>
-
-<button
-class="green"
-onclick="saveTransportToAmount()">
-
-إدخال وترحيل المبلغ
-
-</button>
+<button class="green" onclick="saveTransportToAmount()">إدخال وترحيل المبلغ</button>
 
 </div>
 </div>
+
 <script>
-
-const SUPABASE_URL =
-"https://qsfbbsnjwoltvppfmgvi.supabase.co";
-
-const SUPABASE_KEY =
-"sb_publishable_Nhl9BWQngYQKiz140tYYHg_Qe-Xa2wQ";
-
-const client =
-supabase.createClient(
-SUPABASE_URL,
-SUPABASE_KEY
-);
+const SUPABASE_URL="https://qsfbbsnjwoltvppfmgvi.supabase.co";
+const SUPABASE_KEY="sb_publishable_Nhl9BWQngYQKiz140tYYHg_Qe-Xa2wQ";
+const client=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
 let currentUser=null;
 let activeSettlementNo=null;
+let lastInvoiceLineId=null;
 
 function msg(t,c="red"){
-let m=document.getElementById("loginMsg");
-m.innerHTML=t;
-m.style.color=c;
+loginMsg.innerHTML=t;
+loginMsg.style.color=c;
 }
 
 function showRegister(){
@@ -671,39 +498,23 @@ msg("");
 }
 
 async function sha256(text){
-const data=
-new TextEncoder().encode(text);
-
-const hash=
-await crypto.subtle.digest(
-"SHA-256",
-data
-);
-
-return Array
-.from(new Uint8Array(hash))
-.map(b=>b.toString(16).padStart(2,"0"))
-.join("");
+const data=new TextEncoder().encode(text);
+const hash=await crypto.subtle.digest("SHA-256",data);
+return Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,"0")).join("");
 }
 
 async function login(){
-
-const username=
-loginUser.value.trim();
-
-const password=
-loginPass.value.trim();
+const username=loginUser.value.trim();
+const password=loginPass.value.trim();
 
 if(!username||!password){
 msg("اكتب اسم المستخدم وكلمة المرور");
 return;
 }
 
-const passwordHash=
-await sha256(password);
+const passwordHash=await sha256(password);
 
-const {data,error}=
-await client
+const {data,error}=await client
 .from("app_users")
 .select("*")
 .eq("username",username)
@@ -721,35 +532,22 @@ return;
 }
 
 currentUser=data;
-
-localStorage.setItem(
-"taswyat_user",
-JSON.stringify(data)
-);
-
+localStorage.setItem("taswyat_user",JSON.stringify(data));
 openApp();
 }
 
 async function registerUser(){
-
-const username=
-regUser.value.trim();
-
-const password=
-regPass.value.trim();
+const username=regUser.value.trim();
+const password=regPass.value.trim();
 
 if(!username||!password){
 msg("اكتب اسم المستخدم وكلمة المرور");
 return;
 }
 
-const passwordHash=
-await sha256(password);
+const passwordHash=await sha256(password);
 
-const {error}=
-await client
-.from("app_users")
-.insert({
+const {error}=await client.from("app_users").insert({
 username,
 password_hash:passwordHash,
 role:"user",
@@ -761,26 +559,16 @@ msg("اسم المستخدم موجود بالفعل");
 return;
 }
 
-msg(
-"تم التسجيل - فى انتظار موافقة السوبر أدمن",
-"green"
-);
-
+msg("تم التسجيل - فى انتظار موافقة السوبر أدمن","green");
 showLogin();
 }
 
 function openApp(){
-
 loginPage.style.display="none";
 app.style.display="block";
+currentUserText.innerHTML="المستخدم : "+currentUser.username;
 
-currentUserText.innerHTML=
-"المستخدم : "+
-currentUser.username;
-
-if(
-currentUser.role==="super_admin"
-){
+if(currentUser.role==="super_admin"){
 usersBtn.classList.remove("hidden");
 }
 
@@ -793,103 +581,55 @@ location.reload();
 }
 
 window.onload=()=>{
-
-const saved=
-localStorage.getItem(
-"taswyat_user"
-);
-
+const saved=localStorage.getItem("taswyat_user");
 if(saved){
-currentUser=
-JSON.parse(saved);
+currentUser=JSON.parse(saved);
 openApp();
 }
 
-entryDate.value=
-new Date()
-.toISOString()
-.slice(0,10);
-
-lineDate.value=
-new Date()
-.toISOString()
-.slice(0,10);
-
-invDate.value=
-new Date()
-.toISOString()
-.slice(0,10);
-
+let today=new Date().toISOString().slice(0,10);
+entryDate.value=today;
+lineDate.value=today;
+invDate.value=today;
 buildInvoiceRows();
-}
+};
 
 function showPage(id){
-
-document
-.querySelectorAll(".page")
-.forEach(
-p=>p.classList.add("hidden")
-);
-
-document
-.getElementById(id)
-.classList.remove("hidden");
+document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));
+document.getElementById(id).classList.remove("hidden");
 }
 
 async function createHeader(){
-
-const owner=
-ownerName.value.trim();
-
-const no=
-settlementNo.value.trim();
-
-const date=
-entryDate.value;
+const owner=ownerName.value.trim();
+const no=settlementNo.value.trim();
+const date=entryDate.value;
 
 if(!owner||!no||!date){
 alert("اكمل البيانات");
 return;
 }
 
-const {data:existing}=
-await client
+const {data:existing}=await client
 .from("settlement_headers")
 .select("*")
 .eq("settlement_no",no)
 .maybeSingle();
 
 if(existing){
-
-ownerName.value=
-existing.owner_name;
-
-entryDate.value=
-existing.entry_date;
-
+ownerName.value=existing.owner_name;
+entryDate.value=existing.entry_date;
 activeSettlementNo=no;
-
-lineSection
-.classList.remove("hidden");
-
+lineSection.classList.remove("hidden");
 loadLines(no);
-
-alert(
-"تم فتح التسوية الموجودة"
-);
-
+alert("تم فتح التسوية الموجودة");
 return;
 }
 
-const {error}=
-await client
-.from("settlement_headers")
-.insert({
+const {error}=await client.from("settlement_headers").insert({
 owner_name:owner,
 settlement_no:no,
 entry_date:date,
-created_by:
-currentUser.username
+created_by:currentUser.username
 });
 
 if(error){
@@ -898,123 +638,66 @@ return;
 }
 
 activeSettlementNo=no;
-
-lineSection
-.classList.remove("hidden");
-
+lineSection.classList.remove("hidden");
 loadLines(no);
 }
 
 function handleSubDirection(){
-
-if(
-subDirection.value==="خامات"
-){
-openInvoice();
-}
-
-if(
-subDirection.value==="انتقالات"
-){
-openTransport();
-}
+if(subDirection.value==="خامات") openInvoice();
+if(subDirection.value==="انتقالات") openTransport();
 }
 
 async function addLine(){
-
 if(!activeSettlementNo){
 alert("ادخل التسوية");
 return;
 }
 
-if(
-!lineDate.value||
-!description.value||
-!mainDirection.value||
-!subDirection.value||
-!amount.value
-){
+if(!lineDate.value||!description.value||!mainDirection.value||!subDirection.value||!amount.value){
 alert("اكمل البيانات");
 return;
 }
 
-const {error}=
-await client
-.from("settlement_lines")
-.insert({
-
-settlement_no:
-activeSettlementNo,
-
-line_date:
-lineDate.value,
-
-description:
-description.value,
-
-added_to:
-addedTo.value,
-
-site:
-site.value,
-
-main_direction:
-mainDirection.value,
-
-sub_direction:
-subDirection.value,
-
-amount:
-Number(amount.value),
-
+const {data,error}=await client.from("settlement_lines").insert({
+settlement_no:activeSettlementNo,
+line_date:lineDate.value,
+description:description.value,
+added_to:addedTo.value,
+site:site.value,
+main_direction:mainDirection.value,
+sub_direction:subDirection.value,
+amount:Number(amount.value),
 status:"pending",
-
-created_by:
-currentUser.username
-});
+created_by:currentUser.username
+}).select().single();
 
 if(error){
 alert("خطأ بالحفظ");
 return;
 }
+
+lastInvoiceLineId=data.id;
 
 description.value="";
 addedTo.value="";
 site.value="";
 amount.value="";
 
-loadLines(
-activeSettlementNo
-);
+loadLines(activeSettlementNo);
 }
 
 async function loadLines(no){
-
-const {data}=
-await client
+const {data}=await client
 .from("settlement_lines")
 .select("*")
-.eq(
-"settlement_no",
-no
-)
+.eq("settlement_no",no)
 .order("id");
 
-renderLines(
-data||[],
-linesArea,
-true
-);
+renderLines(data||[],linesArea,true);
 }
 
-function renderLines(
-data,
-container,
-showActions
-){
-
-let html=
-`<table class='table'>
+function renderLines(data,container,showActions){
+let html=`<table class="table">
 <tr>
 <th>التاريخ</th>
 <th>البيان</th>
@@ -1028,88 +711,90 @@ let html=
 </tr>`;
 
 data.forEach(r=>{
+let sub=r.sub_direction;
+
+if(r.sub_direction==="خامات"){
+sub=`<button class="invoice-link" onclick="openInvoiceFromLine('${r.settlement_no}')">خامات</button>`;
+}
 
 let actions="-";
 
-if(
-showActions &&
-r.status!=="approved"
-){
+if(showActions){
+actions="";
 
-actions=
-`<button class='small orange'
-onclick='editLine(${r.id})'>
-تعديل
-</button>`;
+if(r.status!=="approved"){
+actions+=`<button class="small orange" onclick="editLine(${r.id})">تعديل</button> `;
+}
 
-if(
-currentUser.role===
-"super_admin"
-){
+if(currentUser.role==="super_admin"){
+if(r.status!=="approved"){
+actions+=`<button class="small green" onclick="approveLine(${r.id})">اعتماد</button> `;
+}
 
-actions+=
-` <button class='small green'
-onclick='approveLine(${r.id})'>
-اعتماد
-</button>`;
+actions+=`<button class="small red" onclick="deleteLine(${r.id})">حذف</button>`;
 }
 }
 
-html+=
-`<tr>
+html+=`
+<tr>
 <td>${r.line_date}</td>
 <td>${r.description}</td>
 <td>${r.added_to||""}</td>
 <td>${r.main_direction}</td>
-<td>${r.sub_direction}</td>
+<td>${sub}</td>
 <td>${r.site||""}</td>
 <td>${Number(r.amount).toLocaleString()}</td>
-<td>${r.status}</td>
-<td>${actions}</td>
+<td><span class="badge ${r.status==="approved"?"approved":"pending"}">${r.status}</span></td>
+<td>${actions||"-"}</td>
 </tr>`;
 });
 
 html+="</table>";
-
 container.innerHTML=html;
 }
 
 async function approveLine(id){
+if(currentUser.role!=="super_admin") return;
 
-if(
-currentUser.role!=="super_admin"
-){
+await client
+.from("settlement_lines")
+.update({status:"approved"})
+.eq("id",id);
+
+loadLines(activeSettlementNo);
+}
+
+async function deleteLine(id){
+if(currentUser.role!=="super_admin"){
+alert("الحذف للسوبر أدمن فقط");
+return;
+}
+
+if(!confirm("هل تريد حذف البند؟")){
 return;
 }
 
 await client
 .from("settlement_lines")
-.update({
-status:"approved"
-})
+.delete()
 .eq("id",id);
 
-loadLines(
-activeSettlementNo
-);
+loadLines(activeSettlementNo);
 }
 
 async function editLine(id){
-
-const {data}=
-await client
+const {data}=await client
 .from("settlement_lines")
 .select("*")
 .eq("id",id)
 .maybeSingle();
 
-if(
-!data||
-data.status==="approved"
-){
-alert(
-"لا يمكن تعديل المعتمد"
-);
+if(!data){
+return;
+}
+
+if(data.status==="approved" && currentUser.role!=="super_admin"){
+alert("لا يمكن تعديل المعتمد");
 return;
 }
 
@@ -1126,250 +811,123 @@ await client
 .delete()
 .eq("id",id);
 
-loadLines(
-activeSettlementNo
-);
+loadLines(activeSettlementNo);
 }
 
 async function searchSettlement(){
-
-const key=
-searchNo.value.trim();
+const key=searchNo.value.trim();
 
 if(!key){
-alert("اكتب الاسم او الرقم");
+alert("اكتب الاسم أو الرقم");
 return;
 }
 
-const {data:headers}=
-await client
+const {data:headers}=await client
 .from("settlement_headers")
 .select("*")
-.or(
-`settlement_no.ilike.%${key}%,
-owner_name.ilike.%${key}%`
-);
+.or(`settlement_no.ilike.%${key}%,owner_name.ilike.%${key}%`)
+.order("created_at",{ascending:false});
 
-if(
-!headers||
-headers.length===0
-){
-searchResult.innerHTML=
-"لا توجد نتائج";
+if(!headers||headers.length===0){
+searchResult.innerHTML="لا توجد نتائج";
 return;
 }
 
 let html="";
 
 for(const h of headers){
-
-html+=
-`<div class='card'
-style='margin-top:20px'>
-<h3>
-رقم التسوية :
-${h.settlement_no}
-</h3>
-<p>
-صاحب التسوية :
-${h.owner_name}
-</p>
-<div id='r${h.id}'></div>
+html+=`
+<div class="card" style="margin-top:20px">
+<h3>رقم التسوية : ${h.settlement_no}</h3>
+<p>صاحب التسوية : ${h.owner_name}</p>
+<p>تاريخ الإدخال : ${h.entry_date}</p>
+<div id="r${h.id}"></div>
 </div>`;
 }
 
 searchResult.innerHTML=html;
 
 for(const h of headers){
-
-const {data:lines}=
-await client
+const {data:lines}=await client
 .from("settlement_lines")
 .select("*")
-.eq(
-"settlement_no",
-h.settlement_no
-)
-.eq(
-"status",
-"approved"
-);
+.eq("settlement_no",h.settlement_no)
+.eq("status","approved")
+.order("id");
 
-renderLines(
-lines||[],
-document.getElementById(
-"r"+h.id
-),
-false
-);
+renderLines(lines||[],document.getElementById("r"+h.id),false);
 }
 }
 
 async function accountStatement(){
-
-const owner=
-accountOwner.value.trim();
+const owner=accountOwner.value.trim();
 
 if(!owner){
 alert("اكتب الاسم");
 return;
 }
 
-const {data:headers}=
-await client
-.from("settlement_headers")
-.select("*")
-.eq(
-"owner_name",
-owner
-);
-
-if(
-!headers||
-headers.length===0
-){
-accountResult.innerHTML=
-"لا توجد بيانات";
-return;
-}
-
-const nos=
-headers.map(
-h=>h.settlement_no
-);
-
-const {data:lines}=
-await client
+const {data:lines}=await client
 .from("settlement_lines")
 .select("*")
-.in(
-"settlement_no",
-nos
-)
-.eq(
-"status",
-"approved"
-);
+.eq("added_to",owner)
+.eq("status","approved");
 
-let funding=0;
+let custody=0;
 let expenses=0;
 let revenues=0;
 
-(lines||[])
-.forEach(l=>{
-
-if(
-l.main_direction==="تمويل"
-)
-funding+=
-Number(l.amount);
-
-else if(
-l.main_direction==="مصروفات"
-)
-expenses+=
-Number(l.amount);
-
-else if(
-l.main_direction==="ايرادات"
-)
-revenues+=
-Number(l.amount);
+(lines||[]).forEach(l=>{
+if(l.main_direction==="جارى العهدة"||l.main_direction==="تمويل"){
+custody+=Number(l.amount);
+}else if(l.main_direction==="مصروفات"){
+expenses+=Number(l.amount);
+}else if(l.main_direction==="ايرادات"){
+revenues+=Number(l.amount);
+}
 });
 
-let balance=
-funding+
-revenues-
-expenses;
+let balance=custody+revenues-expenses;
 
-accountResult.innerHTML=
-`
-<div class='summary'>
-
-<div class='box'>
-<h3>العهدة</h3>
-<h2>
-${funding.toLocaleString()}
-</h2>
+accountResult.innerHTML=`
+<div class="summary">
+<div class="box"><h3>العهدة / جارى العهدة</h3><h2>${custody.toLocaleString()}</h2></div>
+<div class="box"><h3>المصروفات المعتمدة</h3><h2>${expenses.toLocaleString()}</h2></div>
+<div class="box"><h3>الرصيد</h3><h2>${balance.toLocaleString()}</h2></div>
 </div>
+<div id="accLines"></div>`;
 
-<div class='box'>
-<h3>المصروفات</h3>
-<h2>
-${expenses.toLocaleString()}
-</h2>
-</div>
-
-<div class='box'>
-<h3>الرصيد</h3>
-<h2>
-${balance.toLocaleString()}
-</h2>
-</div>
-
-</div>
-`;
+renderLines(lines||[],document.getElementById("accLines"),false);
 }
 
 async function loadPendingUsers(){
-
-const {data}=
-await client
+const {data}=await client
 .from("app_users")
 .select("*")
-.eq(
-"status",
-"pending"
-);
+.eq("status","pending");
 
 let html="";
 
-(data||[])
-.forEach(u=>{
-
-html+=
-`<div class='card'
-style='margin:10px 0'>
+(data||[]).forEach(u=>{
+html+=`
+<div class="card" style="margin:10px 0">
 <b>${u.username}</b>
 <br><br>
-
-<button
-class='green small'
-onclick='approveUser(${u.id})'>
-Approve
-</button>
-
-<button
-class='red small'
-onclick='rejectUser(${u.id})'>
-Reject
-</button>
-
+<button class="green small" onclick="approveUser(${u.id})">Approve</button>
+<button class="red small" onclick="rejectUser(${u.id})">Reject</button>
 </div>`;
 });
 
-pendingUsers.innerHTML=
-html||
-"لا توجد طلبات";
+pendingUsers.innerHTML=html||"لا توجد طلبات";
 }
 
 async function approveUser(id){
-await client
-.from("app_users")
-.update({
-status:"approved"
-})
-.eq("id",id);
+await client.from("app_users").update({status:"approved"}).eq("id",id);
 loadPendingUsers();
 }
 
 async function rejectUser(id){
-await client
-.from("app_users")
-.update({
-status:"rejected"
-})
-.eq("id",id);
+await client.from("app_users").update({status:"rejected"}).eq("id",id);
 loadPendingUsers();
 }
 
@@ -1381,6 +939,175 @@ function closeInvoice(){
 invoiceModal.style.display="none";
 }
 
+function buildInvoiceRows(){
+let html="";
+for(let i=1;i<=10;i++){
+html+=`
+<tr>
+<td>${i}</td>
+<td><input class="inv-desc"></td>
+<td><input class="inv-unit"></td>
+<td><input type="number" class="inv-qty" oninput="calcInvoice()"></td>
+<td><input type="number" class="inv-price" oninput="calcInvoice()"></td>
+<td><input class="inv-total" readonly></td>
+</tr>`;
+}
+invoiceItems.innerHTML=html;
+}
+
+function calcInvoice(){
+let rows=document.querySelectorAll("#invoiceItems tr");
+let total=0;
+
+rows.forEach(r=>{
+let q=Number(r.querySelector(".inv-qty").value||0);
+let p=Number(r.querySelector(".inv-price").value||0);
+let t=q*p;
+r.querySelector(".inv-total").value=t.toFixed(2);
+total+=t;
+});
+
+let discP=Number(discountPercent.value||0);
+let discV=total*discP/100;
+let afterDisc=total-discV;
+
+let commP=Number(commercialTaxPercent.value||0);
+let commV=afterDisc*commP/100;
+
+let taxable=afterDisc-commV;
+let vat=invType.value==="ضريبية"?taxable*0.14:0;
+let net=taxable+vat;
+
+invoiceTotal.value=total.toFixed(2);
+discountValue.value=discV.toFixed(2);
+commercialTaxValue.value=commV.toFixed(2);
+vatValue.value=vat.toFixed(2);
+netTotal.value=net.toFixed(2);
+}
+
+async function saveInvoiceToAmount(){
+calcInvoice();
+
+amount.value=Number(netTotal.value||0).toFixed(2);
+
+if(!description.value){
+description.value="فاتورة خامات رقم "+(invNo.value||"");
+}
+
+if(!site.value){
+site.value=invSite.value||"";
+}
+
+if(activeSettlementNo){
+const inv={
+settlement_no:activeSettlementNo,
+invoice_date:invDate.value,
+site:invSite.value,
+invoice_type:invType.value,
+invoice_no:invNo.value,
+buyer:invBuyer.value,
+seller_name:sellerName.value,
+seller_phone:sellerPhone.value,
+seller_address:sellerAddress.value,
+total_before_discount:Number(invoiceTotal.value||0),
+discount_percent:Number(discountPercent.value||0),
+discount_value:Number(discountValue.value||0),
+commercial_tax_percent:Number(commercialTaxPercent.value||0),
+commercial_tax_value:Number(commercialTaxValue.value||0),
+vat_value:Number(vatValue.value||0),
+net_total:Number(netTotal.value||0),
+created_by:currentUser.username
+};
+
+const {data,error}=await client
+.from("material_invoices")
+.insert(inv)
+.select()
+.single();
+
+if(!error&&data){
+let items=[];
+document.querySelectorAll("#invoiceItems tr").forEach((r,i)=>{
+let desc=r.querySelector(".inv-desc").value;
+let unit=r.querySelector(".inv-unit").value;
+let qty=Number(r.querySelector(".inv-qty").value||0);
+let price=Number(r.querySelector(".inv-price").value||0);
+let total=qty*price;
+
+if(desc||qty||price){
+items.push({
+invoice_id:data.id,
+serial_no:i+1,
+description:desc,
+unit,
+quantity:qty,
+unit_price:price,
+total
+});
+}
+});
+
+if(items.length){
+await client.from("material_invoice_items").insert(items);
+}
+}
+}
+
+closeInvoice();
+}
+
+async function openInvoiceFromLine(settlementNo){
+const {data:inv}=await client
+.from("material_invoices")
+.select("*")
+.eq("settlement_no",settlementNo)
+.order("id",{ascending:false})
+.limit(1)
+.maybeSingle();
+
+if(!inv){
+alert("لا توجد فاتورة محفوظة لهذه التسوية");
+return;
+}
+
+openInvoice();
+
+invDate.value=inv.invoice_date||"";
+invSite.value=inv.site||"";
+invType.value=inv.invoice_type||"ضريبية";
+invNo.value=inv.invoice_no||"";
+invBuyer.value=inv.buyer||"";
+sellerName.value=inv.seller_name||"";
+sellerPhone.value=inv.seller_phone||"";
+sellerAddress.value=inv.seller_address||"";
+invoiceTotal.value=inv.total_before_discount||0;
+discountPercent.value=inv.discount_percent||0;
+discountValue.value=inv.discount_value||0;
+commercialTaxPercent.value=inv.commercial_tax_percent||0;
+commercialTaxValue.value=inv.commercial_tax_value||0;
+vatValue.value=inv.vat_value||0;
+netTotal.value=inv.net_total||0;
+
+const {data:items}=await client
+.from("material_invoice_items")
+.select("*")
+.eq("invoice_id",inv.id)
+.order("serial_no");
+
+buildInvoiceRows();
+
+(items||[]).forEach((it,idx)=>{
+let row=document.querySelectorAll("#invoiceItems tr")[idx];
+if(row){
+row.querySelector(".inv-desc").value=it.description||"";
+row.querySelector(".inv-unit").value=it.unit||"";
+row.querySelector(".inv-qty").value=it.quantity||0;
+row.querySelector(".inv-price").value=it.unit_price||0;
+row.querySelector(".inv-total").value=it.total||0;
+}
+});
+}
+
 function openTransport(){
 transportModal.style.display="flex";
 }
@@ -1389,13 +1116,89 @@ function closeTransport(){
 transportModal.style.display="none";
 }
 
-function buildInvoiceRows(){}
-function calcInvoice(){}
-function saveInvoiceToAmount(){}
-function calcDistance(){}
-function calcTransport(){}
-function saveTransportToAmount(){}
+async function getCoords(address){
+let url="https://nominatim.openstreetmap.org/search?format=json&q="+encodeURIComponent(address);
+let res=await fetch(url);
+let data=await res.json();
 
+if(!data||!data.length){
+return null;
+}
+
+return {
+lat:Number(data[0].lat),
+lon:Number(data[0].lon)
+};
+}
+
+function haversine(a,b){
+const R=6371;
+let dLat=(b.lat-a.lat)*Math.PI/180;
+let dLon=(b.lon-a.lon)*Math.PI/180;
+let lat1=a.lat*Math.PI/180;
+let lat2=b.lat*Math.PI/180;
+let x=Math.sin(dLat/2)**2+Math.sin(dLon/2)**2*Math.cos(lat1)*Math.cos(lat2);
+return 2*R*Math.asin(Math.sqrt(x));
+}
+
+async function calcDistance(){
+if(!routeFrom.value||!routeTo.value){
+alert("اكتب من وإلى");
+return;
+}
+
+try{
+let a=await getCoords(routeFrom.value);
+let b=await getCoords(routeTo.value);
+
+if(!a||!b){
+alert("لم يتم حساب المسافة. ادخل المسافة يدوياً.");
+return;
+}
+
+distanceKm.value=haversine(a,b).toFixed(2);
+calcTransport();
+}catch(e){
+alert("تعذر حساب المسافة. ادخل المسافة يدوياً.");
+}
+}
+
+function calcTransport(){
+let d=Number(distanceKm.value||0);
+let r=Number(ratePerKm.value||0);
+transportTotal.value=(d*r).toFixed(2);
+}
+
+async function saveTransportToAmount(){
+calcTransport();
+
+let finalAmount=Number(manualTransportAmount.value||0);
+
+if(!finalAmount){
+finalAmount=Number(transportTotal.value||0);
+}
+
+amount.value=finalAmount.toFixed(2);
+
+if(!description.value){
+description.value="انتقالات من "+routeFrom.value+" إلى "+routeTo.value;
+}
+
+if(activeSettlementNo){
+await client.from("transport_routes").insert({
+settlement_no:activeSettlementNo,
+route_from:routeFrom.value,
+route_to:routeTo.value,
+distance_km:Number(distanceKm.value||0),
+rate_per_km:Number(ratePerKm.value||0),
+manual_amount:Number(manualTransportAmount.value||0),
+total_amount:finalAmount,
+created_by:currentUser.username
+});
+}
+
+closeTransport();
+}
 </script>
 
 </body>
