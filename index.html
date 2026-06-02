@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<title>Taswyat System - UPGRADED V6</title>
+<title>Taswyat System - UPGRADED V11</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
@@ -44,6 +44,15 @@ button.small{padding:6px 10px;font-size:12px}
 .locked-row{background:#fff7e6!important}
 .cancelled-row{background:#fff1f2!important}
 .actions-wrap{display:flex;gap:5px;flex-wrap:wrap;justify-content:center}
+/* Freeze input area and make settlement lines table scrollable */
+#newSettlementPage{max-height:calc(100vh - 70px);overflow:hidden;display:flex;flex-direction:column}
+#newSettlementPage.hidden{display:none!important}
+#lineSection{display:flex;flex-direction:column;min-height:0}
+#linesArea{max-height:420px;overflow:auto;margin-top:15px;border:1px solid #e5e7eb;border-radius:12px;background:white}
+#linesArea .table{margin-top:0;min-width:1250px}
+#linesArea .table th{position:sticky;top:0;z-index:5;background:#f8fafc}
+#linesArea .table th:last-child,#linesArea .table td:last-child{position:sticky;left:0;background:#fff;z-index:4;box-shadow:2px 0 4px rgba(0,0,0,.06)}
+#linesArea .table th:last-child{z-index:6;background:#f8fafc}
 .summary{display:grid;grid-template-columns:repeat(3,1fr);gap:15px}
 .summary .box{background:white;border-radius:15px;padding:20px;box-shadow:0 4px 16px rgba(0,0,0,.08)}
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;z-index:999}
@@ -132,7 +141,7 @@ button.small{padding:6px 10px;font-size:12px}
 <div id="app" class="app">
 
 <div class="sidebar">
-<h2>Taswyat V6</h2>
+<h2>Taswyat V16</h2>
 <p id="currentUserText"></p>
 
 <button onclick="showPage('homePage')">الرئيسية</button>
@@ -165,15 +174,22 @@ button.small{padding:6px 10px;font-size:12px}
 
 <div class="grid">
 <input id="ownerName" placeholder="اسم صاحب التسوية" oninput="clearAutoSettlementNo()" onblur="previewNextSettlementNo()">
-<input id="settlementAutoNo" placeholder="الرقم التلقائى غير قابل للتكرار" readonly>
-<input id="settlementManualNo" placeholder="الرقم اليدوى / رقم الدفتر - ممكن يتكرر">
+<input id="settlementPaperNo" placeholder="رقم التسوية النهائى" readonly>
+<input id="settlementManualNo" placeholder="الرقم اليدوى / رقم الدفتر - ممكن يتكرر" oninput="updatePaperSettlementNo()">
+<input id="settlementAutoNo" type="hidden">
 <input id="settlementNo" type="hidden">
 <input id="entryDate" type="date">
 </div>
 
-<div class="msg" style="color:#475569;text-align:right">رقم التسوية = رقم تلقائى غير قابل للتكرار لكل صاحب تسوية + رقم يدوى يمكن تكراره.</div>
+<div class="msg" style="color:#475569;text-align:right">رقم التسوية النهائي يظهر بشكل موحد في كل البرنامج مثل: 5-2026 / 1</div>
 <br>
 <button onclick="createHeader()">دخول / إنشاء</button>
+<br><br>
+<div class="grid2">
+<input id="quickSettlementSearch" placeholder="ابحث برقم التسوية لفتحها وإضافة بنود عليها - مثال: 5-2026 / 1">
+<button class="gray" onclick="quickOpenSettlementByNumber()">بحث / فتح التسوية</button>
+</div>
+<div id="quickSearchResult" class="msg"></div>
 
 <div id="lineSection" class="hidden">
 <hr>
@@ -185,7 +201,7 @@ button.small{padding:6px 10px;font-size:12px}
 <input id="addedTo" placeholder="مضاف إلى">
 <input id="paymentRef" placeholder="رقم مستند الدفع / شيك / تحويل">
 
-<select id="mainDirection">
+<select id="mainDirection" onchange="updateSubDirectionOptions()">
 <option value="">التوجيه العام</option>
 <option>مصروفات</option>
 <option>ايرادات</option>
@@ -437,7 +453,10 @@ const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let currentUser = null;
 let activeSettlementNo = null;
+let activeSettlementSearchKey = null;
+let activeSettlementOwnerName = "";
 let siteCostsData = [];
+let siteCostsHeaderMap = {};
 let currentInvoiceId = null;
 let editingLineId = null;
   function msg(t,c="red"){
@@ -893,17 +912,37 @@ function normalizeOwnerKey(owner){
 return String(owner || "").trim().replace(/\s+/g,"_").replace(/[^\u0600-\u06FFa-zA-Z0-9_\-]/g,"");
 }
 
+function normalizeSettlementText(v){
+return String(v || "").trim().replace(/\s+/g,"").replace(/[\\]/g,"/");
+}
+
 function displaySettlementNo(header){
 if(!header) return "";
-if(header.settlement_auto_no){
-return String(header.settlement_auto_no) + (header.settlement_manual_no ? " / " + header.settlement_manual_no : "");
-}
+const autoNo = header.settlement_auto_no ? String(header.settlement_auto_no).trim() : "";
+const manualNo = header.settlement_manual_no ? String(header.settlement_manual_no).trim() : "";
+if(autoNo && manualNo) return `${manualNo} / ${autoNo}`;
+if(autoNo) return autoNo;
+if(manualNo) return manualNo;
 return header.settlement_no || "";
+}
+
+function updatePaperSettlementNo(){
+if(!document.getElementById("settlementPaperNo")) return;
+const autoNo = String(settlementAutoNo.value || "").trim();
+const manualNo = String(settlementManualNo.value || "").trim();
+if(autoNo && manualNo){
+settlementPaperNo.value = manualNo + " / " + autoNo;
+}else if(autoNo){
+settlementPaperNo.value = autoNo;
+}else{
+settlementPaperNo.value = "";
+}
 }
 
 function clearAutoSettlementNo(){
 settlementAutoNo.value = "";
 settlementNo.value = "";
+if(document.getElementById("settlementPaperNo")) settlementPaperNo.value = "";
 }
 
 async function getNextSettlementAutoNo(owner){
@@ -925,6 +964,7 @@ const owner = ownerName.value.trim();
 if(!owner){ settlementAutoNo.value = ""; return; }
 const nextNo = await getNextSettlementAutoNo(owner);
 settlementAutoNo.value = nextNo;
+updatePaperSettlementNo();
 }
 
 async function createHeader(){
@@ -942,6 +982,7 @@ let autoNo = Number(settlementAutoNo.value || 0);
 if(!autoNo){
 autoNo = await getNextSettlementAutoNo(owner);
 settlementAutoNo.value = autoNo;
+updatePaperSettlementNo();
 }
 
 /* الرقم الداخلى للنظام لا يظهر للمستخدم، وهدفه منع تكرار نفس الرقم التلقائى لنفس الشخص */
@@ -962,9 +1003,12 @@ settlementAutoNo.value = existingByAuto.settlement_auto_no || "";
 settlementManualNo.value = existingByAuto.settlement_manual_no || "";
 settlementNo.value = existingByAuto.settlement_no;
 entryDate.value = existingByAuto.entry_date;
+updatePaperSettlementNo();
 activeSettlementNo = existingByAuto.settlement_no;
+activeSettlementSearchKey = displaySettlementNo(existingByAuto);
+activeSettlementOwnerName = existingByAuto.owner_name || ownerName.value || "";
 lineSection.classList.remove("hidden");
-loadLines(activeSettlementNo);
+loadLines(activeSettlementSearchKey || activeSettlementNo);
 alert("تم فتح التسوية الموجودة لنفس الشخص ونفس الرقم التلقائى");
 return;
 }
@@ -986,9 +1030,34 @@ return;
 }
 
 activeSettlementNo = technicalNo;
+activeSettlementSearchKey = displaySettlementNo({settlement_auto_no:autoNo, settlement_manual_no:manualNo, settlement_no:technicalNo});
+activeSettlementOwnerName = owner || ownerName.value || "";
+updatePaperSettlementNo();
 lineSection.classList.remove("hidden");
-loadLines(activeSettlementNo);
-addAudit("create_header","settlement_headers",technicalNo,technicalNo,null,{owner,autoNo,manualNo},`إنشاء تسوية رقم ${autoNo}${manualNo ? " / "+manualNo : ""}`);
+loadLines(activeSettlementSearchKey || activeSettlementNo);
+addAudit("create_header","settlement_headers",technicalNo,technicalNo,null,{owner,autoNo,manualNo},`إنشاء تسوية رقم ${manualNo ? manualNo + " / " : ""}${autoNo}`);
+}
+
+
+const subDirectionOptionsByMain = {
+"مصروفات":["خامات","انتقالات","بدلات","مرتبات","مصروفات ادارية وعمومية","نثريات","تأمينات اجتماعية","مصروفات المكتب","اجرة عمال يومية","اخرى"],
+"ايرادات":["ايرادات من المواقع","رد تأمينات","عهدة","فوائد بنكية","رد خطابات ضمان","اخرى"],
+"مستخلصات تحت التحصيل":["مستخلص تحت التحصيل","اخرى"],
+"تمويل":["تمويل نقدى","تحويل بنكى","شيك","اخرى"],
+"جارى العهدة":["عهدة","رد عهدة","تسوية عهدة","اخرى"]
+};
+
+function updateSubDirectionOptions(selectedValue=""){
+const main = mainDirection.value;
+let options = subDirectionOptionsByMain[main] || ["خامات","انتقالات","بدلات","مرتبات","مصروفات ادارية وعمومية","عهدة","نثريات","تأمينات اجتماعية","مصروفات المكتب","اجرة عمال يومية","مستخلص تحت التحصيل","اخرى"];
+let current = selectedValue || subDirection.value;
+subDirection.innerHTML = '<option value="">التوجيه الفرعى</option>' + options.map(o=>`<option>${o}</option>`).join("");
+if(current && options.includes(current)){
+subDirection.value = current;
+}else{
+subDirection.value = "";
+}
+handleSubDirection();
 }
 
 function handleSubDirection(){
@@ -1062,6 +1131,18 @@ if(oldLine && oldLine.status !== "pending" && currentUser.role !== "super_admin"
 alert("لا يمكن تعديل بند بعد قفله أو اعتماده");
 return;
 }
+
+/* السوبر أدمن لو عدل بند معتمد، نحافظ على حالة الاعتماد ولا نرجعه Pending */
+if(oldLine && currentUser.role === "super_admin" && oldLine.status !== "pending"){
+  lineData.status = oldLine.status;
+  lineData.attachment_locked = oldLine.attachment_locked;
+  lineData.final_approved = oldLine.final_approved;
+  lineData.final_approved_by = oldLine.final_approved_by;
+  lineData.final_approved_at = oldLine.final_approved_at;
+  lineData.override_approved = oldLine.override_approved;
+  lineData.override_reason = oldLine.override_reason;
+}
+
 const {error} = await client
 .from("settlement_lines")
 .update(lineData)
@@ -1071,7 +1152,7 @@ if(error){
 alert("خطأ أثناء التعديل");
 return;
 }
-await addAudit("update_line","settlement_lines",editingLineId,activeSettlementNo,oldLine,lineData,"تعديل بند تسوية");
+await addAudit("update_line","settlement_lines",editingLineId,activeSettlementNo,oldLine,lineData,"تعديل بند تسوية بواسطة السوبر أدمن مع الحفاظ على حالة الاعتماد");
 editingLineId = null;
 }else{
 const {data,error} = await client
@@ -1101,13 +1182,153 @@ if(document.getElementById("lineAttachments")) lineAttachments.value = "";
 loadLines(activeSettlementNo);
 }
 
+async function getSettlementNoCandidates(no){
+let candidates = [];
+function add(v){
+  v = String(v || "").trim();
+  if(v && !candidates.includes(v)) candidates.push(v);
+}
+function addHeader(h){
+  if(!h) return;
+  add(h.settlement_no);
+  add(displaySettlementNo(h));
+  const auto = String(h.settlement_auto_no || "").trim();
+  const manual = String(h.settlement_manual_no || "").trim();
+  if(auto && manual){
+    add(`${manual} / ${auto}`);
+    add(`${auto} / ${manual}`);
+    add(`${manual}/${auto}`);
+    add(`${auto}/${manual}`);
+  }
+  if(manual) add(manual);
+  if(auto) add(auto);
+  if(h.owner_name && auto) add(`${normalizeOwnerKey(h.owner_name)}-${auto}`);
+}
+add(no);
+try{
+  const clean = normalizeSettlementText(no);
+  const {data:headers} = await client.from("settlement_headers").select("*");
+  (headers || []).forEach(h=>{
+    const vals = [
+      h.settlement_no,
+      displaySettlementNo(h),
+      h.settlement_manual_no,
+      h.settlement_auto_no,
+      h.settlement_manual_no && h.settlement_auto_no ? `${h.settlement_manual_no} / ${h.settlement_auto_no}` : "",
+      h.settlement_manual_no && h.settlement_auto_no ? `${h.settlement_auto_no} / ${h.settlement_manual_no}` : ""
+    ];
+    const found = vals.some(v => {
+      const nv = normalizeSettlementText(v);
+      return nv === clean || nv.includes(clean) || clean.includes(nv);
+    });
+    if(found) addHeader(h);
+  });
+}catch(e){console.log(e)}
+return candidates;
+}
+
+function getHeaderNoCandidatesStrict(h){
+let candidates = [];
+function add(v){
+  v = String(v || "").trim();
+  if(v && !candidates.includes(v)) candidates.push(v);
+}
+if(!h) return candidates;
+add(h.settlement_no);
+add(displaySettlementNo(h));
+const auto = String(h.settlement_auto_no || "").trim();
+const manual = String(h.settlement_manual_no || "").trim();
+if(auto && manual){
+  add(`${manual} / ${auto}`);
+  add(`${auto} / ${manual}`);
+  add(`${manual}/${auto}`);
+  add(`${auto}/${manual}`);
+  add(`${manual} - ${auto}`);
+  add(`${auto} - ${manual}`);
+}
+if(manual) add(manual);
+if(auto) add(auto);
+if(h.owner_name && auto) add(`${normalizeOwnerKey(h.owner_name)}-${auto}`);
+return candidates;
+}
+
+function lineMatchesCandidates(lineNo,candidates){
+const ln = normalizeSettlementText(lineNo || "");
+return (candidates || []).some(c=>{
+  const nc = normalizeSettlementText(c || "");
+  return nc && (ln === nc || ln.includes(nc) || nc.includes(ln));
+});
+}
+
 async function loadLines(no){
 
-const {data} = await client
+let searchKey = no || activeSettlementNo || activeSettlementSearchKey;
+let data = [];
+let error = null;
+
+const {data:headers} = await client.from("settlement_headers").select("*");
+const allHeaders = headers || [];
+
+/*
+  المهم هنا:
+  لو المستخدم اختار تسوية محددة من نتائج البحث، نستخدم أرقام هذه التسوية فقط
+  ولا نجيب أي تسويات أخرى حتى لو الرقم اليدوي متكرر.
+*/
+let selectedHeader = null;
+if(activeSettlementNo){
+  selectedHeader = allHeaders.find(h => String(h.settlement_no || "").trim() === String(activeSettlementNo || "").trim()) || null;
+}
+if(!selectedHeader && searchKey){
+  const clean = normalizeSettlementText(searchKey);
+  selectedHeader = allHeaders.find(h => normalizeSettlementText(h.settlement_no || "") === clean) || null;
+}
+
+let candidates = selectedHeader
+  ? getHeaderNoCandidatesStrict(selectedHeader)
+  : await getSettlementNoCandidates(searchKey);
+
+if(!candidates.length && searchKey) candidates = [searchKey];
+
+let res = await client
 .from("settlement_lines")
 .select("*")
-.eq("settlement_no",no)
+.in("settlement_no", candidates)
 .order("id");
+
+data = res.data || [];
+error = res.error;
+
+/* احتياطى: لو البنود القديمة محفوظة بصيغة مختلفة للرقم */
+if((!data || data.length === 0) && candidates.length){
+  const {data:allLines} = await client.from("settlement_lines").select("*").order("id");
+  data = (allLines || []).filter(l => lineMatchesCandidates(l.settlement_no,candidates));
+}
+
+if(error){
+  console.log(error);
+  data = [];
+}
+
+/* إضافة عمود وارد من لكل بند */
+const hMap = {};
+allHeaders.forEach(h=>{
+  hMap[h.settlement_no] = h;
+  getHeaderNoCandidatesStrict(h).forEach(c=>{ hMap[c] = h; });
+});
+
+data = (data || []).map(l=>{
+  let matchedHeader = hMap[l.settlement_no] || selectedHeader || null;
+  return {
+    ...l,
+    __owner_name: (matchedHeader && matchedHeader.owner_name) || activeSettlementOwnerName || ownerName.value || ""
+  };
+});
+
+/* لو فيه تسوية مختارة، نمنع تماماً ظهور أي بند لا يخصها */
+if(selectedHeader){
+  const strictCandidates = getHeaderNoCandidatesStrict(selectedHeader);
+  data = data.filter(l => lineMatchesCandidates(l.settlement_no, strictCandidates));
+}
 
 renderLines(data || [],linesArea,true);
 }
@@ -1118,6 +1339,7 @@ let html = `
 <tr>
 <th>التاريخ</th>
 <th>البيان</th>
+<th>وارد من</th>
 <th>مضاف الى</th>
 <th>مستند الدفع</th>
 <th>التوجيه العام</th>
@@ -1152,7 +1374,8 @@ if(showActions){
 
 actions = `<div class="actions-wrap">`;
 
-if(status === "pending"){
+/* المستخدم العادى يعدل البنود pending فقط - السوبر أدمن يقدر يعدل أى بند حتى بعد الاعتماد النهائى */
+if(status === "pending" || (currentUser.role === "super_admin" && status !== "deleted")){
 actions += `
 <button class="small orange" onclick="editLine(${r.id})">تعديل</button>`;
 }
@@ -1184,8 +1407,10 @@ actions += `
 <button class="small gray" onclick="cancelLine(${r.id})">Cancel</button>`;
 }
 
+if(status !== "deleted"){
 actions += `
-<button class="small red" onclick="deleteLine(${r.id})">Delete</button>`;
+<button class="small red" onclick="deleteLine(${r.id})">حذف نهائى</button>`;
+}
 }
 
 actions += `</div>`;
@@ -1195,6 +1420,7 @@ html += `
 <tr class="${rowClassByStatus(status)}">
 <td>${r.line_date}</td>
 <td>${r.description}</td>
+<td>${r.__owner_name || activeSettlementOwnerName || ownerName.value || ""}</td>
 <td>${r.added_to || ""}</td>
 <td>${r.payment_ref || ""}</td>
 <td>${r.main_direction}</td>
@@ -1231,7 +1457,7 @@ await client
 .eq("id",id);
 
 await addAudit("attachment_lock","settlement_lines",id,oldLine.settlement_no,oldLine,{status:"attachment_locked"},"تم قفل المرفقات");
-loadLines(activeSettlementNo);
+loadLines(activeSettlementSearchKey || activeSettlementNo);
 }
 
 async function approveLine(id){
@@ -1265,7 +1491,7 @@ updated_at:new Date().toISOString()
 .eq("id",id);
 
 await addAudit("final_approve","settlement_lines",id,oldLine.settlement_no,oldLine,{status:"approved"},"اعتماد نهائى بعد قفل المرفقات");
-loadLines(activeSettlementNo);
+loadLines(activeSettlementSearchKey || activeSettlementNo);
 }
 
 async function overrideApproveLine(id){
@@ -1295,7 +1521,7 @@ updated_at:new Date().toISOString()
 .eq("id",id);
 
 await addAudit("override_approve","settlement_lines",id,oldLine.settlement_no,oldLine,{status:"override_approved",reason},"اعتماد بالتجاوز: "+reason);
-loadLines(activeSettlementNo);
+loadLines(activeSettlementSearchKey || activeSettlementNo);
 }
 
 async function cancelLine(id){
@@ -1322,7 +1548,7 @@ updated_at:new Date().toISOString()
 .eq("id",id);
 
 await addAudit("cancel_line","settlement_lines",id,oldLine.settlement_no,oldLine,{status:"cancelled",reason},"إلغاء بند: "+reason);
-loadLines(activeSettlementNo);
+loadLines(activeSettlementSearchKey || activeSettlementNo);
 }
 
 async function deleteLine(id){
@@ -1349,7 +1575,7 @@ await client
 .delete()
 .eq("id",id);
 
-loadLines(activeSettlementNo);
+loadLines(activeSettlementSearchKey || activeSettlementNo);
 }
 
 async function editLine(id){
@@ -1376,14 +1602,14 @@ addedTo.value = data.added_to || "";
 paymentRef.value = data.payment_ref || "";
 site.value = data.site || "";
 mainDirection.value = data.main_direction;
-subDirection.value = data.sub_direction;
+updateSubDirectionOptions(data.sub_direction);
 currency.value = data.currency || "EGP";
 foreignAmount.value = data.foreign_amount || data.amount || "";
 exchangeRate.value = data.exchange_rate || 1;
 amount.value = data.amount;
 if(document.getElementById("lineAttachments")) lineAttachments.value = "";
 
-alert("تم تحميل البند للتعديل. لو اخترت ملفات جديدة سيتم استبدال مرفقات البند. بعد التعديل اضغط إدخال للحفظ.");
+alert("تم تحميل البند للتعديل. السوبر أدمن يمكنه تعديل البند حتى بعد الاعتماد النهائي. لو اخترت ملفات جديدة سيتم استبدال مرفقات البند. بعد التعديل اضغط إدخال للحفظ.");
 }
 
 
@@ -1399,10 +1625,89 @@ settlementAutoNo.value = h.settlement_auto_no || "";
 settlementManualNo.value = h.settlement_manual_no || "";
 settlementNo.value = h.settlement_no || "";
 entryDate.value = h.entry_date || entryDate.value;
+updatePaperSettlementNo();
 activeSettlementNo = h.settlement_no;
+activeSettlementSearchKey = displaySettlementNo(h);
+activeSettlementOwnerName = h.owner_name || "";
 lineSection.classList.remove("hidden");
 showPage("newSettlementPage");
 loadLines(activeSettlementNo);
+}
+
+async function quickOpenSettlementByNumber(){
+const key = (quickSettlementSearch.value || "").trim();
+if(!key){ alert("اكتب رقم التسوية"); return; }
+
+const {data:headers,error} = await client
+.from("settlement_headers")
+.select("*")
+.order("created_at",{ascending:false});
+
+if(error || !headers){
+alert("حدث خطأ أثناء البحث");
+return;
+}
+
+const cleanKey = normalizeSettlementText(key);
+const matches = (headers || []).filter(h=>{
+const displayNo = normalizeSettlementText(displaySettlementNo(h));
+const techNo = normalizeSettlementText(h.settlement_no || "");
+const manualNo = normalizeSettlementText(h.settlement_manual_no || "");
+const autoNo = normalizeSettlementText(h.settlement_auto_no || "");
+return displayNo === cleanKey || techNo === cleanKey || manualNo === cleanKey || autoNo === cleanKey || displayNo.includes(cleanKey);
+});
+
+if(matches.length === 0){
+quickSearchResult.innerHTML = "لا توجد تسوية بهذا الرقم";
+return;
+}
+
+if(matches.length === 1){
+quickSearchResult.innerHTML = "تم فتح التسوية: " + displaySettlementNo(matches[0]);
+openSettlementFromSearch(matches[0].settlement_no);
+return;
+}
+
+quickSearchResult.innerHTML = `تم العثور على أكثر من تسوية:<br><br>` + matches.map(h=>`
+<button class="small" style="margin:4px" onclick="openSettlementFromSearch('${h.settlement_no}')">
+${displaySettlementNo(h)} - ${h.owner_name}
+</button>`).join("");
+}
+
+async function viewSingleSearchSettlement(settlementNoValue){
+const {data:h,error:hErr} = await client
+.from("settlement_headers")
+.select("*")
+.eq("settlement_no",settlementNoValue)
+.maybeSingle();
+
+if(hErr || !h){
+searchResult.innerHTML = "لم يتم العثور على التسوية";
+return;
+}
+
+const {data:lines} = await client
+.from("settlement_lines")
+.select("*")
+.eq("settlement_no",h.settlement_no)
+.in("status",["approved","override_approved","attachment_locked","pending","cancelled"])
+.order("id");
+
+let annotatedLines = (lines || []).map(l=>({...l,__owner_name:h.owner_name || ""}));
+
+searchResult.innerHTML = `
+<div class="card" style="margin-top:20px">
+<h3>رقم التسوية : ${displaySettlementNo(h)}</h3>
+<p>صاحب التسوية : ${h.owner_name}</p>
+<p>تاريخ الإدخال : ${h.entry_date}</p>
+<button class="export-btn small" onclick="exportSettlementExcel('${h.settlement_no}')">تحميل التسوية Excel</button>
+<button class="gray small" onclick="printSettlementPdf('${h.settlement_no}')">طباعة / PDF التسوية</button>
+<button class="small" onclick="openSettlementFromSearch('${h.settlement_no}')">فتح التسوية وإضافة بنود</button>
+<button class="small gray" onclick="searchSettlement()">رجوع للنتائج</button>
+<div id="singleSearchLines"></div>
+</div>`;
+
+renderLines(annotatedLines,document.getElementById("singleSearchLines"),false);
 }
 
 async function searchSettlement(){
@@ -1425,37 +1730,34 @@ searchResult.innerHTML = "لا توجد نتائج";
 return;
 }
 
-let html = "";
+if(headers.length === 1){
+viewSingleSearchSettlement(headers[0].settlement_no);
+return;
+}
 
-for(const h of headers){
-
-html += `
+searchResult.innerHTML = `
 <div class="card" style="margin-top:20px">
-<h3>رقم التسوية : ${displaySettlementNo(h)}</h3>
-<p>صاحب التسوية : ${h.owner_name}</p>
-<p>تاريخ الإدخال : ${h.entry_date}</p>
-<button class="export-btn small" onclick="exportSettlementExcel('${h.settlement_no}')">تحميل التسوية Excel</button>
-<button class="gray small" onclick="printSettlementPdf('${h.settlement_no}')">طباعة / PDF التسوية</button>
-<button class="small" onclick="openSettlementFromSearch('${h.settlement_no}')">فتح التسوية</button>
-<div id="r${h.id}"></div>
+<h3>تم العثور على أكثر من تسوية</h3>
+<p>اضغط على التسوية المطلوبة لعرضها فقط.</p>
+<table class="table">
+<tr>
+<th>رقم التسوية</th>
+<th>صاحب التسوية</th>
+<th>تاريخ الإدخال</th>
+<th>الإجراء</th>
+</tr>
+${headers.map(h=>`
+<tr>
+<td>${displaySettlementNo(h)}</td>
+<td>${h.owner_name}</td>
+<td>${h.entry_date || ""}</td>
+<td>
+<button class="small" onclick="viewSingleSearchSettlement('${h.settlement_no}')">عرض هذه التسوية فقط</button>
+<button class="small gray" onclick="openSettlementFromSearch('${h.settlement_no}')">فتح وإضافة بنود</button>
+</td>
+</tr>`).join("")}
+</table>
 </div>`;
-}
-
-searchResult.innerHTML = html;
-
-for(const h of headers){
-
-const {data:lines} = await client
-.from("settlement_lines")
-.select("*")
-.eq("settlement_no",h.settlement_no)
-.in("status",["approved","override_approved"])
-.eq("cancelled",false)
-.eq("deleted_by_super_admin",false)
-.order("id");
-
-renderLines(lines || [],document.getElementById("r"+h.id),false);
-}
 }
   async function accountStatement(){
 
@@ -1479,10 +1781,12 @@ const {data:lines} = await client
 .order("id");
 
 let headerMap = {};
+let headerObjMap = {};
 let ownerSettlementNos = [];
 
 (headers || []).forEach(h=>{
 headerMap[h.settlement_no] = h.owner_name;
+headerObjMap[h.settlement_no] = h;
 
 if((h.owner_name || "").trim() === owner){
 ownerSettlementNos.push(h.settlement_no);
@@ -1552,13 +1856,14 @@ accountResult.innerHTML = `
 <th>المبلغ بالجنيه</th>
 <th>المرفقات</th>
 <th>الحالة</th>
+${currentUser.role === "super_admin" ? "<th>إجراء</th>" : ""}
 </tr>
 
 ${ownerLines.map(l=>`
 
 <tr>
 <td>${l.line_date}</td>
-<td>${l.settlement_no}</td>
+<td>${displaySettlementNo(headerObjMap[l.settlement_no])}</td>
 <td>${l.description}</td>
 <td>${headerMap[l.settlement_no] || "-"}</td>
 <td>${l.added_to || ""}</td>
@@ -1571,12 +1876,54 @@ ${ownerLines.map(l=>`
 <td>${Number(l.amount).toLocaleString()}</td>
 <td>${renderAttachments(l.attachment_files)}</td>
 <td><span class="badge approved">${l.status}</span></td>
+${currentUser.role === "super_admin" ? `<td><button class="small red" onclick="deleteLineFromAccount(${l.id}, '${owner.replace(/'/g,"\\'")}')">حذف نهائى</button></td>` : ""}
 </tr>
 
 `).join("")}
 
 </table>
 `;
+}
+
+async function deleteLineFromAccount(id, owner){
+
+if(currentUser.role !== "super_admin"){
+alert("الحذف النهائى للسوبر أدمن فقط");
+return;
+}
+
+const reason = prompt("اكتب سبب الحذف النهائى من كشف الحساب");
+if(!reason) return;
+
+const {data:oldLine} = await client
+.from("settlement_lines")
+.select("*")
+.eq("id",id)
+.maybeSingle();
+
+if(!oldLine) return;
+
+if(!confirm("هل تريد حذف هذا البند نهائياً من النظام؟")){
+return;
+}
+
+await addAudit(
+"delete_line_from_account",
+"settlement_lines",
+id,
+oldLine.settlement_no,
+oldLine,
+null,
+"حذف نهائى من كشف الحساب: " + reason
+);
+
+await client
+.from("settlement_lines")
+.delete()
+.eq("id",id);
+
+accountOwner.value = owner;
+accountStatement();
 }
 
 async function loadPendingUsers(){
@@ -1642,6 +1989,17 @@ const {data:lines} = await client
 .eq("cancelled",false)
 .eq("deleted_by_super_admin",false)
 .order("site");
+
+const {data:headersForSiteCosts} = await client
+.from("settlement_headers")
+.select("*");
+
+siteCostsHeaderMap = {};
+(headersForSiteCosts || []).forEach(h=>{
+  siteCostsHeaderMap[h.settlement_no] = h.owner_name || "";
+  const displayNo = displaySettlementNo(h);
+  if(displayNo) siteCostsHeaderMap[displayNo] = h.owner_name || "";
+});
 
 siteCostsData = lines || [];
 
@@ -1719,9 +2077,12 @@ siteCostsDetails.innerHTML = "";
 profitResult.innerHTML = "";
 }
 
-function showSiteDetails(site,type){
+function getSiteDetailPerson(l){
+return String(l.added_to || siteCostsHeaderMap[l.settlement_no] || l.created_by || "بدون اسم").trim() || "بدون اسم";
+}
 
-let details = siteCostsData.filter(l=>{
+function filterSiteDetails(site,type){
+return siteCostsData.filter(l=>{
  const currentSite = l.site || "بدون موقع";
  if(currentSite !== site) return false;
  if(type === "مستخلصات تحت التحصيل"){
@@ -1732,15 +2093,58 @@ let details = siteCostsData.filter(l=>{
  }
  return l.main_direction === type;
 });
+}
+
+function showSiteDetails(site,type,personFilter=""){
+
+let allDetails = filterSiteDetails(site,type);
+let details = allDetails;
+
+let filterHtml = "";
+
+if(type === "جارى العهدة"){
+ let persons = {};
+ allDetails.forEach(l=>{
+  const person = getSiteDetailPerson(l);
+  if(!persons[person]) persons[person] = 0;
+  persons[person] += Number(l.amount || 0);
+ });
+
+ filterHtml += `
+ <div class="card" style="margin:10px 0;background:#f8fafc">
+ <h3 style="margin-bottom:10px">اختيار صاحب العهدة</h3>
+ <button class="small gray" onclick="showSiteDetails('${site}','${type}','')">عرض الكل</button>
+ ${Object.keys(persons).map(p=>`
+   <button class="small ${personFilter===p?'green':'orange'}" style="margin:4px" onclick="showSiteDetails('${site}','${type}','${String(p).replaceAll("'","\\'")}')">
+   ${p} : ${persons[p].toLocaleString()}
+   </button>
+ `).join("")}
+ </div>`;
+
+ if(personFilter){
+  details = allDetails.filter(l=>getSiteDetailPerson(l) === personFilter);
+ }
+}
+
+let title = `تفاصيل ${type} - ${site}`;
+if(personFilter){ title += ` - ${personFilter}`; }
+
+let total = details.reduce((sum,l)=>sum + Number(l.amount || 0),0);
 
 let html = `
-<h3>تفاصيل ${type} - ${site}</h3>
+<h3>${title}</h3>
+${filterHtml}
+<div class="summary" style="margin:10px 0">
+<div class="box"><h3>إجمالى التفاصيل المعروضة</h3><h2>${total.toLocaleString()}</h2></div>
+</div>
 <button class="export-btn" onclick="exportElementTableToExcel('siteCostsDetails','site_details.xls')">تصدير التفاصيل Excel</button>
 <table class="table">
 <tr>
 <th>التاريخ</th>
 <th>رقم التسوية</th>
 <th>البيان</th>
+<th>وارد من</th>
+<th>مضاف إلى</th>
 <th>التوجيه العام</th>
 <th>التوجيه الفرعى</th>
 <th>مستند الدفع</th>
@@ -1757,6 +2161,8 @@ html += `
 <td>${l.line_date}</td>
 <td>${l.settlement_no}</td>
 <td>${l.description}</td>
+<td>${siteCostsHeaderMap[l.settlement_no] || "-"}</td>
+<td>${l.added_to || ""}</td>
 <td>${l.main_direction}</td>
 <td>${l.sub_direction}</td>
 <td>${l.payment_ref || ""}</td>
