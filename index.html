@@ -102,11 +102,37 @@ button.small{padding:6px 10px;font-size:12px}
   @page{size:A4 portrait;margin:8mm}
 }
 
+
+.combined-filter-input,.combined-filter-select{width:100%;padding:5px;border-radius:6px;font-size:11px;margin:2px 0}
+.sortable-th{cursor:pointer;background:#eef6ff!important;color:#0f172a}
+.rent-chip{display:inline-block;margin:3px;padding:6px 10px;border-radius:999px;background:#e0f2fe;color:#075985;cursor:pointer;font-weight:bold}
+.extract-box{border:1px solid #111;background:white;color:#000;padding:12px}
+.extract-box table{width:100%;border-collapse:collapse}
+.extract-box th,.extract-box td{border:1px solid #111;padding:4px;text-align:center}
+.extract-box input{border:0;border-radius:0;padding:5px;text-align:center}
+.extract-title{font-size:22px;font-weight:bold;text-align:center;margin:8px 0}
+
 @media(max-width:900px){
 .sidebar{position:static;width:auto}
 .main{margin:0}
 .grid,.grid2,.summary{grid-template-columns:1fr}
 }
+
+@media print{
+  table thead{display:table-header-group!important}
+  table tfoot{display:table-footer-group!important}
+  tr{page-break-inside:avoid}
+  .no-print,.sidebar,button{display:none!important}
+}
+.inv-category{width:90px!important;min-width:90px}
+.inv-desc{min-width:260px!important;font-weight:bold}
+.inv-unit,.inv-qty,.inv-price,.inv-total{max-width:90px!important}
+.inventory-sheet-table th{background:#fff!important;font-size:15px}
+.inventory-sheet-table td,.inventory-sheet-table th{border:1px solid #cfcfcf!important;padding:6px;text-align:center}
+.online-dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:#22c55e;margin-left:6px}
+.permission-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px}
+@media(max-width:900px){.permission-grid{grid-template-columns:1fr}}
+
 </style>
 </head>
 
@@ -141,13 +167,25 @@ button.small{padding:6px 10px;font-size:12px}
 <div id="app" class="app">
 
 <div class="sidebar">
-<h2>Taswyat V16</h2>
+<h2>Taswyat V21</h2>
 <p id="currentUserText"></p>
 
 <button onclick="showPage('homePage')">الرئيسية</button>
 <button onclick="showPage('newSettlementPage')">إدخال تسوية</button>
 <button onclick="showPage('searchPage')">بحث بالاسم أو رقم التسوية</button>
 <button onclick="showPage('accountPage')">كشف حساب</button>
+
+<button id="inventoryBtn" onclick="showPage('inventoryPage');loadInventory()">
+📦 معدات المخزن
+</button>
+
+<button id="onlineUsersBtn" class="hidden" onclick="showPage('onlineUsersPage');loadOnlineUsers()">
+🟢 المتواجدين الآن
+</button>
+
+<button id="combinedSettlementsBtn" class="hidden" onclick="showPage('combinedSettlementsPage');loadCombinedSettlements()">
+📚 حساب التسويات المجمع
+</button>
 
 <button id="siteCostsBtn" class="hidden" onclick="showPage('siteCostsPage');loadSiteCosts()">
 📊 تكاليف المواقع
@@ -272,6 +310,16 @@ button.small{padding:6px 10px;font-size:12px}
 <div id="accountResult"></div>
 </div>
 
+<div id="combinedSettlementsPage" class="card page hidden">
+<h2>📚 حساب التسويات المجمع</h2>
+<p class="msg" style="color:#475569">كل التسويات لكل الأفراد والحسابات البنكية. اكتب تحت رأس العمود أو اختر من القائمة لتصفية البيانات، واضغط على عنوان العمود للترتيب.</p>
+<div class="actions-wrap" style="justify-content:flex-start;margin-bottom:10px">
+<button class="export-btn" onclick="exportElementTableToExcel('combinedSettlementsArea','combined_settlements.xls')">تصدير المجمع Excel</button>
+<button class="gray" onclick="clearCombinedFilters()">مسح الفلاتر</button>
+</div>
+<div id="combinedSettlementsArea"></div>
+</div>
+
 <div id="siteCostsPage" class="card page hidden">
 <h2>📊 تكاليف المواقع</h2>
 <div class="actions-wrap" style="justify-content:flex-start;margin-bottom:10px">
@@ -284,6 +332,25 @@ button.small{padding:6px 10px;font-size:12px}
 <hr>
 <h3>تفاصيل الموقع</h3>
 <div id="siteCostsDetails"></div>
+</div>
+
+
+<div id="inventoryPage" class="card page hidden">
+<h2>📦 معدات المخزن</h2>
+<p class="msg" style="color:#475569">قراءة فقط لكل المستخدمين. الإضافة والتعديل حسب صلاحية يحددها Super Admin.</p>
+<div class="actions-wrap" style="justify-content:flex-start;margin-bottom:10px">
+<button class="export-btn" onclick="exportElementTableToExcel('inventoryArea','inventory.xls')">تحميل المخزن Excel</button>
+<button id="inventoryAddBtn" class="green hidden" onclick="openInventoryAddModal()">إضافة خامة / عدة</button>
+<button id="inventoryCountBtn" class="orange hidden" onclick="openInventoryCountModal()">إضافة جرد</button>
+<button id="inventoryReturnBtn" class="gray hidden" onclick="openInventoryReturnModal()">مرتجع</button>
+</div>
+<div id="inventoryArea"></div>
+</div>
+
+<div id="onlineUsersPage" class="card page hidden">
+<h2>🟢 المتواجدين الآن على السيستم</h2>
+<button class="gray" onclick="loadOnlineUsers()">تحديث</button>
+<div id="onlineUsersArea"></div>
 </div>
 
 <div id="usersPage" class="card page hidden">
@@ -415,10 +482,56 @@ button.small{padding:6px 10px;font-size:12px}
 
 <div class="invoice-actions">
 <button class="green" onclick="saveInvoiceToAmount()">حفظ الفاتورة وترحيل الصافى</button>
+<button class="orange" onclick="manualTransferCurrentInvoiceTools()">ترحيل العدة للمخزن</button>
 <button class="print-btn" onclick="printInvoiceA4()">تحميل / طباعة PDF A4</button>
 <button id="deleteInvoiceBtn" class="red hidden" onclick="deleteCurrentInvoice()">حذف الفاتورة</button>
 </div>
 
+</div>
+</div>
+
+
+<div id="inventoryModal" class="modal-bg">
+<div class="modal">
+<div class="modal-header"><h2 id="inventoryModalTitle">إضافة مخزن</h2><button class="red small" onclick="closeInventoryModal()">إغلاق</button></div>
+<div class="grid">
+<input id="invItemCode" placeholder="كود الصنف">
+<input id="invItemName" placeholder="اسم الصنف">
+<input id="invPurchasedQty" type="number" placeholder="الكمية المشتراه / الكمية">
+<input id="invCurrentQty" type="number" placeholder="الكمية بالمخزن أول جرد">
+<input id="invPurchaseDate" type="date" placeholder="تاريخ الشراء">
+<input id="invSpentBy" placeholder="المنصرف">
+<input id="invSpentDate" type="date" placeholder="تاريخ الصرف">
+<input id="invInvoiceNo" placeholder="رقم الفاتورة">
+<input id="invSettlementNo" placeholder="رقم التسوية">
+<select id="invCategory"><option>عدة</option><option>خامات</option><option>مهمات سلامة</option><option>مهمات مشروع</option></select>
+</div>
+<br>
+<button class="green" onclick="saveInventoryManual()">حفظ</button>
+</div>
+</div>
+
+<div id="inventoryCountModal" class="modal-bg">
+<div class="modal">
+<div class="modal-header"><h2>إضافة جرد</h2><button class="red small" onclick="closeInventoryCountModal()">إغلاق</button></div>
+<div class="grid">
+<select id="countItemSelect"></select>
+<input id="countQty" type="number" placeholder="كمية الجرد الجديدة">
+<input id="countDate" type="date" placeholder="تاريخ الجرد">
+</div>
+<br><button class="green" onclick="saveInventoryCount()">تحديث الجرد</button>
+</div>
+</div>
+
+<div id="inventoryReturnModal" class="modal-bg">
+<div class="modal">
+<div class="modal-header"><h2>مرتجع للمخزن</h2><button class="red small" onclick="closeInventoryReturnModal()">إغلاق</button></div>
+<div class="grid">
+<select id="returnItemSelect"></select>
+<input id="returnQty" type="number" placeholder="كمية المرتجع">
+<input id="returnDate" type="date" placeholder="تاريخ المرتجع">
+</div>
+<br><button class="green" onclick="saveInventoryReturn()">إضافة المرتجع للرصيد</button>
 </div>
 </div>
 
@@ -443,6 +556,63 @@ button.small{padding:6px 10px;font-size:12px}
 <br>
 <button class="green" onclick="saveTransportToAmount()">إدخال وترحيل المبلغ</button>
 
+</div>
+</div>
+
+
+<div id="rentModal" class="modal-bg">
+<div class="modal">
+<div class="modal-header">
+<h2>إيجارات</h2>
+<button class="red small" onclick="closeRentModal()">إغلاق</button>
+</div>
+<div class="grid">
+<input id="rentNewSpace" placeholder="إضافة شقة / حيز مؤجر جديد">
+<button class="green" onclick="addRentedSpace()">إضافة للحفظ</button>
+<select id="rentSpaceSelect" onchange="selectRentSpace()"><option value="">اختر الشقة / الحيز</option></select>
+<input id="rentMonth" type="month" placeholder="إيجار شهر">
+<input id="rentAmount" type="number" placeholder="قيمة الإيجار بالجنيه">
+<input id="rentNotes" placeholder="ملاحظات">
+</div>
+<br>
+<div id="rentSpacesList"></div>
+<br>
+<button class="green" onclick="saveRentToAmount()">ترحيل الإيجار إلى بند التسوية</button>
+</div>
+</div>
+
+<div id="laborExtractModal" class="modal-bg">
+<div class="modal">
+<div class="modal-header">
+<h2>مستخلص مصنعيات</h2>
+<button class="red small" onclick="closeLaborExtractModal()">إغلاق</button>
+</div>
+<div class="extract-box" id="laborExtractBox">
+<div class="extract-title">شركة إيجي اير للتبريد والتكييف</div>
+<div class="grid">
+<input id="laborProject" placeholder="المشروع">
+<input id="laborContractor" placeholder="المقاول / المورد">
+<input id="laborExtractDate" type="date">
+<input id="laborExtractNo" placeholder="رقم المستخلص / الفاتورة">
+<input id="laborWorkOrder" placeholder="رقم أمر الإسناد">
+<input id="laborNotes" placeholder="ملاحظات">
+</div>
+<br>
+<table>
+<thead>
+<tr>
+<th>م</th><th>بيان الأعمال</th><th>كمية P.O</th><th>الوحدة</th><th>السابق كمية</th><th>الحالي كمية</th><th>الإجمالي كمية</th><th>الفئة</th><th>السابق EGP</th><th>الحالي EGP</th><th>الإجمالي EGP</th><th>ملاحظات</th>
+</tr>
+</thead>
+<tbody id="laborExtractRows"></tbody>
+<tfoot>
+<tr><th colspan="9">الإجمالي غير شامل الضريبة</th><th id="laborCurrentTotal">0.00</th><th id="laborGrandTotal">0.00</th><th></th></tr>
+</tfoot>
+</table>
+</div>
+<br>
+<button class="green" onclick="saveLaborExtractToAmount()">حفظ المستخلص وترحيل الحالي</button>
+<button class="gray" onclick="printLaborExtractA4()">طباعة / PDF A4</button>
 </div>
 </div>
 
@@ -555,12 +725,16 @@ currentUserText.innerHTML = "المستخدم : " + currentUser.username;
 
 if(currentUser.role === "super_admin"){
 usersBtn.classList.remove("hidden");
+combinedSettlementsBtn.classList.remove("hidden");
 siteCostsBtn.classList.remove("hidden");
 auditBtn.classList.remove("hidden");
+onlineUsersBtn.classList.remove("hidden");
 if(document.getElementById("exportSiteCostsBtn")) exportSiteCostsBtn.classList.remove("hidden");
 }
 
 showPage("homePage");
+trackPresence();
+setInterval(trackPresence,30000);
 }
 
 function logout(){
@@ -587,10 +761,17 @@ buildInvoiceRows();
 if(document.getElementById("currency")) updateExchangeRate();
 };
 
+function canAccessPage(id){
+ if(!currentUser) return false;
+ if(currentUser.role === "super_admin") return true;
+ if(["homePage","newSettlementPage","searchPage","accountPage","inventoryPage"].includes(id)) return true;
+ const allowed = currentUser.allowed_pages || [];
+ return allowed.includes(id);
+}
 function showPage(id){
-
-document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));
-document.getElementById(id).classList.remove("hidden");
+ if(!canAccessPage(id)){ alert("ليس لديك صلاحية دخول هذه الصفحة"); return; }
+ document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));
+ document.getElementById(id).classList.remove("hidden");
 }
 
 function getCurrencyApiCode(){
@@ -632,6 +813,22 @@ const rate = Number(exchangeRate.value || 0);
 amount.value = (curAmount * rate).toFixed(2);
 }
 
+function preparePrintHtmlWithRepeatingHeaders(el){
+ const clone = el.cloneNode(true);
+ clone.querySelectorAll('table').forEach(tbl=>{
+  if(!tbl.querySelector('thead')){
+   const first = tbl.querySelector('tr');
+   if(first){
+    const thead = document.createElement('thead');
+    thead.appendChild(first.cloneNode(true));
+    first.remove();
+    tbl.insertBefore(thead, tbl.firstChild);
+   }
+  }
+ });
+ return clone.innerHTML;
+}
+
 function printAccountPdf(){
 const content = document.getElementById("accountResult");
 if(!content || !content.innerHTML.trim()){
@@ -643,8 +840,8 @@ const w = window.open("", "_blank");
 w.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>${owner}</title><style>
 @page{size:A4;margin:10mm}
 body{font-family:Arial,Tahoma,sans-serif;color:#111827;direction:rtl}
-h1{text-align:center;margin:0 0 12px;font-size:20px}.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}.box{border:1px solid #ddd;border-radius:8px;padding:8px;text-align:center}.box h3{font-size:12px;margin:0}.box h2{font-size:16px;margin:6px 0 0}table{width:100%;border-collapse:collapse;font-size:10px}th,td{border:1px solid #999;padding:4px;text-align:center}th{background:#f3f4f6}.badge{padding:2px 5px;border-radius:8px;background:#dcfce7;color:#166534}
-</style></head><body><h1>كشف حساب - ${owner}</h1>${content.innerHTML}</body></html>`);
+h1{text-align:center;margin:0 0 12px;font-size:20px}.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}.box{border:1px solid #ddd;border-radius:8px;padding:8px;text-align:center}.box h3{font-size:12px;margin:0}.box h2{font-size:16px;margin:6px 0 0}table{width:100%;border-collapse:collapse;font-size:10px}th,td{border:1px solid #999;padding:4px;text-align:center}thead{display:table-header-group}tfoot{display:table-footer-group}tr{page-break-inside:avoid}th{background:#f3f4f6}.badge{padding:2px 5px;border-radius:8px;background:#dcfce7;color:#166534}
+</style></head><body><h1>كشف حساب - ${owner}</h1>${preparePrintHtmlWithRepeatingHeaders(content)}</body></html>`);
 w.document.close();
 w.focus();
 setTimeout(()=>w.print(),500);
@@ -1040,7 +1237,7 @@ addAudit("create_header","settlement_headers",technicalNo,technicalNo,null,{owne
 
 
 const subDirectionOptionsByMain = {
-"مصروفات":["خامات","انتقالات","بدلات","مرتبات","مصروفات ادارية وعمومية","نثريات","تأمينات اجتماعية","مصروفات المكتب","اجرة عمال يومية","اخرى"],
+"مصروفات":["خامات","انتقالات","بدلات","مرتبات","مصروفات ادارية وعمومية","نثريات","تأمينات اجتماعية","مصروفات المكتب","اجرة عمال يومية","ايجارات","مصنعيات","اخرى"],
 "ايرادات":["ايرادات من المواقع","رد تأمينات","عهدة","فوائد بنكية","رد خطابات ضمان","اخرى"],
 "مستخلصات تحت التحصيل":["مستخلص تحت التحصيل","اخرى"],
 "تمويل":["تمويل نقدى","تحويل بنكى","شيك","اخرى"],
@@ -1049,7 +1246,7 @@ const subDirectionOptionsByMain = {
 
 function updateSubDirectionOptions(selectedValue=""){
 const main = mainDirection.value;
-let options = subDirectionOptionsByMain[main] || ["خامات","انتقالات","بدلات","مرتبات","مصروفات ادارية وعمومية","عهدة","نثريات","تأمينات اجتماعية","مصروفات المكتب","اجرة عمال يومية","مستخلص تحت التحصيل","اخرى"];
+let options = subDirectionOptionsByMain[main] || ["خامات","انتقالات","بدلات","مرتبات","مصروفات ادارية وعمومية","عهدة","نثريات","تأمينات اجتماعية","مصروفات المكتب","اجرة عمال يومية","ايجارات","مصنعيات","مستخلص تحت التحصيل","اخرى"];
 let current = selectedValue || subDirection.value;
 subDirection.innerHTML = '<option value="">التوجيه الفرعى</option>' + options.map(o=>`<option>${o}</option>`).join("");
 if(current && options.includes(current)){
@@ -1066,6 +1263,12 @@ openInvoice();
 }
 if(subDirection.value === "انتقالات"){
 openTransport();
+}
+if(subDirection.value === "ايجارات"){
+openRentModal();
+}
+if(subDirection.value === "مصنعيات"){
+openLaborExtractModal();
 }
 }
 
@@ -1778,7 +1981,7 @@ const {data:lines} = await client
 .in("status",["approved","override_approved"])
 .eq("cancelled",false)
 .eq("deleted_by_super_admin",false)
-.order("id");
+.order("line_date",{ascending:true});
 
 let headerMap = {};
 let headerObjMap = {};
@@ -1793,55 +1996,86 @@ ownerSettlementNos.push(h.settlement_no);
 }
 });
 
-let ownerLines = (lines || []).filter(l=>{
-let addedToMatch = (l.added_to || "").trim() === owner;
-let ownerSettlementMatch = ownerSettlementNos.includes(l.settlement_no);
-return addedToMatch || ownerSettlementMatch;
-});
+/*
+حساب كشف الحساب بدقة:
+1) العهدة = أي بند معتمد مضاف إلى الشخص وكان توجيهه العام جارى العهدة أو الفرعى عهدة.
+2) المصروفات = أي بند معتمد داخل تسويات الشخص نفسه وكان توجيهه العام مصروفات.
+3) الرصيد = العهدة - المصروفات.
+بهذا الشكل لا يتم خلط العهدة الواردة للشخص مع مصروفات أشخاص آخرين.
+*/
+const allLines = lines || [];
 
-let custody = 0;
-let expenses = 0;
-let revenues = 0;
+let custodyLines = allLines
+.filter(l =>
+  (l.added_to || "").trim() === owner &&
+  (l.main_direction === "جارى العهدة" || l.sub_direction === "عهدة")
+)
+.map(l => ({...l, account_move_type:"عهدة مضافة إلى الشخص"}));
 
-ownerLines.forEach(l=>{
+let expenseLines = allLines
+.filter(l =>
+  ownerSettlementNos.includes(l.settlement_no) &&
+  l.main_direction === "مصروفات"
+)
+.map(l => ({...l, account_move_type:"مصروفات تسوية معتمدة"}));
 
-if(l.main_direction === "جارى العهدة" || l.sub_direction === "عهدة"){
-custody += Number(l.amount);
+let revenueLines = allLines
+.filter(l =>
+  ownerSettlementNos.includes(l.settlement_no) &&
+  l.main_direction === "ايرادات"
+)
+.map(l => ({...l, account_move_type:"إيرادات / ردود"}));
 
-}else if(l.main_direction === "مصروفات"){
-expenses += Number(l.amount);
+let custody = custodyLines.reduce((sum,l)=>sum + Number(l.amount || 0),0);
+let expenses = expenseLines.reduce((sum,l)=>sum + Number(l.amount || 0),0);
+let revenues = revenueLines.reduce((sum,l)=>sum + Number(l.amount || 0),0);
 
-}else if(l.main_direction === "ايرادات"){
-revenues += Number(l.amount);
-}
+let balance = custody - expenses;
+let balanceAfterRevenues = custody + revenues - expenses;
 
-});
-
-let balance = custody + revenues - expenses;
+let tableLines = [...custodyLines, ...expenseLines, ...revenueLines]
+.sort((a,b)=> String(a.line_date || "").localeCompare(String(b.line_date || "")) || Number(a.id||0)-Number(b.id||0));
 
 accountResult.innerHTML = `
 <div class="summary">
 
 <div class="box">
-<h3>العهدة / جارى العهدة</h3>
+<h3>إجمالى العهدة المضافة للشخص</h3>
 <h2>${custody.toLocaleString()}</h2>
 </div>
 
 <div class="box">
-<h3>المصروفات المعتمدة</h3>
+<h3>إجمالى المصروفات المعتمدة</h3>
 <h2>${expenses.toLocaleString()}</h2>
 </div>
 
 <div class="box">
-<h3>الرصيد</h3>
+<h3>الرصيد الدقيق</h3>
 <h2>${balance.toLocaleString()}</h2>
+<small>الرصيد = العهدة المضافة للشخص - المصروفات المعتمدة</small>
 </div>
 
+</div>
+
+<div class="summary" style="margin-top:12px">
+<div class="box">
+<h3>إيرادات / ردود داخل تسويات الشخص</h3>
+<h2>${revenues.toLocaleString()}</h2>
+</div>
+<div class="box">
+<h3>الرصيد بعد الإيرادات والردود</h3>
+<h2>${balanceAfterRevenues.toLocaleString()}</h2>
+</div>
+<div class="box">
+<h3>عدد الحركات المعروضة</h3>
+<h2>${tableLines.length.toLocaleString()}</h2>
+</div>
 </div>
 
 <table class="table">
 
 <tr>
+<th>نوع الحركة</th>
 <th>التاريخ</th>
 <th>رقم التسوية</th>
 <th>البيان</th>
@@ -1859,9 +2093,10 @@ accountResult.innerHTML = `
 ${currentUser.role === "super_admin" ? "<th>إجراء</th>" : ""}
 </tr>
 
-${ownerLines.map(l=>`
+${tableLines.map(l=>`
 
 <tr>
+<td><b>${l.account_move_type}</b></td>
 <td>${l.line_date}</td>
 <td>${displaySettlementNo(headerObjMap[l.settlement_no])}</td>
 <td>${l.description}</td>
@@ -1884,7 +2119,6 @@ ${currentUser.role === "super_admin" ? `<td><button class="small red" onclick="d
 </table>
 `;
 }
-
 async function deleteLineFromAccount(id, owner){
 
 if(currentUser.role !== "super_admin"){
@@ -1952,7 +2186,8 @@ Reject
 </div>`;
 });
 
-pendingUsers.innerHTML = html || "لا توجد طلبات";
+pendingUsers.innerHTML = (html || "لا توجد طلبات") + `<hr><h3>صلاحيات المستخدمين</h3><div id="permissionsArea"></div>`;
+loadUsersPermissions();
 }
 
 async function approveUser(id){
@@ -2250,7 +2485,7 @@ for(let i=1;i<=10;i++){
 html += `
 <tr>
 <td>${i}</td>
-<td><input class="inv-desc"></td>
+<td><select class="inv-category"><option>خامات</option><option>عدة</option><option>مهمات سلامة</option><option>مهمات مشروع</option></select><input class="inv-desc" placeholder="بيان الخامات / الصنف"></td>
 <td><input class="inv-unit"></td>
 <td><input type="number" class="inv-qty" oninput="calcInvoice()"></td>
 <td><input type="number" class="inv-price" oninput="calcInvoice()"></td>
@@ -2397,6 +2632,7 @@ let items = [];
 document.querySelectorAll("#invoiceItems tr").forEach((r,i)=>{
 
 let desc = r.querySelector(".inv-desc").value;
+let category = r.querySelector(".inv-category") ? r.querySelector(".inv-category").value : "خامات";
 let unit = r.querySelector(".inv-unit").value;
 let qty = Number(r.querySelector(".inv-qty").value || 0);
 let price = Number(r.querySelector(".inv-price").value || 0);
@@ -2408,6 +2644,7 @@ items.push({
 invoice_id:invoiceId,
 serial_no:i+1,
 description:desc,
+item_category:category,
 unit,
 quantity:qty,
 unit_price:price,
@@ -2417,12 +2654,19 @@ total
 });
 
 if(items.length){
-await client
+const {error:itemsError} = await client
 .from("material_invoice_items")
 .insert(items);
+
+if(itemsError){
+alert("تم حفظ الفاتورة ولكن حدث خطأ في حفظ بنود الفاتورة: " + itemsError.message);
+return;
 }
 
-alert("تم حفظ الفاتورة وترحيل الصافي إلى خانة المبلغ");
+await saveInvoiceToolsToInventory(items, inv, invoiceId);
+}
+
+alert("تم حفظ الفاتورة وترحيل الصافي إلى خانة المبلغ، وأي بند تصنيفه عدة تم ترحيله للمخزن");
 closeInvoice();
 }
 
@@ -2480,6 +2724,7 @@ let row = document.querySelectorAll("#invoiceItems tr")[idx];
 
 if(row){
 row.querySelector(".inv-desc").value = it.description || "";
+if(row.querySelector(".inv-category")) row.querySelector(".inv-category").value = it.item_category || "خامات";
 row.querySelector(".inv-unit").value = it.unit || "";
 row.querySelector(".inv-qty").value = it.quantity || 0;
 row.querySelector(".inv-price").value = it.unit_price || 0;
@@ -2638,6 +2883,353 @@ created_by:currentUser.username
 }
 
 closeTransport();
+}
+
+
+/* ===== V17: حساب التسويات المجمع + الإيجارات + مستخلص المصنعيات ===== */
+let combinedRows = [];
+let combinedSortKey = "";
+let combinedSortAsc = true;
+
+function norm(v){ return String(v ?? "").trim(); }
+function safeHtml(v){ return String(v ?? "").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;"); }
+
+async function loadCombinedSettlements(){
+ if(currentUser.role !== "super_admin"){
+  alert("حساب التسويات المجمع للسوبر أدمن فقط");
+  return;
+ }
+ const {data:headers} = await client.from("settlement_headers").select("*");
+ const hmap = {};
+ (headers || []).forEach(h=>{
+  hmap[h.settlement_no] = h;
+  const dn = displaySettlementNo(h);
+  if(dn) hmap[dn] = h;
+ });
+ const {data:lines,error} = await client
+ .from("settlement_lines")
+ .select("*")
+ .eq("cancelled",false)
+ .eq("deleted_by_super_admin",false)
+ .order("line_date",{ascending:false});
+ if(error){ combinedSettlementsArea.innerHTML = "حدث خطأ أثناء تحميل البيانات"; return; }
+ combinedRows = (lines || []).map(l=>{
+  const h = hmap[l.settlement_no] || {};
+  return {
+   date:l.line_date || "",
+   no: displaySettlementNo(h) || l.settlement_no || "",
+   owner:h.owner_name || "",
+   description:l.description || "",
+   from:h.owner_name || "",
+   to:l.added_to || "",
+   main:l.main_direction || "",
+   sub:l.sub_direction || "",
+   site:l.site || "",
+   payment:l.payment_ref || "",
+   currency:l.currency || "EGP",
+   foreign:Number(l.foreign_amount || l.amount || 0),
+   rate:Number(l.exchange_rate || 1),
+   amount:Number(l.amount || 0),
+   status:l.status || "",
+   attachments:Array.isArray(l.attachment_files)?l.attachment_files.length:0,
+   created:l.created_by || ""
+  };
+ });
+ renderCombinedSettlements();
+}
+
+function combinedColumns(){
+ return [
+  ["date","التاريخ"],["no","رقم التسوية"],["owner","صاحب التسوية / الحساب"],["description","البيان"],["from","وارد من"],["to","مضاف إلى"],
+  ["main","التوجيه العام"],["sub","التوجيه الفرعي"],["site","الموقع"],["payment","مستند الدفع"],["currency","العملة"],["foreign","المبلغ الأصلي"],
+  ["rate","سعر الصرف"],["amount","المبلغ بالجنيه"],["status","الحالة"],["created","مدخل البيان"]
+ ];
+}
+
+function getCombinedFilterValue(key,type){
+ const el = document.getElementById("cf_"+type+"_"+key);
+ return el ? el.value : "";
+}
+
+function renderCombinedSettlements(){
+ const cols = combinedColumns();
+ let rows = [...combinedRows];
+ cols.forEach(([key])=>{
+  const txt = getCombinedFilterValue(key,"txt").toLowerCase();
+  const sel = getCombinedFilterValue(key,"sel");
+  if(txt) rows = rows.filter(r=>String(r[key] ?? "").toLowerCase().includes(txt));
+  if(sel) rows = rows.filter(r=>String(r[key] ?? "") === sel);
+ });
+ if(combinedSortKey){
+  rows.sort((a,b)=>{
+   const av = a[combinedSortKey]; const bv = b[combinedSortKey];
+   if(typeof av === "number" || typeof bv === "number") return combinedSortAsc ? Number(av||0)-Number(bv||0) : Number(bv||0)-Number(av||0);
+   return combinedSortAsc ? String(av||"").localeCompare(String(bv||""),'ar') : String(bv||"").localeCompare(String(av||""),'ar');
+  });
+ }
+ const totals = rows.reduce((s,r)=>s+Number(r.amount||0),0);
+ let html = `<div class="summary" style="margin:10px 0"><div class="box"><h3>عدد البنود المعروضة</h3><h2>${rows.length}</h2></div><div class="box"><h3>إجمالي المعروض بالجنيه</h3><h2>${totals.toLocaleString()}</h2></div></div>`;
+ html += `<div style="max-height:62vh;overflow:auto"><table class="table"><thead><tr>`;
+ cols.forEach(([key,label])=> html += `<th class="sortable-th" onclick="sortCombined('${key}')">${label}</th>`);
+ html += `</tr><tr>`;
+ cols.forEach(([key,label])=>{
+  const unique = [...new Set(combinedRows.map(r=>String(r[key] ?? "")).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ar')).slice(0,300);
+  html += `<th><input class="combined-filter-input" id="cf_txt_${key}" placeholder="بحث ${label}" oninput="renderCombinedSettlements()"><select class="combined-filter-select" id="cf_sel_${key}" onchange="renderCombinedSettlements()"><option value="">الكل</option>${unique.map(v=>`<option value="${safeHtml(v)}">${safeHtml(v)}</option>`).join("")}</select></th>`;
+ });
+ html += `</tr></thead><tbody>`;
+ rows.forEach(r=>{
+  html += `<tr>${cols.map(([key])=>`<td>${typeof r[key]==='number'?Number(r[key]).toLocaleString():safeHtml(r[key])}</td>`).join("")}</tr>`;
+ });
+ html += `</tbody></table></div>`;
+ combinedSettlementsArea.innerHTML = html;
+}
+
+function sortCombined(key){
+ if(combinedSortKey === key){ combinedSortAsc = !combinedSortAsc; } else { combinedSortKey = key; combinedSortAsc = true; }
+ renderCombinedSettlements();
+}
+
+function clearCombinedFilters(){
+ document.querySelectorAll('#combinedSettlementsArea input,#combinedSettlementsArea select').forEach(e=>e.value='');
+ combinedSortKey = "";
+ renderCombinedSettlements();
+}
+
+async function openRentModal(){
+ rentModal.style.display = "flex";
+ rentMonth.value = new Date().toISOString().slice(0,7);
+ await loadRentedSpaces();
+}
+function closeRentModal(){ rentModal.style.display = "none"; }
+
+async function loadRentedSpaces(){
+ const {data,error} = await client.from("rented_spaces").select("*").order("space_name");
+ if(error){ rentSpacesList.innerHTML = "شغل SQL الخاص بجدول rented_spaces أولاً"; return; }
+ const spaces = data || [];
+ rentSpaceSelect.innerHTML = '<option value="">اختر الشقة / الحيز</option>' + spaces.map(x=>`<option value="${safeHtml(x.space_name)}">${safeHtml(x.space_name)}</option>`).join("");
+ rentSpacesList.innerHTML = spaces.map(x=>`<span class="rent-chip" onclick="chooseRentSpace('${String(x.space_name).replaceAll("'","\\'")}')">${safeHtml(x.space_name)}</span>`).join("") || "لا توجد شقق/حيزات محفوظة";
+}
+async function addRentedSpace(){
+ const name = rentNewSpace.value.trim();
+ if(!name){ alert("اكتب اسم الشقة أو الحيز"); return; }
+ const {error} = await client.from("rented_spaces").insert({space_name:name,created_by:currentUser.username});
+ if(error){ alert("لم يتم الحفظ، ربما الاسم موجود أو الجدول غير منشأ"); return; }
+ rentNewSpace.value = "";
+ await loadRentedSpaces();
+ chooseRentSpace(name);
+}
+function chooseRentSpace(name){ rentSpaceSelect.value = name; selectRentSpace(); }
+function selectRentSpace(){
+ if(rentSpaceSelect.value){
+  site.value = rentSpaceSelect.value;
+  description.value = `إيجار ${rentSpaceSelect.value} عن شهر ${rentMonth.value || ""}`;
+ }
+}
+function saveRentToAmount(){
+ if(!rentSpaceSelect.value){ alert("اختر الشقة / الحيز"); return; }
+ if(!rentMonth.value){ alert("اختر الشهر"); return; }
+ if(!rentAmount.value){ alert("اكتب قيمة الإيجار"); return; }
+ site.value = rentSpaceSelect.value;
+ description.value = `إيجار ${rentSpaceSelect.value} عن شهر ${rentMonth.value}`;
+ currency.value = "EGP";
+ exchangeRate.value = 1;
+ foreignAmount.value = Number(rentAmount.value || 0).toFixed(2);
+ calculateEgpAmount();
+ if(!paymentRef.value) paymentRef.value = `RENT-${rentSpaceSelect.value}-${rentMonth.value}`;
+ closeRentModal();
+}
+
+function openLaborExtractModal(){
+ laborExtractModal.style.display = "flex";
+ laborExtractDate.value = new Date().toISOString().slice(0,10);
+ laborProject.value = site.value || "";
+ laborContractor.value = addedTo.value || "";
+ buildLaborExtractRows();
+}
+function closeLaborExtractModal(){ laborExtractModal.style.display = "none"; }
+function buildLaborExtractRows(){
+ let html = "";
+ for(let i=1;i<=8;i++){
+  html += `<tr>
+  <td>${i}</td><td><input class="lab-desc"></td><td><input type="number" class="lab-po"></td><td><input class="lab-unit"></td>
+  <td><input type="number" class="lab-prev-q" oninput="calcLaborExtract()"></td><td><input type="number" class="lab-cur-q" oninput="calcLaborExtract()"></td><td><input class="lab-total-q" readonly></td>
+  <td><input type="number" class="lab-rate" oninput="calcLaborExtract()"></td><td><input class="lab-prev-v" readonly></td><td><input class="lab-cur-v" readonly></td><td><input class="lab-total-v" readonly></td><td><input class="lab-note"></td>
+  </tr>`;
+ }
+ laborExtractRows.innerHTML = html;
+ calcLaborExtract();
+}
+function calcLaborExtract(){
+ let curTotal = 0, grandTotal = 0;
+ document.querySelectorAll('#laborExtractRows tr').forEach(r=>{
+  const prevQ = Number(r.querySelector('.lab-prev-q').value||0);
+  const curQ = Number(r.querySelector('.lab-cur-q').value||0);
+  const rate = Number(r.querySelector('.lab-rate').value||0);
+  const totalQ = prevQ + curQ;
+  const prevV = prevQ * rate;
+  const curV = curQ * rate;
+  const totalV = totalQ * rate;
+  r.querySelector('.lab-total-q').value = totalQ.toFixed(2);
+  r.querySelector('.lab-prev-v').value = prevV.toFixed(2);
+  r.querySelector('.lab-cur-v').value = curV.toFixed(2);
+  r.querySelector('.lab-total-v').value = totalV.toFixed(2);
+  curTotal += curV; grandTotal += totalV;
+ });
+ laborCurrentTotal.innerText = curTotal.toFixed(2);
+ laborGrandTotal.innerText = grandTotal.toFixed(2);
+}
+async function saveLaborExtractToAmount(){
+ calcLaborExtract();
+ const curTotal = Number(laborCurrentTotal.innerText || 0);
+ if(!curTotal){ alert("أدخل بنود المستخلص وقيمة الحالي"); return; }
+ description.value = `مستخلص مصنعيات رقم ${laborExtractNo.value || ""} - ${laborContractor.value || ""}`.trim();
+ addedTo.value = laborContractor.value || addedTo.value;
+ site.value = laborProject.value || site.value;
+ if(!paymentRef.value) paymentRef.value = laborExtractNo.value || laborWorkOrder.value || `LAB-${Date.now()}`;
+ currency.value = "EGP"; exchangeRate.value = 1; foreignAmount.value = curTotal.toFixed(2); calculateEgpAmount();
+ try{
+  await client.from("labor_extracts").insert({
+   settlement_no:activeSettlementNo, extract_no:laborExtractNo.value, work_order:laborWorkOrder.value, project:laborProject.value,
+   contractor:laborContractor.value, extract_date:laborExtractDate.value, current_total:curTotal, grand_total:Number(laborGrandTotal.innerText||0), notes:laborNotes.value, created_by:currentUser.username
+  });
+ }catch(e){}
+ alert("تم ترحيل قيمة الحالي إلى بند التسوية");
+ closeLaborExtractModal();
+}
+function printLaborExtractA4(){
+ const w = window.open('', '_blank');
+ w.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>مستخلص مصنعيات</title><style>@page{size:A4 landscape;margin:8mm}body{font-family:Arial}.extract-box{border:1px solid #111;padding:10px}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #111;padding:4px;text-align:center}input{border:0;text-align:center;width:100%}.extract-title{text-align:center;font-size:22px;font-weight:bold}</style></head><body>${laborExtractBox.outerHTML}</body></html>`);
+ w.document.close(); w.focus(); setTimeout(()=>w.print(),500);
+}
+
+
+async function trackPresence(){
+ if(!currentUser) return;
+ try{
+  await client.from("online_users").upsert({username:currentUser.username, role:currentUser.role, last_seen:new Date().toISOString()},{onConflict:"username"});
+ }catch(e){}
+}
+
+async function loadOnlineUsers(){
+ if(currentUser.role !== "super_admin") return;
+ const since = new Date(Date.now()-2*60*1000).toISOString();
+ const {data} = await client.from("online_users").select("*").gte("last_seen",since).order("last_seen",{ascending:false});
+ onlineUsersArea.innerHTML = `<table class="table"><thead><tr><th>الحالة</th><th>المستخدم</th><th>الصلاحية</th><th>آخر ظهور</th></tr></thead><tbody>${(data||[]).map(u=>`<tr><td><span class="online-dot"></span>Online</td><td>${u.username}</td><td>${u.role||""}</td><td>${new Date(u.last_seen).toLocaleString('ar-EG')}</td></tr>`).join("")}</tbody></table>`;
+}
+
+function canManageInventory(){
+ return currentUser && (
+  currentUser.role === "super_admin" ||
+  String(currentUser.username || "").trim().toLowerCase() === "acc" ||
+  currentUser.can_manage_inventory === true
+ );
+}
+async function loadInventory(){
+ try{
+  if(canManageInventory()){
+   inventoryAddBtn.classList.remove("hidden"); inventoryCountBtn.classList.remove("hidden"); inventoryReturnBtn.classList.remove("hidden");
+  }else{
+   inventoryAddBtn.classList.add("hidden"); inventoryCountBtn.classList.add("hidden"); inventoryReturnBtn.classList.add("hidden");
+  }
+  const {data} = await client.from("inventory_items").select("*").order("id",{ascending:false});
+  const rows = data || [];
+  inventoryArea.innerHTML = `<table class="table inventory-sheet-table"><thead><tr><th>م</th><th>اسم الصنف</th><th>كود الصنف</th><th>الكمية بالمخزن أول جرد</th><th>الكمية المشتراه</th><th>تاريخ الشراء</th><th>المتصرف</th><th>تاريخ الصرف</th><th>الرصيد</th><th>رقم الفاتورة</th><th>رقم التسوية</th><th>آخر جرد</th><th>تاريخ الجرد</th><th>آخر مرتجع</th><th>تاريخ المرتجع</th></tr></thead><tbody>${rows.map((x,i)=>`<tr><td>${i+1}</td><td>${x.item_name||""}</td><td>${x.item_code||""}</td><td>${num(x.initial_qty)}</td><td>${num(x.purchased_qty)}</td><td>${x.purchase_date||""}</td><td>${x.spent_by||""}</td><td>${x.spent_date||""}</td><td>${num(x.current_qty)}</td><td>${x.invoice_no||""}</td><td>${x.settlement_no||""}</td><td>${num(x.last_count_qty)}</td><td>${x.last_count_date||""}</td><td>${num(x.last_return_qty)}</td><td>${x.last_return_date||""}</td></tr>`).join("")}</tbody></table>`;
+ }catch(e){ inventoryArea.innerHTML = "تأكد من تشغيل SQL الخاص بالمخزن: " + (e.message || e); }
+}
+function num(v){ return Number(v||0).toLocaleString(); }
+function openInventoryAddModal(){ if(!canManageInventory()) return alert("ليس لديك صلاحية إضافة مخزن"); inventoryModal.style.display="flex"; invPurchaseDate.value=new Date().toISOString().slice(0,10); }
+function closeInventoryModal(){ inventoryModal.style.display="none"; }
+async function saveInventoryManual(){
+ if(!canManageInventory()) return;
+ if(!invItemName.value) return alert("اكتب اسم الصنف");
+ const qty = Number(invPurchasedQty.value||0);
+ const init = Number(invCurrentQty.value||0);
+ const current = init + qty;
+ const {error} = await client.from("inventory_items").insert({item_code:invItemCode.value,item_name:invItemName.value,initial_qty:init,purchased_qty:qty,current_qty:current,purchase_date:invPurchaseDate.value,spent_by:invSpentBy.value,spent_date:invSpentDate.value,invoice_no:invInvoiceNo.value,settlement_no:invSettlementNo.value,category:invCategory.value,created_by:currentUser.username});
+ if(error){ alert("لم يتم الحفظ في المخزن: " + error.message); return; }
+ closeInventoryModal(); loadInventory();
+}
+async function fillInventorySelects(){
+ const {data}=await client.from("inventory_items").select("id,item_name,item_code,current_qty").order("item_name");
+ const opt=(data||[]).map(x=>`<option value="${x.id}">${x.item_name||""} - ${x.item_code||""} - الرصيد ${num(x.current_qty)}</option>`).join("");
+ countItemSelect.innerHTML=opt; returnItemSelect.innerHTML=opt;
+}
+function openInventoryCountModal(){ if(!canManageInventory()) return alert("ليس لديك صلاحية"); countDate.value=new Date().toISOString().slice(0,10); fillInventorySelects(); inventoryCountModal.style.display="flex"; }
+function closeInventoryCountModal(){ inventoryCountModal.style.display="none"; }
+async function saveInventoryCount(){
+ if(!canManageInventory()) return;
+ const id=countItemSelect.value, q=Number(countQty.value||0), d=countDate.value;
+ if(!id || !d) return alert("اختر الصنف والتاريخ");
+ await client.from("inventory_counts").insert({item_id:id,count_qty:q,count_date:d,created_by:currentUser.username});
+ await client.from("inventory_items").update({current_qty:q,last_count_qty:q,last_count_date:d}).eq("id",id);
+ closeInventoryCountModal(); loadInventory();
+}
+function openInventoryReturnModal(){ if(!canManageInventory()) return alert("ليس لديك صلاحية"); returnDate.value=new Date().toISOString().slice(0,10); fillInventorySelects(); inventoryReturnModal.style.display="flex"; }
+function closeInventoryReturnModal(){ inventoryReturnModal.style.display="none"; }
+async function saveInventoryReturn(){
+ if(!canManageInventory()) return;
+ const id=returnItemSelect.value, q=Number(returnQty.value||0), d=returnDate.value;
+ if(!id || !q || !d) return alert("اختر الصنف والكمية والتاريخ");
+ const {data:item}=await client.from("inventory_items").select("current_qty").eq("id",id).maybeSingle();
+ const newBal=Number(item?.current_qty||0)+q;
+ await client.from("inventory_returns").insert({item_id:id,return_qty:q,return_date:d,created_by:currentUser.username});
+ await client.from("inventory_items").update({current_qty:newBal,last_return_qty:q,last_return_date:d}).eq("id",id);
+ closeInventoryReturnModal(); loadInventory();
+}
+function cleanText(v){ return (v || "").toString().trim(); }
+
+async function saveInvoiceToolsToInventory(items, inv, invoiceId){
+ const tools=(items||[]).filter(x=>cleanText(x.item_category) === "عدة" && (cleanText(x.description) || Number(x.quantity||0)));
+ if(!tools.length) return;
+ const settlementKey = activeSettlementSearchKey || activeSettlementNo || inv.settlement_no || "";
+ const rows=tools.map(x=>({
+  item_code:"",
+  item_name:cleanText(x.description) || "عدة بدون بيان",
+  category:"عدة",
+  initial_qty:0,
+  purchased_qty:Number(x.quantity||0),
+  current_qty:Number(x.quantity||0),
+  purchase_date:inv.invoice_date || new Date().toISOString().slice(0,10),
+  spent_by:"",
+  spent_date:null,
+  invoice_no:inv.invoice_no,
+  settlement_no:settlementKey,
+  created_by:currentUser.username
+ }));
+ const {error} = await client.from("inventory_items").insert(rows);
+ if(error){
+  alert("تم حفظ الفاتورة لكن لم يتم ترحيل العدة للمخزن. تأكد من تشغيل SQL الخاص بالمخزن. الخطأ: " + error.message);
+ }else{
+  if(document.getElementById("inventoryPage") && !document.getElementById("inventoryPage").classList.contains("hidden")) loadInventory();
+ }
+}
+
+async function manualTransferCurrentInvoiceTools(){
+ if(!currentInvoiceId){
+  alert("احفظ الفاتورة أولاً أو افتح فاتورة محفوظة");
+  return;
+ }
+ const {data:inv,error:invErr}=await client.from("material_invoices").select("*").eq("id",currentInvoiceId).maybeSingle();
+ if(invErr || !inv){ alert("لم يتم العثور على الفاتورة المحفوظة"); return; }
+ const {data:items,error:itemErr}=await client.from("material_invoice_items").select("*").eq("invoice_id",currentInvoiceId);
+ if(itemErr){ alert("تعذر قراءة بنود الفاتورة: " + itemErr.message); return; }
+ const tools=(items||[]).filter(x=>cleanText(x.item_category) === "عدة");
+ if(!tools.length){ alert("لا توجد بنود مصنفة عدة في هذه الفاتورة"); return; }
+ await saveInvoiceToolsToInventory(tools, inv, currentInvoiceId);
+ alert("تم ترحيل بنود العدة إلى المخزن");
+}
+
+async function loadUsersPermissions(){
+ if(currentUser.role !== "super_admin" || !document.getElementById("permissionsArea")) return;
+ const {data}=await client.from("app_users").select("id,username,role,status,allowed_pages,can_manage_inventory").order("username");
+ const pages=[['newSettlementPage','إدخال تسوية'],['searchPage','بحث التسويات'],['accountPage','كشف حساب'],['combinedSettlementsPage','حساب التسويات المجمع'],['siteCostsPage','تكاليف المواقع'],['inventoryPage','معدات المخزن']];
+ permissionsArea.innerHTML=(data||[]).map(u=>`<div class="card" style="margin:10px 0"><b>${u.username}</b> - ${u.role}<div class="permission-grid">${pages.map(p=>`<label><input type="checkbox" class="perm-${u.id}" value="${p[0]}" ${(u.allowed_pages||[]).includes(p[0])?'checked':''}> ${p[1]}</label>`).join("")}<label><input type="checkbox" id="invperm-${u.id}" ${u.can_manage_inventory?'checked':''}> يضيف / يعدل المخزن</label></div><button class="green small" onclick="saveUserPermissions(${u.id})">حفظ الصلاحيات</button></div>`).join("");
+}
+async function saveUserPermissions(id){
+ const allowed=[...document.querySelectorAll(`.perm-${id}:checked`)].map(x=>x.value);
+ const inv=document.getElementById(`invperm-${id}`)?.checked || false;
+ await client.from("app_users").update({allowed_pages:allowed,can_manage_inventory:inv}).eq("id",id);
+ alert("تم حفظ الصلاحيات");
 }
 
 </script>
