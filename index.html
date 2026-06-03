@@ -176,7 +176,7 @@ button.small{padding:6px 10px;font-size:12px}
 <div id="app" class="app">
 
 <div class="sidebar">
-<h2>Taswyat V38</h2>
+<h2>Taswyat V39</h2>
 <p id="currentUserText"></p>
 
 <button onclick="showPage('homePage')">الرئيسية</button>
@@ -517,6 +517,7 @@ button.small{padding:6px 10px;font-size:12px}
 
 <div class="invoice-actions">
 <button id="invoiceEditBtn" class="orange hidden" onclick="enableInvoiceEdit()">تعديل الفاتورة</button>
+<button id="addInvoiceRowBtn" class="gray" onclick="addInvoiceRow()">+ إضافة صف</button>
 <button id="invoiceSaveBtn" class="green" onclick="saveInvoiceToAmount()">حفظ الفاتورة وترحيل الصافى</button>
 <button id="invoiceTransferBtn" class="orange" onclick="manualTransferCurrentInvoiceTools()">ترحيل العدة للمخزن</button>
 <button class="print-btn" onclick="printInvoiceA4()">تحميل / طباعة PDF A4</button>
@@ -2660,6 +2661,7 @@ function setInvoiceReadOnly(readOnly){
   }
  });
  if(document.getElementById("invoiceSaveBtn")) invoiceSaveBtn.classList.toggle("hidden", readOnly);
+ if(document.getElementById("addInvoiceRowBtn")) addInvoiceRowBtn.classList.toggle("hidden", readOnly);
  if(document.getElementById("invoiceTransferBtn")) invoiceTransferBtn.classList.toggle("hidden", readOnly);
  if(document.getElementById("invoiceEditBtn")) invoiceEditBtn.classList.toggle("hidden", !(readOnly && currentUser && currentUser.role === "super_admin"));
  if(document.getElementById("deleteInvoiceBtn")) deleteInvoiceBtn.classList.toggle("hidden", !(readOnly && currentUser && currentUser.role === "super_admin" && currentInvoiceId));
@@ -2722,13 +2724,8 @@ netTotal.value = "";
 buildInvoiceRows();
 }
 
-function buildInvoiceRows(){
-
-let html = "";
-
-for(let i=1;i<=10;i++){
-
-html += `
+function invoiceRowHtml(i){
+return `
 <tr>
 <td>${i}</td>
 <td><select class="inv-category"><option>خامات</option><option>عدة</option><option>مهمات سلامة</option><option>مهمات مشروع</option><option>أخرى</option></select><input class="inv-desc" list="inventoryItemSuggestions" placeholder="اكتب الصنف وسيظهر المتشابه من المخزن" onfocus="loadInventoryItemSuggestions()" oninput="applyInventorySuggestionToRow(this)"></td>
@@ -2739,8 +2736,26 @@ html += `
 </tr>`;
 }
 
+function buildInvoiceRows(count=10){
+let html = "";
+for(let i=1;i<=count;i++){
+html += invoiceRowHtml(i);
+}
 invoiceItems.innerHTML = html;
 setupInvoiceInventoryAutocomplete();
+}
+
+function addInvoiceRow(){
+const currentRows = document.querySelectorAll("#invoiceItems tr").length;
+invoiceItems.insertAdjacentHTML("beforeend", invoiceRowHtml(currentRows + 1));
+setupInvoiceInventoryAutocomplete();
+calcInvoice();
+}
+
+function addInvoiceRows(count){
+for(let i=0;i<count;i++){
+addInvoiceRow();
+}
 }
 
 function calcInvoice(){
@@ -2963,7 +2978,7 @@ const {data:items} = await client
 .eq("invoice_id",inv.id)
 .order("serial_no");
 
-buildInvoiceRows();
+buildInvoiceRows(Math.max(10, (items || []).length));
 
 (items || []).forEach((it,idx)=>{
 
