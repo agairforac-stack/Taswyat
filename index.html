@@ -176,7 +176,7 @@ button.small{padding:6px 10px;font-size:12px}
 <div id="app" class="app">
 
 <div class="sidebar">
-<h2>Taswyat V39</h2>
+<h2>Taswyat V42</h2>
 <p id="currentUserText"></p>
 
 <button onclick="showPage('homePage')">الرئيسية</button>
@@ -333,16 +333,20 @@ button.small{padding:6px 10px;font-size:12px}
 </div>
 
 <div id="siteCostsPage" class="card page hidden">
-<h2>📊 تكاليف المواقع</h2>
+<h2>📊 تكاليف المواقع - تقرير تحليلي</h2>
 <div class="actions-wrap" style="justify-content:flex-start;margin-bottom:10px">
-<button id="exportSiteCostsBtn" class="export-btn hidden" onclick="exportElementTableToExcel('siteCostsSummary','site_costs.xls')">تصدير تكاليف المواقع Excel</button>
+<button id="exportSiteCostsBtn" class="export-btn hidden" onclick="exportElementTableToExcel('siteCostsSummary','site_costs.xls')">تصدير ملخص المواقع Excel</button>
+<button class="export-btn" onclick="exportElementTableToExcel('siteCostsDetails','site_details.xls')">تصدير التفاصيل Excel</button>
+<button class="gray" onclick="printSiteCostsReport()">طباعة التقرير PDF</button>
+</div>
+<div class="grid" style="background:#f8fafc;border:1px solid #e2e8f0;padding:12px;border-radius:12px;margin-bottom:12px">
+<div class="form-field"><label>بحث باسم الموقع / البيان / المستند</label><input id="siteCostSearch" oninput="renderSiteCostReport()" placeholder="اكتب للبحث داخل التقرير"></div>
+<div class="form-field"><label>نوع الحركة</label><select id="siteCostTypeFilter" onchange="renderSiteCostReport()"><option value="">كل الحركات</option><option>مصروفات</option><option>ايرادات</option><option>جارى العهدة</option><option>مستخلصات تحت التحصيل</option></select></div>
+<div class="form-field"><label>ترتيب النتائج</label><select id="siteCostSort" onchange="renderSiteCostReport()"><option value="site">حسب الموقع</option><option value="expenses">أعلى مصروفات</option><option value="custody">أعلى عهدة</option><option value="profit">الأعلى ربحية</option><option value="loss">الأكبر خسارة</option></select></div>
 </div>
 <div id="siteCostsSummary"></div>
-<br>
-<button class="green" onclick="calculateProfit()">حساب الأرباح</button>
-<div id="profitResult"></div>
 <hr>
-<h3>تفاصيل الموقع</h3>
+<h3>تفاصيل الموقع / البند المختار</h3>
 <div id="siteCostsDetails"></div>
 </div>
 
@@ -2189,97 +2193,143 @@ const {data:lines} = await client
 .eq("deleted_by_super_admin",false)
 .order("line_date",{ascending:true});
 
-let headerMap = {};
-let headerObjMap = {};
-let ownerSettlementNos = [];
+const headerMap = {};
+const headerObjMap = {};
+const ownerSettlementKeySet = new Set();
+
+function addHeaderAliasesToMaps(h){
+  const aliases = getHeaderNoCandidatesStrict(h);
+  aliases.forEach(k=>{
+    const key = normalizeSettlementText(k);
+    if(key){
+      headerMap[key] = h.owner_name || "-";
+      headerObjMap[key] = h;
+    }
+  });
+}
 
 (headers || []).forEach(h=>{
-headerMap[h.settlement_no] = h.owner_name;
-headerObjMap[h.settlement_no] = h;
-
-if((h.owner_name || "").trim() === owner){
-ownerSettlementNos.push(h.settlement_no);
-}
+  addHeaderAliasesToMaps(h);
+  if((h.owner_name || "").trim() === owner){
+    getHeaderNoCandidatesStrict(h).forEach(k=>{
+      const key = normalizeSettlementText(k);
+      if(key) ownerSettlementKeySet.add(key);
+    });
+  }
 });
 
-/*
-حساب كشف الحساب بدقة:
-1) العهدة = أي بند معتمد مضاف إلى الشخص وكان توجيهه العام جارى العهدة أو الفرعى عهدة.
-2) المصروفات = أي بند معتمد داخل تسويات الشخص نفسه وكان توجيهه العام مصروفات.
-3) الرصيد = العهدة - المصروفات.
-بهذا الشكل لا يتم خلط العهدة الواردة للشخص مع مصروفات أشخاص آخرين.
-*/
-const allLines = lines || [];
+function lineSettlementKey(l){
+  return normalizeSettlementText(l.settlement_no);
+}
 
+function lineOwnerName(l){
+  return headerMap[lineSettlementKey(l)] || "-";
+}
+
+function lineHeader(l){
+  return headerObjMap[lineSettlementKey(l)] || {settlement_no:l.settlement_no};
+}
+
+function isApprovedLine(l){
+  return ["approved","override_approved"].includes(l.status) && !l.cancelled && !l.deleted_by_super_admin;
+}
+
+const allLines = (lines || []).filter(isApprovedLine);
+
+// العهدة الداخلة: أي بند جارى عهدة/عهدة مضاف إلى هذا الشخص من أي تسوية.
+// حتى لو وارد من حساب/شخص آخر، فهذا يعتبر دائن للشخص.
 let custodyLines = allLines
 .filter(l =>
   (l.added_to || "").trim() === owner &&
   (l.main_direction === "جارى العهدة" || l.sub_direction === "عهدة")
 )
-.map(l => ({...l, account_move_type:"عهدة مضافة إلى الشخص"}));
+.map(l => ({...l, account_move_type:"عهدة مضافة إلى الشخص", debit:0, credit:Number(l.amount||0)}));
 
-let expenseLines = allLines
-.filter(l =>
-  ownerSettlementNos.includes(l.settlement_no) &&
-  l.main_direction === "مصروفات"
-)
-.map(l => ({...l, account_move_type:"مصروفات تسوية معتمدة"}));
+// الخارج من عهدة الشخص: كل بند معتمد داخل تسويات هذا الشخص، بغض النظر عن توجيهه.
+// الاعتماد معناه أن المبلغ خرج من عهدة صاحب التسوية، سواء كان مصروفات أو عهدة لشخص آخر أو تأمينات أو غيره.
+let outgoingLines = allLines
+.filter(l => ownerSettlementKeySet.has(lineSettlementKey(l)))
+.map(l => ({...l, account_move_type:"خارج من عهدة الشخص", debit:Number(l.amount||0), credit:0}));
 
-let revenueLines = allLines
-.filter(l =>
-  ownerSettlementNos.includes(l.settlement_no) &&
-  l.main_direction === "ايرادات"
-)
-.map(l => ({...l, account_move_type:"إيرادات / ردود"}));
+// لمنع عرض نفس الحركة مرتين إذا كانت نفس البند يمثل عهدة مضافة للشخص وخارج من نفس تسويته في نفس الوقت،
+// نعرضها مرة واحدة كخارج فقط لأن صاحب التسوية هو مصدر الصرف.
+const outgoingIdSet = new Set(outgoingLines.map(l=>String(l.id)));
+custodyLines = custodyLines.filter(l=>!outgoingIdSet.has(String(l.id)));
 
-let custody = custodyLines.reduce((sum,l)=>sum + Number(l.amount || 0),0);
-let expenses = expenseLines.reduce((sum,l)=>sum + Number(l.amount || 0),0);
-let revenues = revenueLines.reduce((sum,l)=>sum + Number(l.amount || 0),0);
+let custody = custodyLines.reduce((sum,l)=>sum + Number(l.credit || 0),0);
+let outgoing = outgoingLines.reduce((sum,l)=>sum + Number(l.debit || 0),0);
+let balance = custody - outgoing;
 
-let balance = custody - expenses;
-let balanceAfterRevenues = custody + revenues - expenses;
-
-let tableLines = [...custodyLines, ...expenseLines, ...revenueLines]
+let tableLines = [...custodyLines, ...outgoingLines]
 .sort((a,b)=> String(a.line_date || "").localeCompare(String(b.line_date || "")) || Number(a.id||0)-Number(b.id||0));
+
+let runningBalance = 0;
+const rowsHtml = tableLines.map(l=>{
+  runningBalance += Number(l.credit || 0) - Number(l.debit || 0);
+  return `
+<tr>
+<td><b>${l.account_move_type}</b></td>
+<td>${l.line_date || ""}</td>
+<td>${displaySettlementNo(lineHeader(l)) || l.settlement_no || ""}</td>
+<td>${l.description || ""}</td>
+<td>${lineOwnerName(l)}</td>
+<td>${l.added_to || ""}</td>
+<td>${l.main_direction || ""}</td>
+<td>${l.sub_direction || ""}</td>
+<td>${l.site || ""}</td>
+<td>${l.currency || "EGP"}</td>
+<td>${Number(l.foreign_amount || l.amount || 0).toLocaleString()}</td>
+<td>${Number(l.exchange_rate || 1).toLocaleString()}</td>
+<td>${Number(l.debit || 0).toLocaleString()}</td>
+<td>${Number(l.credit || 0).toLocaleString()}</td>
+<td><b>${runningBalance.toLocaleString()}</b></td>
+<td>${renderAttachments(l.attachment_files)}</td>
+<td><span class="badge approved">${l.status}</span></td>
+${currentUser.role === "super_admin" ? `<td><button class="small red" onclick="deleteLineFromAccount(${l.id}, '${owner.replace(/'/g,"\\'")}')">حذف نهائى</button></td>` : ""}
+</tr>`;
+}).join("");
 
 accountResult.innerHTML = `
 <div class="summary">
 
 <div class="box">
-<h3>إجمالى العهدة المضافة للشخص</h3>
+<h3>إجمالى العهدة الداخلة للشخص</h3>
 <h2>${custody.toLocaleString()}</h2>
+<small>كل بند جارى عهدة/عهدة مضاف إلى هذا الاسم من أي تسوية</small>
 </div>
 
 <div class="box">
-<h3>إجمالى المصروفات المعتمدة</h3>
-<h2>${expenses.toLocaleString()}</h2>
+<h3>إجمالى الخارج من عهدة الشخص</h3>
+<h2>${outgoing.toLocaleString()}</h2>
+<small>كل البنود المعتمدة داخل تسويات هذا الشخص، مهما كان توجيهها</small>
 </div>
 
 <div class="box">
 <h3>الرصيد الدقيق</h3>
 <h2>${balance.toLocaleString()}</h2>
-<small>الرصيد = العهدة المضافة للشخص - المصروفات المعتمدة</small>
+<small>الرصيد = العهدة الداخلة - كل الخارج من تسويات الشخص</small>
 </div>
 
 </div>
 
 <div class="summary" style="margin-top:12px">
 <div class="box">
-<h3>إيرادات / ردود داخل تسويات الشخص</h3>
-<h2>${revenues.toLocaleString()}</h2>
+<h3>عدد حركات العهدة الداخلة</h3>
+<h2>${custodyLines.length.toLocaleString()}</h2>
 </div>
 <div class="box">
-<h3>الرصيد بعد الإيرادات والردود</h3>
-<h2>${balanceAfterRevenues.toLocaleString()}</h2>
+<h3>عدد حركات الخارج</h3>
+<h2>${outgoingLines.length.toLocaleString()}</h2>
 </div>
 <div class="box">
-<h3>عدد الحركات المعروضة</h3>
+<h3>إجمالى الحركات المعروضة</h3>
 <h2>${tableLines.length.toLocaleString()}</h2>
+<small>يشمل كل بنود تسويات الشخص المعتمدة + العهد الداخلة له من الآخرين</small>
 </div>
 </div>
 
 <table class="table">
-
+<thead>
 <tr>
 <th>نوع الحركة</th>
 <th>التاريخ</th>
@@ -2293,35 +2343,26 @@ accountResult.innerHTML = `
 <th>العملة</th>
 <th>المبلغ الأصلى</th>
 <th>سعر الصرف</th>
-<th>المبلغ بالجنيه</th>
+<th>مدين / خارج من العهدة</th>
+<th>دائن / عهدة داخلة</th>
+<th>الرصيد الجارى</th>
 <th>المرفقات</th>
 <th>الحالة</th>
 ${currentUser.role === "super_admin" ? "<th>إجراء</th>" : ""}
 </tr>
-
-${tableLines.map(l=>`
-
+</thead>
+<tbody>
+${rowsHtml}
+</tbody>
+<tfoot>
 <tr>
-<td><b>${l.account_move_type}</b></td>
-<td>${l.line_date}</td>
-<td>${displaySettlementNo(headerObjMap[l.settlement_no])}</td>
-<td>${l.description}</td>
-<td>${headerMap[l.settlement_no] || "-"}</td>
-<td>${l.added_to || ""}</td>
-<td>${l.main_direction}</td>
-<td>${l.sub_direction}</td>
-<td>${l.site || ""}</td>
-<td>${l.currency || "EGP"}</td>
-<td>${Number(l.foreign_amount || l.amount || 0).toLocaleString()}</td>
-<td>${Number(l.exchange_rate || 1).toLocaleString()}</td>
-<td>${Number(l.amount).toLocaleString()}</td>
-<td>${renderAttachments(l.attachment_files)}</td>
-<td><span class="badge approved">${l.status}</span></td>
-${currentUser.role === "super_admin" ? `<td><button class="small red" onclick="deleteLineFromAccount(${l.id}, '${owner.replace(/'/g,"\\'")}')">حذف نهائى</button></td>` : ""}
+<th colspan="12">الإجمالى</th>
+<th>${outgoing.toLocaleString()}</th>
+<th>${custody.toLocaleString()}</th>
+<th>${balance.toLocaleString()}</th>
+<th colspan="${currentUser.role === "super_admin" ? 3 : 2}"></th>
 </tr>
-
-`).join("")}
-
+</tfoot>
 </table>
 `;
 }
@@ -2443,79 +2484,118 @@ siteCostsHeaderMap = {};
 });
 
 siteCostsData = lines || [];
-
-let sites = {};
-
-siteCostsData.forEach(l=>{
-
-let site = l.site || "بدون موقع";
-
-if(!sites[site]){
-sites[site] = {expenses:0, revenues:0, underCollection:0, custody:0};
+renderSiteCostReport();
 }
 
-const amount = Number(l.amount || 0);
-const main = l.main_direction || "";
-const sub = l.sub_direction || "";
-
-if(main === "مصروفات"){
-sites[site].expenses += amount;
+function money(n){
+ return Number(n || 0).toLocaleString('en-US',{maximumFractionDigits:2});
 }
 
-if(main === "ايرادات"){
-sites[site].revenues += amount;
+function getSiteMovementType(l){
+ const main = l.main_direction || "";
+ const sub = l.sub_direction || "";
+ if(main === "مستخلصات تحت التحصيل" || sub === "مستخلص تحت التحصيل") return "مستخلصات تحت التحصيل";
+ if(main === "جارى العهدة" || sub === "عهدة") return "جارى العهدة";
+ if(main === "ايرادات") return "ايرادات";
+ if(main === "مصروفات") return "مصروفات";
+ return main || "أخرى";
 }
 
-if(main === "مستخلصات تحت التحصيل" || sub === "مستخلص تحت التحصيل"){
-sites[site].underCollection += amount;
+function filteredSiteCostsData(){
+ const q = String(document.getElementById('siteCostSearch')?.value || '').trim().toLowerCase();
+ const t = String(document.getElementById('siteCostTypeFilter')?.value || '').trim();
+ return (siteCostsData || []).filter(l=>{
+  const type = getSiteMovementType(l);
+  if(t && type !== t) return false;
+  if(!q) return true;
+  const text = [l.site,l.description,l.payment_ref,l.settlement_no,l.added_to,siteCostsHeaderMap[l.settlement_no],l.main_direction,l.sub_direction].join(' ').toLowerCase();
+  return text.includes(q);
+ });
 }
 
-if(main === "جارى العهدة" || sub === "عهدة"){
-sites[site].custody += amount;
+function buildSiteStats(data){
+ const sites = {};
+ data.forEach(l=>{
+  let site = l.site || "بدون موقع";
+  if(!sites[site]){
+   sites[site] = {site, expenses:0, revenues:0, underCollection:0, custody:0, other:0, count:0, lastDate:"", directions:{}};
+  }
+  const amount = Number(l.amount || 0);
+  const type = getSiteMovementType(l);
+  sites[site].count += 1;
+  sites[site].lastDate = (!sites[site].lastDate || String(l.line_date||'') > sites[site].lastDate) ? (l.line_date || sites[site].lastDate) : sites[site].lastDate;
+  sites[site].directions[l.sub_direction || l.main_direction || 'غير محدد'] = (sites[site].directions[l.sub_direction || l.main_direction || 'غير محدد'] || 0) + amount;
+  if(type === "مصروفات") sites[site].expenses += amount;
+  else if(type === "ايرادات") sites[site].revenues += amount;
+  else if(type === "مستخلصات تحت التحصيل") sites[site].underCollection += amount;
+  else if(type === "جارى العهدة") sites[site].custody += amount;
+  else sites[site].other += amount;
+ });
+ return sites;
 }
 
-});
+function topDirection(siteObj){
+ let best = '', val = 0;
+ Object.keys(siteObj.directions || {}).forEach(k=>{
+  if(Math.abs(siteObj.directions[k]) > Math.abs(val)){ best = k; val = siteObj.directions[k]; }
+ });
+ return best ? `${best} (${money(val)})` : '-';
+}
 
-let html = `
-<table class="table">
-<tr>
-<th>اسم الموقع</th>
-<th>إجمالى المصروفات</th>
-<th>إجمالى الإيرادات المحصلة</th>
-<th>مستخلصات تحت التحصيل</th>
-<th>إجمالى جارى العهدة</th>
-<th>الربح / الخسارة الفعلية</th>
-<th>الأرباح / الخسائر المؤجلة</th>
-</tr>
-`;
-
-Object.keys(sites).forEach(site=>{
-
-let exp = sites[site].expenses;
-let rev = sites[site].revenues;
-let uc = sites[site].underCollection;
-let custody = sites[site].custody;
-let actualProfit = rev - exp;
-let deferredProfit = uc - exp;
-
-html += `
-<tr>
-<td>${site}</td>
-
-<td><button class="invoice-link" onclick="showSiteDetails('${site}','مصروفات')">${exp.toLocaleString()}</button></td>
-<td><button class="invoice-link" onclick="showSiteDetails('${site}','ايرادات')">${rev.toLocaleString()}</button></td>
-<td><button class="invoice-link" onclick="showSiteDetails('${site}','مستخلصات تحت التحصيل')">${uc.toLocaleString()}</button></td>
-<td><button class="invoice-link" onclick="showSiteDetails('${site}','جارى العهدة')">${custody.toLocaleString()}</button></td>
-<td>${actualProfit.toLocaleString()}</td>
-<td class="${deferredProfit < 0 ? 'cancelled-row' : 'override-row'}">${deferredProfit.toLocaleString()}</td>
-</tr>`;
-});
-
-html += "</table>";
-
-siteCostsSummary.innerHTML = html;
-siteCostsDetails.innerHTML = "";
-profitResult.innerHTML = "";
+function renderSiteCostReport(){
+ const data = filteredSiteCostsData();
+ const sites = buildSiteStats(data);
+ let rows = Object.values(sites);
+ const sort = document.getElementById('siteCostSort')?.value || 'site';
+ rows.sort((a,b)=>{
+  const profitA = a.revenues - a.expenses;
+  const profitB = b.revenues - b.expenses;
+  if(sort === 'expenses') return b.expenses - a.expenses;
+  if(sort === 'custody') return b.custody - a.custody;
+  if(sort === 'profit') return profitB - profitA;
+  if(sort === 'loss') return profitA - profitB;
+  return String(a.site).localeCompare(String(b.site),'ar');
+ });
+ const total = rows.reduce((acc,r)=>{
+  acc.expenses += r.expenses; acc.revenues += r.revenues; acc.uc += r.underCollection; acc.custody += r.custody; acc.other += r.other; acc.count += r.count;
+  return acc;
+ },{expenses:0,revenues:0,uc:0,custody:0,other:0,count:0});
+ const actualProfit = total.revenues - total.expenses;
+ const expectedProfit = total.revenues + total.uc - total.expenses;
+ const netCash = total.revenues - total.expenses - total.custody;
+ let html = `
+ <div id="siteCostsPrintable">
+ <div class="summary" style="margin:10px 0">
+  <div class="box"><h3>إجمالي المصروفات</h3><h2>${money(total.expenses)}</h2><p>كل المصروفات المعتمدة</p></div>
+  <div class="box"><h3>إجمالي الإيرادات المحصلة</h3><h2>${money(total.revenues)}</h2><p>إيرادات تم تحصيلها</p></div>
+  <div class="box"><h3>مستخلصات تحت التحصيل</h3><h2>${money(total.uc)}</h2><p>إيرادات متوقعة لم تحصل بعد</p></div>
+  <div class="box"><h3>إجمالي جارى العهدة</h3><h2>${money(total.custody)}</h2><p>أموال موجهة كعهد</p></div>
+  <div class="box"><h3>الربح / الخسارة الفعلية</h3><h2>${money(actualProfit)}</h2><p>المحصل - المصروفات</p></div>
+  <div class="box"><h3>الربح المتوقع بعد التحصيل</h3><h2>${money(expectedProfit)}</h2><p>المحصل + تحت التحصيل - المصروفات</p></div>
+  <div class="box"><h3>صافي النقد بعد العهد</h3><h2>${money(netCash)}</h2><p>المحصل - المصروفات - العهد</p></div>
+  <div class="box"><h3>عدد الحركات</h3><h2>${money(total.count)}</h2><p>ضمن الفلاتر الحالية</p></div>
+ </div>
+ <table class="table">
+ <thead><tr>
+ <th>الموقع</th><th>عدد الحركات</th><th>آخر تاريخ</th><th>أكبر بند/توجيه</th><th>مصروفات</th><th>إيرادات محصلة</th><th>تحت التحصيل</th><th>جارى العهدة</th><th>أخرى</th><th>الربح الفعلي</th><th>الربح المتوقع</th><th>تفاصيل</th>
+ </tr></thead><tbody>`;
+ rows.forEach(r=>{
+  const actual = r.revenues - r.expenses;
+  const expected = r.revenues + r.underCollection - r.expenses;
+  html += `<tr>
+  <td><b>${r.site}</b></td><td>${r.count}</td><td>${r.lastDate || '-'}</td><td>${topDirection(r)}</td>
+  <td><button class="invoice-link" onclick="showSiteDetails('${String(r.site).replaceAll("'","\\'")}','مصروفات')">${money(r.expenses)}</button></td>
+  <td><button class="invoice-link" onclick="showSiteDetails('${String(r.site).replaceAll("'","\\'")}','ايرادات')">${money(r.revenues)}</button></td>
+  <td><button class="invoice-link" onclick="showSiteDetails('${String(r.site).replaceAll("'","\\'")}','مستخلصات تحت التحصيل')">${money(r.underCollection)}</button></td>
+  <td><button class="invoice-link" onclick="showSiteDetails('${String(r.site).replaceAll("'","\\'")}','جارى العهدة')">${money(r.custody)}</button></td>
+  <td>${money(r.other)}</td><td class="${actual<0?'cancelled-row':'override-row'}">${money(actual)}</td><td class="${expected<0?'cancelled-row':'override-row'}">${money(expected)}</td>
+  <td><button class="small gray" onclick="showSiteAllDetails('${String(r.site).replaceAll("'","\\'")}')">كل التفاصيل</button></td>
+  </tr>`;
+ });
+ html += `</tbody><tfoot><tr><th>الإجمالي</th><th>${total.count}</th><th>-</th><th>-</th><th>${money(total.expenses)}</th><th>${money(total.revenues)}</th><th>${money(total.uc)}</th><th>${money(total.custody)}</th><th>${money(total.other)}</th><th>${money(actualProfit)}</th><th>${money(expectedProfit)}</th><th></th></tr></tfoot></table>
+ </div>`;
+ siteCostsSummary.innerHTML = html;
+ siteCostsDetails.innerHTML = `<p class="msg" style="color:#475569">اضغط على أي رقم في الجدول لعرض تفاصيله، أو استخدم البحث والفلاتر بالأعلى.</p>`;
 }
 
 function getSiteDetailPerson(l){
@@ -2523,17 +2603,16 @@ return String(l.added_to || siteCostsHeaderMap[l.settlement_no] || l.created_by 
 }
 
 function filterSiteDetails(site,type){
-return siteCostsData.filter(l=>{
+return filteredSiteCostsData().filter(l=>{
  const currentSite = l.site || "بدون موقع";
  if(currentSite !== site) return false;
- if(type === "مستخلصات تحت التحصيل"){
-  return l.main_direction === "مستخلصات تحت التحصيل" || l.sub_direction === "مستخلص تحت التحصيل";
- }
- if(type === "جارى العهدة"){
-  return l.main_direction === "جارى العهدة" || l.sub_direction === "عهدة";
- }
- return l.main_direction === type;
+ if(type === "كل التفاصيل") return true;
+ return getSiteMovementType(l) === type;
 });
+}
+
+function showSiteAllDetails(site){
+ showSiteDetails(site,'كل التفاصيل');
 }
 
 function showSiteDetails(site,type,personFilter=""){
@@ -2553,11 +2632,11 @@ if(type === "جارى العهدة"){
 
  filterHtml += `
  <div class="card" style="margin:10px 0;background:#f8fafc">
- <h3 style="margin-bottom:10px">اختيار صاحب العهدة</h3>
+ <h3 style="margin-bottom:10px">تصفية حسب صاحب العهدة</h3>
  <button class="small gray" onclick="showSiteDetails('${site}','${type}','')">عرض الكل</button>
  ${Object.keys(persons).map(p=>`
    <button class="small ${personFilter===p?'green':'orange'}" style="margin:4px" onclick="showSiteDetails('${site}','${type}','${String(p).replaceAll("'","\\'")}')">
-   ${p} : ${persons[p].toLocaleString()}
+   ${p} : ${money(persons[p])}
    </button>
  `).join("")}
  </div>`;
@@ -2571,81 +2650,58 @@ let title = `تفاصيل ${type} - ${site}`;
 if(personFilter){ title += ` - ${personFilter}`; }
 
 let total = details.reduce((sum,l)=>sum + Number(l.amount || 0),0);
+let bySub = {};
+details.forEach(l=>{ const k = l.sub_direction || l.main_direction || 'غير محدد'; bySub[k]=(bySub[k]||0)+Number(l.amount||0); });
+let bySubHtml = Object.keys(bySub).map(k=>`<span class="badge pending" style="margin:3px;display:inline-block">${k}: ${money(bySub[k])}</span>`).join(' ');
 
 let html = `
 <h3>${title}</h3>
 ${filterHtml}
 <div class="summary" style="margin:10px 0">
-<div class="box"><h3>إجمالى التفاصيل المعروضة</h3><h2>${total.toLocaleString()}</h2></div>
+<div class="box"><h3>إجمالى التفاصيل المعروضة</h3><h2>${money(total)}</h2></div>
+<div class="box"><h3>عدد الحركات</h3><h2>${details.length}</h2></div>
+<div class="box"><h3>توزيع فرعي</h3><div>${bySubHtml || '-'}</div></div>
 </div>
-<button class="export-btn" onclick="exportElementTableToExcel('siteCostsDetails','site_details.xls')">تصدير التفاصيل Excel</button>
 <table class="table">
-<tr>
-<th>التاريخ</th>
-<th>رقم التسوية</th>
-<th>البيان</th>
-<th>وارد من</th>
-<th>مضاف إلى</th>
-<th>التوجيه العام</th>
-<th>التوجيه الفرعى</th>
-<th>مستند الدفع</th>
-<th>العملة</th>
-<th>المبلغ الأصلى</th>
-<th>سعر الصرف</th>
-<th>المبلغ بالجنيه</th>
-</tr>
+<thead><tr>
+<th>التاريخ</th><th>رقم التسوية</th><th>نوع الحركة</th><th>البيان</th><th>وارد من</th><th>مضاف إلى</th><th>التوجيه العام</th><th>التوجيه الفرعى</th><th>الموقع</th><th>مستند الدفع</th><th>العملة</th><th>المبلغ الأصلى</th><th>سعر الصرف</th><th>المبلغ بالجنيه</th><th>الحالة</th><th>أنشأ بواسطة</th>
+</tr></thead><tbody>
 `;
 
 details.forEach(l=>{
 html += `
 <tr>
-<td>${l.line_date}</td>
-<td>${l.settlement_no}</td>
-<td>${l.description}</td>
+<td>${l.line_date || ''}</td>
+<td>${l.settlement_no || ''}</td>
+<td>${getSiteMovementType(l)}</td>
+<td>${l.description || ''}</td>
 <td>${siteCostsHeaderMap[l.settlement_no] || "-"}</td>
 <td>${l.added_to || ""}</td>
-<td>${l.main_direction}</td>
-<td>${l.sub_direction}</td>
+<td>${l.main_direction || ''}</td>
+<td>${l.sub_direction || ''}</td>
+<td>${l.site || ''}</td>
 <td>${l.payment_ref || ""}</td>
 <td>${l.currency || "EGP"}</td>
-<td>${Number(l.foreign_amount || l.amount || 0).toLocaleString()}</td>
-<td>${Number(l.exchange_rate || 1).toLocaleString()}</td>
-<td>${Number(l.amount).toLocaleString()}</td>
+<td>${money(l.foreign_amount || l.amount || 0)}</td>
+<td>${money(l.exchange_rate || 1)}</td>
+<td>${money(l.amount)}</td>
+<td>${l.status || ''}</td>
+<td>${l.created_by || ''}</td>
 </tr>`;
 });
 
-html += "</table>";
+html += `</tbody><tfoot><tr><th colspan="13">الإجمالي</th><th>${money(total)}</th><th colspan="2"></th></tr></tfoot></table>`;
 siteCostsDetails.innerHTML = html;
 }
 
-function calculateProfit(){
+function calculateProfit(){ renderSiteCostReport(); }
 
-let totalExpenses = 0;
-let totalRevenues = 0;
-let totalUnderCollection = 0;
-let totalCustody = 0;
-
-siteCostsData.forEach(l=>{
-const amount = Number(l.amount || 0);
-if(l.main_direction === "مصروفات") totalExpenses += amount;
-if(l.main_direction === "ايرادات") totalRevenues += amount;
-if(l.main_direction === "مستخلصات تحت التحصيل" || l.sub_direction === "مستخلص تحت التحصيل") totalUnderCollection += amount;
-if(l.main_direction === "جارى العهدة" || l.sub_direction === "عهدة") totalCustody += amount;
-});
-
-let actualProfit = totalRevenues - totalExpenses;
-let deferredProfit = totalUnderCollection - totalExpenses;
-
-profitResult.innerHTML = `
-<br>
-<div class="summary">
-<div class="box"><h3>إجمالى الإيرادات المحصلة</h3><h2>${totalRevenues.toLocaleString()}</h2></div>
-<div class="box"><h3>إجمالى المصروفات</h3><h2>${totalExpenses.toLocaleString()}</h2></div>
-<div class="box"><h3>مستخلصات تحت التحصيل</h3><h2>${totalUnderCollection.toLocaleString()}</h2></div>
-<div class="box"><h3>إجمالى جارى العهدة</h3><h2>${totalCustody.toLocaleString()}</h2></div>
-<div class="box"><h3>الربح / الخسارة الفعلية</h3><h2>${actualProfit.toLocaleString()}</h2></div>
-<div class="box"><h3>الأرباح / الخسائر المؤجلة</h3><h2>${deferredProfit.toLocaleString()}</h2></div>
-</div>`;
+function printSiteCostsReport(){
+ const w = window.open('', '_blank');
+ const content = document.getElementById('siteCostsSummary').innerHTML + '<hr>' + document.getElementById('siteCostsDetails').innerHTML;
+ w.document.write(`<html dir="rtl"><head><title>تقرير تكاليف المواقع</title><style>body{font-family:Arial;padding:20px}table{width:100%;border-collapse:collapse;font-size:11px}th,td{border:1px solid #999;padding:5px;text-align:center}.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.box{border:1px solid #ddd;padding:10px;border-radius:8px}button{display:none}@media print{thead{display:table-header-group}}</style></head><body><h2>تقرير تكاليف المواقع</h2>${content}</body></html>`);
+ w.document.close();
+ w.print();
 }
 
   
