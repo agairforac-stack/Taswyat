@@ -133,6 +133,15 @@ button.small{padding:6px 10px;font-size:12px}
 .permission-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px}
 @media(max-width:900px){.permission-grid{grid-template-columns:1fr}}
 
+
+.form-field{display:flex;flex-direction:column;gap:5px}
+.form-field label{font-weight:bold;color:#0f172a;font-size:13px}
+.inventory-search-box{background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px;margin:10px 0}
+.inventory-search-box h3{margin:0 0 10px;color:#0f172a}
+.inventory-distribution-details{font-size:11px;color:#334155;line-height:1.7;max-width:320px;white-space:normal}
+.dist-split-row{border:1px solid #cbd5e1;border-radius:8px;margin:3px 0;padding:4px;background:#f8fafc;text-align:right}
+.dist-split-row b{color:#0f172a}
+.dist-doc-link{display:inline-block;margin-top:3px;color:#0a6cff;font-weight:bold}
 </style>
 </head>
 
@@ -167,7 +176,7 @@ button.small{padding:6px 10px;font-size:12px}
 <div id="app" class="app">
 
 <div class="sidebar">
-<h2>Taswyat V21</h2>
+<h2>Taswyat V29</h2>
 <p id="currentUserText"></p>
 
 <button onclick="showPage('homePage')">الرئيسية</button>
@@ -343,7 +352,22 @@ button.small{padding:6px 10px;font-size:12px}
 <button id="inventoryAddBtn" class="green hidden" onclick="openInventoryAddModal()">إضافة خامة / عدة</button>
 <button id="inventoryCountBtn" class="orange hidden" onclick="openInventoryCountModal()">إضافة جرد</button>
 <button id="inventoryReturnBtn" class="gray hidden" onclick="openInventoryReturnModal()">مرتجع</button>
+<button id="inventoryDistributeBtn" class="orange hidden" onclick="openInventoryDistributeModal()">صرف / توزيع</button>
 </div>
+<div class="inventory-search-box">
+<h3>بحث داخل المخزن</h3>
+<div class="grid">
+<div class="form-field"><label>بحث باسم الصنف</label><input id="invSearchName" placeholder="اكتب اسم الصنف" oninput="filterInventoryLive()"></div>
+<div class="form-field"><label>بحث بكود الصنف</label><input id="invSearchCode" placeholder="اكتب كود الصنف" oninput="filterInventoryLive()"></div>
+<div class="form-field"><label>بحث باسم المخزن</label><input id="invSearchWarehouse" placeholder="مثال: مخزن القاهرة" oninput="filterInventoryLive()"></div>
+<div class="form-field"><label>بحث بالموقع / المشروع المتواجد به الصنف</label><input id="invSearchProject" placeholder="مثال: الأهلى / موقع / موظف" oninput="filterInventoryLive()"></div>
+<div class="form-field"><label>بحث برقم الفاتورة</label><input id="invSearchInvoice" placeholder="رقم الفاتورة" oninput="filterInventoryLive()"></div>
+<div class="form-field"><label>بحث برقم التسوية</label><input id="invSearchSettlement" placeholder="رقم التسوية" oninput="filterInventoryLive()"></div>
+</div>
+<br>
+<button class="gray" onclick="clearInventorySearch()">مسح البحث / عرض الكل</button>
+</div>
+<div id="inventorySearchSummary"></div>
 <div id="inventoryArea"></div>
 </div>
 
@@ -495,16 +519,17 @@ button.small{padding:6px 10px;font-size:12px}
 <div class="modal">
 <div class="modal-header"><h2 id="inventoryModalTitle">إضافة مخزن</h2><button class="red small" onclick="closeInventoryModal()">إغلاق</button></div>
 <div class="grid">
-<input id="invItemCode" placeholder="كود الصنف">
-<input id="invItemName" placeholder="اسم الصنف">
-<input id="invPurchasedQty" type="number" placeholder="الكمية المشتراه / الكمية">
-<input id="invCurrentQty" type="number" placeholder="الكمية بالمخزن أول جرد">
-<input id="invPurchaseDate" type="date" placeholder="تاريخ الشراء">
-<input id="invSpentBy" placeholder="المنصرف">
-<input id="invSpentDate" type="date" placeholder="تاريخ الصرف">
-<input id="invInvoiceNo" placeholder="رقم الفاتورة">
-<input id="invSettlementNo" placeholder="رقم التسوية">
-<select id="invCategory"><option>عدة</option><option>خامات</option><option>مهمات سلامة</option><option>مهمات مشروع</option></select>
+<div class="form-field"><label>كود الصنف</label><input id="invItemCode" placeholder="مثال: TOOLS-001"></div>
+<div class="form-field"><label>اسم الصنف</label><input id="invItemName" placeholder="اكتب اسم الصنف"></div>
+<div class="form-field"><label>الكمية المشتراه / الكمية</label><input id="invPurchasedQty" type="number" placeholder="0"></div>
+<div class="form-field"><label>الكمية بالمخزن أول جرد</label><input id="invCurrentQty" type="number" placeholder="0"></div>
+<div class="form-field"><label>تاريخ الشراء</label><input id="invPurchaseDate" type="date"></div>
+<div class="form-field"><label>المنصرف / المستلم</label><input id="invSpentBy" placeholder="اسم الموقع أو الموظف"></div>
+<div class="form-field"><label>تاريخ الصرف</label><input id="invSpentDate" type="date"></div>
+<div class="form-field"><label>رقم الفاتورة</label><input id="invInvoiceNo" placeholder="رقم الفاتورة"></div>
+<div class="form-field"><label>رقم التسوية</label><input id="invSettlementNo" placeholder="رقم التسوية"></div>
+<div class="form-field"><label>نوع الصنف</label><select id="invCategory"><option>عدة</option><option>خامات</option><option>مهمات سلامة</option><option>مهمات مشروع</option></select></div>
+<div class="form-field"><label>وحدة القياس</label><select id="invUnit"><option>عدد</option><option>متر</option><option>متر مربع</option><option>متر طولي</option><option>كجم</option><option>لتر</option><option>عبوة</option><option>لفة</option><option>قطعة</option><option>طقم</option></select></div>
 </div>
 <br>
 <button class="green" onclick="saveInventoryManual()">حفظ</button>
@@ -515,9 +540,9 @@ button.small{padding:6px 10px;font-size:12px}
 <div class="modal">
 <div class="modal-header"><h2>إضافة جرد</h2><button class="red small" onclick="closeInventoryCountModal()">إغلاق</button></div>
 <div class="grid">
-<select id="countItemSelect"></select>
-<input id="countQty" type="number" placeholder="كمية الجرد الجديدة">
-<input id="countDate" type="date" placeholder="تاريخ الجرد">
+<div class="form-field"><label>الصنف</label><select id="countItemSelect"></select></div>
+<div class="form-field"><label>كمية الجرد الجديدة</label><input id="countQty" type="number" placeholder="0"></div>
+<div class="form-field"><label>تاريخ الجرد</label><input id="countDate" type="date"></div>
 </div>
 <br><button class="green" onclick="saveInventoryCount()">تحديث الجرد</button>
 </div>
@@ -527,11 +552,62 @@ button.small{padding:6px 10px;font-size:12px}
 <div class="modal">
 <div class="modal-header"><h2>مرتجع للمخزن</h2><button class="red small" onclick="closeInventoryReturnModal()">إغلاق</button></div>
 <div class="grid">
-<select id="returnItemSelect"></select>
-<input id="returnQty" type="number" placeholder="كمية المرتجع">
-<input id="returnDate" type="date" placeholder="تاريخ المرتجع">
+<div class="form-field"><label>الصنف</label><select id="returnItemSelect"></select></div>
+<div class="form-field"><label>كمية المرتجع</label><input id="returnQty" type="number" placeholder="0"></div>
+<div class="form-field"><label>تاريخ المرتجع</label><input id="returnDate" type="date"></div>
 </div>
 <br><button class="green" onclick="saveInventoryReturn()">إضافة المرتجع للرصيد</button>
+</div>
+</div>
+
+<div id="inventoryDistributeModal" class="modal-bg">
+<div class="modal">
+<div class="modal-header"><h2>صرف / توزيع من مخزن القاهرة</h2><button class="red small" onclick="closeInventoryDistributeModal()">إغلاق</button></div>
+<p style="font-weight:bold;color:#334155">يمكن توزيع نفس الصنف على أكثر من موقع أو موظف. الرصيد الظاهر في الجدول هو رصيد مخزن القاهرة فقط بعد خصم إجمالي المنصرف.</p>
+<div class="grid">
+<div class="form-field"><label>الصنف</label><select id="distItemSelect"></select></div>
+<div class="form-field"><label>الموقع / الجهة / الموظف المستلم</label><input id="distToPlace" placeholder="مثال: موقع الأهلى"></div>
+<div class="form-field"><label>الكمية المنصرفة</label><input id="distQty" type="number" placeholder="0"></div>
+<div class="form-field"><label>المستهلك من الكمية المنصرفة</label><input id="distConsumedQty" type="number" placeholder="0"></div>
+<div class="form-field"><label>تاريخ الصرف</label><input id="distDate" type="date"></div>
+<div class="form-field"><label>رقم إذن الصرف / ملاحظة</label><input id="distDocNo" placeholder="رقم مستند أو ملاحظة"></div>
+<div class="form-field"><label>رفع إذن الصرف</label><input id="distDocFile" type="file"></div>
+</div>
+<br><button class="green" onclick="saveInventoryDistribution()">حفظ الصرف وتحديث رصيد القاهرة</button>
+<hr>
+<h3>تفاصيل توزيع الصنف المحدد</h3>
+<div id="distDetailsArea"></div>
+</div>
+</div>
+
+<div id="inventoryConsumeModal" class="modal-bg">
+<div class="modal">
+<div class="modal-header"><h2>تسجيل استهلاك من الموقع / المخزن</h2><button class="red small" onclick="closeInventoryConsumeModal()">إغلاق</button></div>
+<div class="grid">
+<div class="form-field"><label>الجهة / الموقع</label><input id="consumePlace" readonly></div>
+<div class="form-field"><label>الكمية المنصرفة</label><input id="consumeIssuedQty" readonly></div>
+<div class="form-field"><label>المستهلك السابق</label><input id="consumeOldQty" readonly></div>
+<div class="form-field"><label>كمية الاستهلاك الجديدة</label><input id="consumeQty" type="number" placeholder="0"></div>
+<div class="form-field"><label>تاريخ الاستهلاك</label><input id="consumeDate" type="date"></div>
+<div class="form-field"><label>رقم مستند الاستهلاك / ملاحظة</label><input id="consumeDocNo" placeholder="رقم مستند أو ملاحظة"></div>
+<div class="form-field"><label>رفع ما يثبت الاستهلاك</label><input id="consumeDocFile" type="file"></div>
+</div>
+<br><button class="green" onclick="saveInventoryConsumption()">حفظ الاستهلاك</button>
+</div>
+</div>
+
+<div id="inventoryDistReturnModal" class="modal-bg">
+<div class="modal">
+<div class="modal-header"><h2>تسجيل مرتجع من الموقع / المخزن</h2><button class="red small" onclick="closeInventoryDistReturnModal()">إغلاق</button></div>
+<div class="grid">
+<div class="form-field"><label>الجهة / الموقع</label><input id="distReturnPlace" readonly></div>
+<div class="form-field"><label>الباقي المتاح قبل المرتجع</label><input id="distReturnAvailable" readonly></div>
+<div class="form-field"><label>كمية المرتجع</label><input id="distReturnQty" type="number" placeholder="0"></div>
+<div class="form-field"><label>تاريخ المرتجع</label><input id="distReturnDate" type="date"></div>
+<div class="form-field"><label>رقم مستند المرتجع / ملاحظة</label><input id="distReturnDocNo" placeholder="رقم مستند أو ملاحظة"></div>
+<div class="form-field"><label>رفع مستند المرتجع</label><input id="distReturnDocFile" type="file"></div>
+</div>
+<br><button class="green" onclick="saveInventoryDistReturn()">حفظ المرتجع وتحديث رصيد القاهرة</button>
 </div>
 </div>
 
@@ -628,6 +704,11 @@ let activeSettlementOwnerName = "";
 let siteCostsData = [];
 let siteCostsHeaderMap = {};
 let currentInvoiceId = null;
+let activeDistributionId = null;
+let activeDistributionRow = null;
+let currentEditingInventoryId = null;
+let inventoryAllRows = [];
+let inventoryAllDistMap = {};
 let editingLineId = null;
   function msg(t,c="red"){
 loginMsg.innerHTML = t;
@@ -841,6 +922,15 @@ w.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="
 @page{size:A4;margin:10mm}
 body{font-family:Arial,Tahoma,sans-serif;color:#111827;direction:rtl}
 h1{text-align:center;margin:0 0 12px;font-size:20px}.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}.box{border:1px solid #ddd;border-radius:8px;padding:8px;text-align:center}.box h3{font-size:12px;margin:0}.box h2{font-size:16px;margin:6px 0 0}table{width:100%;border-collapse:collapse;font-size:10px}th,td{border:1px solid #999;padding:4px;text-align:center}thead{display:table-header-group}tfoot{display:table-footer-group}tr{page-break-inside:avoid}th{background:#f3f4f6}.badge{padding:2px 5px;border-radius:8px;background:#dcfce7;color:#166534}
+
+.form-field{display:flex;flex-direction:column;gap:5px}
+.form-field label{font-weight:bold;color:#0f172a;font-size:13px}
+.inventory-search-box{background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px;margin:10px 0}
+.inventory-search-box h3{margin:0 0 10px;color:#0f172a}
+.inventory-distribution-details{font-size:11px;color:#334155;line-height:1.7;max-width:320px;white-space:normal}
+.dist-split-row{border:1px solid #cbd5e1;border-radius:8px;margin:3px 0;padding:4px;background:#f8fafc;text-align:right}
+.dist-split-row b{color:#0f172a}
+.dist-doc-link{display:inline-block;margin-top:3px;color:#0a6cff;font-weight:bold}
 </style></head><body><h1>كشف حساب - ${owner}</h1>${preparePrintHtmlWithRepeatingHeaders(content)}</body></html>`);
 w.document.close();
 w.focus();
@@ -1023,6 +1113,15 @@ body{font-family:Arial,Tahoma,sans-serif;direction:rtl;color:#111827}
 h1{text-align:center;margin:0 0 10px;font-size:20px}.meta{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px;font-size:12px}.meta div{border:1px solid #ddd;padding:6px;border-radius:6px}
 table{width:100%;border-collapse:collapse;font-size:9px}th,td{border:1px solid #777;padding:4px;text-align:center;vertical-align:middle}th{background:#f3f4f6}
 button{display:none}
+
+.form-field{display:flex;flex-direction:column;gap:5px}
+.form-field label{font-weight:bold;color:#0f172a;font-size:13px}
+.inventory-search-box{background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px;margin:10px 0}
+.inventory-search-box h3{margin:0 0 10px;color:#0f172a}
+.inventory-distribution-details{font-size:11px;color:#334155;line-height:1.7;max-width:320px;white-space:normal}
+.dist-split-row{border:1px solid #cbd5e1;border-radius:8px;margin:3px 0;padding:4px;background:#f8fafc;text-align:right}
+.dist-split-row b{color:#0f172a}
+.dist-doc-link{display:inline-block;margin-top:3px;color:#0a6cff;font-weight:bold}
 </style></head><body>${title}${settlementRowsHtml(lines)}</body></html>`);
 w.document.close();
 w.focus();
@@ -3098,7 +3197,16 @@ async function saveLaborExtractToAmount(){
 }
 function printLaborExtractA4(){
  const w = window.open('', '_blank');
- w.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>مستخلص مصنعيات</title><style>@page{size:A4 landscape;margin:8mm}body{font-family:Arial}.extract-box{border:1px solid #111;padding:10px}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #111;padding:4px;text-align:center}input{border:0;text-align:center;width:100%}.extract-title{text-align:center;font-size:22px;font-weight:bold}</style></head><body>${laborExtractBox.outerHTML}</body></html>`);
+ w.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>مستخلص مصنعيات</title><style>@page{size:A4 landscape;margin:8mm}body{font-family:Arial}.extract-box{border:1px solid #111;padding:10px}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #111;padding:4px;text-align:center}input{border:0;text-align:center;width:100%}.extract-title{text-align:center;font-size:22px;font-weight:bold}
+.form-field{display:flex;flex-direction:column;gap:5px}
+.form-field label{font-weight:bold;color:#0f172a;font-size:13px}
+.inventory-search-box{background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px;margin:10px 0}
+.inventory-search-box h3{margin:0 0 10px;color:#0f172a}
+.inventory-distribution-details{font-size:11px;color:#334155;line-height:1.7;max-width:320px;white-space:normal}
+.dist-split-row{border:1px solid #cbd5e1;border-radius:8px;margin:3px 0;padding:4px;background:#f8fafc;text-align:right}
+.dist-split-row b{color:#0f172a}
+.dist-doc-link{display:inline-block;margin-top:3px;color:#0a6cff;font-weight:bold}
+</style></head><body>${laborExtractBox.outerHTML}</body></html>`);
  w.document.close(); w.focus(); setTimeout(()=>w.print(),500);
 }
 
@@ -3128,31 +3236,136 @@ async function loadInventory(){
  try{
   if(canManageInventory()){
    inventoryAddBtn.classList.remove("hidden"); inventoryCountBtn.classList.remove("hidden"); inventoryReturnBtn.classList.remove("hidden");
+   if(document.getElementById("inventoryDistributeBtn")) inventoryDistributeBtn.classList.remove("hidden");
   }else{
    inventoryAddBtn.classList.add("hidden"); inventoryCountBtn.classList.add("hidden"); inventoryReturnBtn.classList.add("hidden");
+   if(document.getElementById("inventoryDistributeBtn")) inventoryDistributeBtn.classList.add("hidden");
   }
   const {data} = await client.from("inventory_items").select("*").order("id",{ascending:false});
   const rows = data || [];
-  inventoryArea.innerHTML = `<table class="table inventory-sheet-table"><thead><tr><th>م</th><th>اسم الصنف</th><th>كود الصنف</th><th>الكمية بالمخزن أول جرد</th><th>الكمية المشتراه</th><th>تاريخ الشراء</th><th>المتصرف</th><th>تاريخ الصرف</th><th>الرصيد</th><th>رقم الفاتورة</th><th>رقم التسوية</th><th>آخر جرد</th><th>تاريخ الجرد</th><th>آخر مرتجع</th><th>تاريخ المرتجع</th></tr></thead><tbody>${rows.map((x,i)=>`<tr><td>${i+1}</td><td>${x.item_name||""}</td><td>${x.item_code||""}</td><td>${num(x.initial_qty)}</td><td>${num(x.purchased_qty)}</td><td>${x.purchase_date||""}</td><td>${x.spent_by||""}</td><td>${x.spent_date||""}</td><td>${num(x.current_qty)}</td><td>${x.invoice_no||""}</td><td>${x.settlement_no||""}</td><td>${num(x.last_count_qty)}</td><td>${x.last_count_date||""}</td><td>${num(x.last_return_qty)}</td><td>${x.last_return_date||""}</td></tr>`).join("")}</tbody></table>`;
- }catch(e){ inventoryArea.innerHTML = "تأكد من تشغيل SQL الخاص بالمخزن: " + (e.message || e); }
+  let ids = rows.map(x=>x.id);
+  let distMap = {};
+  if(ids.length){
+   const {data:dist} = await client.from("inventory_distributions").select("*").in("item_id",ids).order("dist_date",{ascending:false});
+   (dist||[]).forEach(d=>{
+    if(!distMap[d.item_id]) distMap[d.item_id] = {total:0,items:[]};
+    distMap[d.item_id].total += Number(d.qty||0);
+    distMap[d.item_id].items.push(d);
+   });
+  }
+  inventoryAllRows = rows;
+  inventoryAllDistMap = distMap;
+  renderInventoryRows(getFilteredInventoryRows());
+ }catch(e){ inventoryArea.innerHTML = "تأكد من تشغيل SQL الخاص بالمخزن V22: " + (e.message || e); }
+}
+function getInvInput(id){ const el=document.getElementById(id); return (el ? el.value : "").toString().trim().toLowerCase(); }
+function getFilteredInventoryRows(){
+ const name=getInvInput('invSearchName'), code=getInvInput('invSearchCode'), wh=getInvInput('invSearchWarehouse'), proj=getInvInput('invSearchProject'), inv=getInvInput('invSearchInvoice'), set=getInvInput('invSearchSettlement');
+ return (inventoryAllRows||[]).filter(x=>{
+  const d = inventoryAllDistMap[x.id] || {items:[]};
+  const places = d.items.map(z=>`${z.to_place||""} ${z.doc_no||""} ${z.dist_date||""}`).join(" ").toLowerCase();
+  return (!name || String(x.item_name||"").toLowerCase().includes(name)) &&
+         (!code || String(x.item_code||"").toLowerCase().includes(code)) &&
+         (!wh || String(x.warehouse||"مخزن القاهرة").toLowerCase().includes(wh)) &&
+         (!proj || places.includes(proj) || String(x.spent_by||"").toLowerCase().includes(proj)) &&
+         (!inv || String(x.invoice_no||"").toLowerCase().includes(inv)) &&
+         (!set || String(x.settlement_no||"").toLowerCase().includes(set));
+ });
+}
+function filterInventoryLive(){ renderInventoryRows(getFilteredInventoryRows()); }
+function clearInventorySearch(){
+ ['invSearchName','invSearchCode','invSearchWarehouse','invSearchProject','invSearchInvoice','invSearchSettlement'].forEach(id=>{ const e=document.getElementById(id); if(e) e.value=''; });
+ renderInventoryRows(inventoryAllRows || []);
+}
+function renderInventoryRows(rows){
+ rows = rows || [];
+ let totalPurchased = rows.reduce((a,x)=>a+Number(x.purchased_qty||0),0);
+ let totalBalance = rows.reduce((a,x)=>a+Number(x.current_qty||0),0);
+ let totalDist = rows.reduce((a,x)=>a+Number((inventoryAllDistMap[x.id]||{total:0}).total||0),0);
+ const hasFilters = ['invSearchName','invSearchCode','invSearchWarehouse','invSearchProject','invSearchInvoice','invSearchSettlement'].some(id=>getInvInput(id));
+ if(document.getElementById('inventorySearchSummary')){
+  inventorySearchSummary.innerHTML = hasFilters ? `<div class="summary"><div class="box"><h3>عدد الأصناف المطابقة</h3><h2>${rows.length}</h2></div><div class="box"><h3>إجمالي الكمية المشتراه</h3><h2>${num(totalPurchased)}</h2></div><div class="box"><h3>إجمالي المنصرف / التوزيع</h3><h2>${num(totalDist)}</h2></div><div class="box"><h3>إجمالي رصيد مخزن القاهرة</h3><h2>${num(totalBalance)}</h2></div></div>` : '';
+ }
+ inventoryArea.innerHTML = `<table class="table inventory-sheet-table"><thead><tr><th>م</th><th>اسم الصنف</th><th>نوع الصنف</th><th>الوحدة</th><th>المخزن</th><th>كود الصنف</th><th>الكمية بالمخزن أول جرد</th><th>الكمية المشتراه</th><th>تاريخ الشراء</th><th>المشترى</th><th>المنصرف / التوزيع</th><th>تفاصيل التوزيعات</th><th>الرصيد - مخزن القاهرة</th><th>رقم الفاتورة</th><th>رقم التسوية</th><th>آخر جرد</th><th>تاريخ الجرد</th><th>آخر مرتجع</th><th>تاريخ المرتجع</th>${currentUser.role === "super_admin" ? "<th>إجراء</th>" : ""}</tr></thead><tbody>${rows.map((x,i)=>{
+    const d = inventoryAllDistMap[x.id] || {total:0,items:[]};
+    const cairoBal = Number(x.current_qty||0);
+    const distText = d.items.map(z=>{
+      const docLink = z.doc_no ? (z.doc_file && z.doc_file.data ? ` - <a href="${z.doc_file.data}" download="${z.doc_file.name||z.doc_no}" target="_blank">${z.doc_no}</a>` : ` - ${z.doc_no}`) : "";
+      return `${z.to_place||"-"}: ${num(z.qty)} (${z.dist_date||""})${docLink}`;
+    }).join("<br>") || "-";
+    const adminActions = currentUser.role === "super_admin" ? `<td><button class="small orange" onclick="editInventoryItem(${x.id})">تعديل</button> <button class="small red" onclick="deleteInventoryItem(${x.id})">حذف</button></td>` : "";
+    return `<tr><td>${i+1}</td><td>${x.item_name||""}</td><td>${x.category||""}</td><td>${x.unit||"عدد"}</td><td>${x.warehouse||"مخزن القاهرة"}</td><td>${x.item_code||""}</td><td>${num(x.initial_qty)}</td><td>${num(x.purchased_qty)}</td><td>${x.purchase_date||""}</td><td>${x.buyer_name||x.created_by||""}</td><td><button class="small orange" onclick="openInventoryDistributeModal(${x.id})">${num(d.total)} ▼</button></td><td><div class="inventory-distribution-details">${distText}</div></td><td><b>${num(cairoBal)}</b></td><td>${x.invoice_no||""}</td><td>${x.settlement_no||""}</td><td>${num(x.last_count_qty)}</td><td>${x.last_count_date||""}</td><td>${num(x.last_return_qty)}</td><td>${x.last_return_date||""}</td>${adminActions}</tr>`;
+  }).join("")}</tbody></table>`;
 }
 function num(v){ return Number(v||0).toLocaleString(); }
-function openInventoryAddModal(){ if(!canManageInventory()) return alert("ليس لديك صلاحية إضافة مخزن"); inventoryModal.style.display="flex"; invPurchaseDate.value=new Date().toISOString().slice(0,10); }
-function closeInventoryModal(){ inventoryModal.style.display="none"; }
+function clearInventoryModal(){
+ currentEditingInventoryId = null;
+ inventoryModalTitle.innerHTML = "إضافة مخزن";
+ invItemCode.value = "";
+ invItemName.value = "";
+ invPurchasedQty.value = "";
+ invCurrentQty.value = "";
+ invPurchaseDate.value = new Date().toISOString().slice(0,10);
+ invSpentBy.value = "";
+ invSpentDate.value = "";
+ invInvoiceNo.value = "";
+ invSettlementNo.value = "";
+ invCategory.value = "عدة";
+}
+function openInventoryAddModal(){ if(!canManageInventory()) return alert("ليس لديك صلاحية إضافة مخزن"); clearInventoryModal(); inventoryModal.style.display="flex"; }
+function closeInventoryModal(){ inventoryModal.style.display="none"; currentEditingInventoryId = null; }
 async function saveInventoryManual(){
  if(!canManageInventory()) return;
  if(!invItemName.value) return alert("اكتب اسم الصنف");
  const qty = Number(invPurchasedQty.value||0);
  const init = Number(invCurrentQty.value||0);
  const current = init + qty;
- const {error} = await client.from("inventory_items").insert({item_code:invItemCode.value,item_name:invItemName.value,initial_qty:init,purchased_qty:qty,current_qty:current,purchase_date:invPurchaseDate.value,spent_by:invSpentBy.value,spent_date:invSpentDate.value,invoice_no:invInvoiceNo.value,settlement_no:invSettlementNo.value,category:invCategory.value,created_by:currentUser.username});
+ const payload = {item_code:invItemCode.value,item_name:invItemName.value,initial_qty:init,purchased_qty:qty,current_qty:current,purchase_date:invPurchaseDate.value,spent_by:invSpentBy.value,spent_date:invSpentDate.value,invoice_no:invInvoiceNo.value,settlement_no:invSettlementNo.value,category:invCategory.value,
+   unit:(document.getElementById("invUnit")?.value || "عدد"),warehouse:"مخزن القاهرة",buyer_name:currentUser.username};
+ let error;
+ if(currentEditingInventoryId){
+   const res = await client.from("inventory_items").update(payload).eq("id",currentEditingInventoryId);
+   error = res.error;
+ }else{
+   payload.created_by = currentUser.username;
+   const res = await client.from("inventory_items").insert(payload);
+   error = res.error;
+ }
  if(error){ alert("لم يتم الحفظ في المخزن: " + error.message); return; }
  closeInventoryModal(); loadInventory();
 }
+async function editInventoryItem(id){
+ if(currentUser.role !== "super_admin") return alert("التعديل للسوبر أدمن فقط");
+ const {data,error}=await client.from("inventory_items").select("*").eq("id",id).maybeSingle();
+ if(error || !data){ alert("تعذر فتح الصنف للتعديل"); return; }
+ currentEditingInventoryId = id;
+ inventoryModalTitle.innerHTML = "تعديل صنف مخزن";
+ invItemCode.value = data.item_code || "";
+ invItemName.value = data.item_name || "";
+ invPurchasedQty.value = data.purchased_qty || 0;
+ invCurrentQty.value = data.initial_qty || 0;
+ invPurchaseDate.value = data.purchase_date || "";
+ invSpentBy.value = data.spent_by || "";
+ invSpentDate.value = data.spent_date || "";
+ invInvoiceNo.value = data.invoice_no || "";
+ invSettlementNo.value = data.settlement_no || "";
+ invCategory.value = data.category || "عدة"; if(document.getElementById("invUnit")) invUnit.value = data.unit || "عدد";
+ inventoryModal.style.display="flex";
+}
+async function deleteInventoryItem(id){
+ if(currentUser.role !== "super_admin") return alert("الحذف للسوبر أدمن فقط");
+ if(!confirm("هل تريد حذف هذا الصنف من المخزن نهائياً؟")) return;
+ await client.from("inventory_distributions").delete().eq("item_id",id);
+ await client.from("inventory_counts").delete().eq("item_id",id);
+ await client.from("inventory_returns").delete().eq("item_id",id);
+ const {error}=await client.from("inventory_items").delete().eq("id",id);
+ if(error){ alert("تعذر الحذف: " + error.message); return; }
+ loadInventory();
+}
 async function fillInventorySelects(){
  const {data}=await client.from("inventory_items").select("id,item_name,item_code,current_qty").order("item_name");
- const opt=(data||[]).map(x=>`<option value="${x.id}">${x.item_name||""} - ${x.item_code||""} - الرصيد ${num(x.current_qty)}</option>`).join("");
- countItemSelect.innerHTML=opt; returnItemSelect.innerHTML=opt;
+ const opt=(data||[]).map(x=>`<option value="${x.id}">${x.item_name||""} - ${x.item_code||""} - رصيد القاهرة ${num(x.current_qty)}</option>`).join("");
+ countItemSelect.innerHTML=opt; returnItemSelect.innerHTML=opt; if(document.getElementById("distItemSelect")) distItemSelect.innerHTML=opt;
 }
 function openInventoryCountModal(){ if(!canManageInventory()) return alert("ليس لديك صلاحية"); countDate.value=new Date().toISOString().slice(0,10); fillInventorySelects(); inventoryCountModal.style.display="flex"; }
 function closeInventoryCountModal(){ inventoryCountModal.style.display="none"; }
@@ -3176,32 +3389,189 @@ async function saveInventoryReturn(){
  await client.from("inventory_items").update({current_qty:newBal,last_return_qty:q,last_return_date:d}).eq("id",id);
  closeInventoryReturnModal(); loadInventory();
 }
+async function openInventoryDistributeModal(itemId){
+ if(!canManageInventory()) return alert("ليس لديك صلاحية صرف من المخزن");
+ await fillInventorySelects();
+ distDate.value = new Date().toISOString().slice(0,10);
+ if(itemId) distItemSelect.value = itemId;
+ inventoryDistributeModal.style.display="flex";
+ loadDistributionDetails();
+}
+function closeInventoryDistributeModal(){ inventoryDistributeModal.style.display="none"; }
+async function loadDistributionDetails(){
+ const id = distItemSelect.value;
+ if(!id){ distDetailsArea.innerHTML=""; return; }
+ const {data}=await client.from("inventory_distributions").select("*").eq("item_id",id).order("dist_date",{ascending:false});
+ const distRows = data || [];
+ const ids = distRows.map(x=>x.id);
+ let consMap = {}, retMap = {};
+ if(ids.length){
+  const {data:cons} = await client.from("inventory_consumptions").select("*").in("distribution_id",ids).order("consume_date",{ascending:false});
+  (cons||[]).forEach(c=>{ if(!consMap[c.distribution_id]) consMap[c.distribution_id]=[]; consMap[c.distribution_id].push(c); });
+  const {data:rets} = await client.from("inventory_distribution_returns").select("*").in("distribution_id",ids).order("return_date",{ascending:false});
+  (rets||[]).forEach(r=>{ if(!retMap[r.distribution_id]) retMap[r.distribution_id]=[]; retMap[r.distribution_id].push(r); });
+ }
+ distDetailsArea.innerHTML = `<table class="table"><tr><th>الجهة / الموقع</th><th>المنصرف</th><th>المستهلك</th><th>المرتجع</th><th>الباقي بالموقع/المخزن</th><th>تاريخ الصرف</th><th>إذن الصرف</th><th>تفاصيل الاستهلاك</th><th>تفاصيل المرتجع</th><th>إجراء</th><th>بواسطة</th></tr>${distRows.map(x=>{
+   const q=Number(x.qty||0);
+   const cRows = consMap[x.id] || [];
+   const rRows = retMap[x.id] || [];
+   const c=cRows.reduce((a,z)=>a+Number(z.qty||0),0);
+   const ret=rRows.reduce((a,z)=>a+Number(z.qty||0),0);
+   const r=q-c-ret;
+   const issueLink = x.doc_no ? (x.doc_file && x.doc_file.data ? `<a href="${x.doc_file.data}" download="${x.doc_file.name||x.doc_no}" target="_blank">${x.doc_no}</a>` : x.doc_no) : "-";
+   const consumeDetails = cRows.length ? cRows.map(z=>{
+    const link = z.doc_file && z.doc_file.data ? `<a href="${z.doc_file.data}" download="${z.doc_file.name||z.doc_no||'consume'}" target="_blank">${z.doc_no||'ملف'}</a>` : (z.doc_no||'-');
+    return `<div>${num(z.qty)} - ${z.consume_date||''} - ${link}</div>`;
+   }).join('') : (x.consumed_doc_no ? x.consumed_doc_no : '-');
+   const returnDetails = rRows.length ? rRows.map(z=>{
+    const link = z.doc_file && z.doc_file.data ? `<a href="${z.doc_file.data}" download="${z.doc_file.name||z.doc_no||'return'}" target="_blank">${z.doc_no||'ملف'}</a>` : (z.doc_no||'-');
+    return `<div>${num(z.qty)} - ${z.return_date||''} - ${link}</div>`;
+   }).join('') : (x.return_doc_no ? x.return_doc_no : '-');
+   const action = canManageInventory() ? `<button class="small orange" onclick="openInventoryConsumeModal(${x.id})">استهلاك</button> <button class="small green" onclick="openInventoryDistReturnModal(${x.id})">مرتجع</button>` : "-";
+   return `<tr><td>${x.to_place||""}</td><td>${num(q)}</td><td>${num(c)}</td><td>${num(ret)}</td><td>${num(r)}</td><td>${x.dist_date||""}</td><td>${issueLink}</td><td>${consumeDetails}</td><td>${returnDetails}</td><td>${action}</td><td>${x.created_by||""}</td></tr>`;
+ }).join("")}</table>`;
+}
+async function saveInventoryDistribution(){
+ if(!canManageInventory()) return;
+ const id=distItemSelect.value, q=Number(distQty.value||0), consumed=Number(distConsumedQty.value||0), place=distToPlace.value.trim(), d=distDate.value, doc=distDocNo.value.trim();
+ if(!id || !q || !place || !d) return alert("اختر الصنف واكتب الجهة والكمية والتاريخ");
+ if(consumed > q) return alert("المستهلك لا يمكن أن يكون أكبر من الكمية المنصرفة");
+ let docFile = null;
+ if(document.getElementById('distDocFile') && distDocFile.files && distDocFile.files.length){ docFile = await readFileAsDataUrl(distDocFile.files[0]); }
+ const {data:item}=await client.from("inventory_items").select("current_qty").eq("id",id).maybeSingle();
+ const oldBal=Number(item?.current_qty||0);
+ if(q > oldBal && !confirm("الكمية المنصرفة أكبر من رصيد مخزن القاهرة. هل تريد المتابعة؟")) return;
+ const newBal = oldBal - q;
+ const {error}=await client.from("inventory_distributions").insert({item_id:id,to_place:place,qty:q,consumed_qty:consumed,dist_date:d,doc_no:doc,doc_file:docFile,created_by:currentUser.username});
+ if(error){ alert("تعذر حفظ الصرف: " + error.message); return; }
+ await client.from("inventory_items").update({current_qty:newBal,spent_by:place,spent_date:d}).eq("id",id);
+ distQty.value=""; distConsumedQty.value=""; distToPlace.value=""; distDocNo.value=""; if(document.getElementById('distDocFile')) distDocFile.value="";
+ await loadDistributionDetails(); loadInventory();
+}
+async function getDistributionRow(id){ const {data}=await client.from("inventory_distributions").select("*").eq("id",id).maybeSingle(); return data; }
+async function openInventoryConsumeModal(distId){
+ if(!canManageInventory()) return alert("ليس لديك صلاحية");
+ activeDistributionId = distId;
+ const x = await getDistributionRow(distId);
+ if(!x) return alert("لم يتم العثور على حركة الصرف");
+ const totals = await getDistributionTotals(distId);
+ activeDistributionRow = x;
+ consumePlace.value = x.to_place || "";
+ consumeIssuedQty.value = Number(x.qty||0);
+ consumeOldQty.value = Number(totals.consumed||0);
+ consumeQty.value = "";
+ consumeDate.value = new Date().toISOString().slice(0,10);
+ consumeDocNo.value = "";
+ if(document.getElementById('consumeDocFile')) consumeDocFile.value = "";
+ inventoryConsumeModal.style.display = "flex";
+}
+function closeInventoryConsumeModal(){ inventoryConsumeModal.style.display="none"; }
+async function getDistributionTotals(distId){
+ const {data:cons}=await client.from("inventory_consumptions").select("qty").eq("distribution_id",distId);
+ const {data:rets}=await client.from("inventory_distribution_returns").select("qty").eq("distribution_id",distId);
+ const consumed=(cons||[]).reduce((a,b)=>a+Number(b.qty||0),0);
+ const returned=(rets||[]).reduce((a,b)=>a+Number(b.qty||0),0);
+ return {consumed, returned};
+}
+async function saveInventoryConsumption(){
+ if(!canManageInventory()) return;
+ const x = activeDistributionRow; if(!x) return alert("اختر حركة صرف");
+ const totals = await getDistributionTotals(activeDistributionId);
+ const issued = Number(x.qty||0); const oldConsumed = Number(totals.consumed||0); const ret = Number(totals.returned||0); const add = Number(consumeQty.value||0);
+ if(add <= 0) return alert("اكتب كمية الاستهلاك الجديدة");
+ if(oldConsumed + add + ret > issued) return alert("إجمالي المستهلك + المرتجع أكبر من الكمية المنصرفة");
+ let f = null;
+ if(document.getElementById('consumeDocFile') && consumeDocFile.files && consumeDocFile.files.length){ f = await readFileAsDataUrl(consumeDocFile.files[0]); }
+ const ins = await client.from("inventory_consumptions").insert({distribution_id:activeDistributionId,item_id:x.item_id,qty:add,consume_date:consumeDate.value,doc_no:consumeDocNo.value.trim(),doc_file:f,created_by:currentUser.username});
+ if(ins.error){ alert("تعذر حفظ تفاصيل الاستهلاك: " + ins.error.message); return; }
+ const newConsumed = oldConsumed + add;
+ const upd = {consumed_qty:newConsumed, consumed_date:consumeDate.value, consumed_doc_no:consumeDocNo.value.trim(), consumed_doc_file:f || x.consumed_doc_file};
+ const {error}=await client.from("inventory_distributions").update(upd).eq("id",activeDistributionId);
+ if(error){ alert("تم حفظ تفاصيل الاستهلاك لكن تعذر تحديث إجمالي المستهلك: " + error.message); }
+ closeInventoryConsumeModal(); await loadDistributionDetails(); loadInventory();
+}
+async function openInventoryDistReturnModal(distId){
+ if(!canManageInventory()) return alert("ليس لديك صلاحية");
+ activeDistributionId = distId;
+ const x = await getDistributionRow(distId);
+ if(!x) return alert("لم يتم العثور على حركة الصرف");
+ const totals = await getDistributionTotals(distId);
+ activeDistributionRow = x;
+ const available = Number(x.qty||0) - Number(totals.consumed||0) - Number(totals.returned||0);
+ distReturnPlace.value = x.to_place || "";
+ distReturnAvailable.value = available;
+ distReturnQty.value = "";
+ distReturnDate.value = new Date().toISOString().slice(0,10);
+ distReturnDocNo.value = "";
+ if(document.getElementById('distReturnDocFile')) distReturnDocFile.value = "";
+ inventoryDistReturnModal.style.display = "flex";
+}
+function closeInventoryDistReturnModal(){ inventoryDistReturnModal.style.display="none"; }
+async function saveInventoryDistReturn(){
+ if(!canManageInventory()) return;
+ const x = activeDistributionRow; if(!x) return alert("اختر حركة صرف");
+ const totals = await getDistributionTotals(activeDistributionId);
+ const oldReturn = Number(totals.returned||0);
+ const addReturn = Number(distReturnQty.value||0);
+ const available = Number(x.qty||0) - Number(totals.consumed||0) - oldReturn;
+ if(addReturn <= 0) return alert("اكتب كمية المرتجع");
+ if(addReturn > available && !confirm("كمية المرتجع أكبر من الباقي في الموقع. هل تريد المتابعة؟")) return;
+ let f = null;
+ if(document.getElementById('distReturnDocFile') && distReturnDocFile.files && distReturnDocFile.files.length){ f = await readFileAsDataUrl(distReturnDocFile.files[0]); }
+ await client.from("inventory_distribution_returns").insert({distribution_id:activeDistributionId,item_id:x.item_id,qty:addReturn,return_date:distReturnDate.value,doc_no:distReturnDocNo.value.trim(),doc_file:f,created_by:currentUser.username});
+ const newReturn = oldReturn + addReturn;
+ const returnNo = distReturnDocNo.value.trim();
+ const oldNotes = x.return_doc_no ? x.return_doc_no + " | " : "";
+ const upd = {return_qty:newReturn, return_date:distReturnDate.value, return_doc_no:oldNotes + returnNo, return_doc_file:f || x.return_doc_file};
+ const {error}=await client.from("inventory_distributions").update(upd).eq("id",activeDistributionId);
+ if(error){ alert("تعذر حفظ المرتجع: " + error.message); return; }
+ const {data:item}=await client.from("inventory_items").select("current_qty").eq("id",x.item_id).maybeSingle();
+ const newBal = Number(item?.current_qty||0) + addReturn;
+ await client.from("inventory_items").update({current_qty:newBal,last_return_qty:addReturn,last_return_date:distReturnDate.value}).eq("id",x.item_id);
+ closeInventoryDistReturnModal(); await loadDistributionDetails(); loadInventory();
+}
+if(document.addEventListener){ document.addEventListener('change', function(e){ if(e.target && e.target.id==='distItemSelect') loadDistributionDetails(); }); }
 function cleanText(v){ return (v || "").toString().trim(); }
 
 async function saveInvoiceToolsToInventory(items, inv, invoiceId){
- const tools=(items||[]).filter(x=>cleanText(x.item_category) === "عدة" && (cleanText(x.description) || Number(x.quantity||0)));
- if(!tools.length) return;
+ const allowedCats = ["عدة","خامات","مهمات سلامة","مهمات مشروع","أخرى"];
+ const transferable=(items||[]).filter(x=>allowedCats.includes(cleanText(x.item_category)) && (cleanText(x.description) || Number(x.quantity||0)));
+ if(!transferable.length) return;
  const settlementKey = activeSettlementSearchKey || activeSettlementNo || inv.settlement_no || "";
- const rows=tools.map(x=>({
-  item_code:"",
-  item_name:cleanText(x.description) || "عدة بدون بيان",
-  category:"عدة",
-  initial_qty:0,
-  purchased_qty:Number(x.quantity||0),
-  current_qty:Number(x.quantity||0),
-  purchase_date:inv.invoice_date || new Date().toISOString().slice(0,10),
-  spent_by:"",
-  spent_date:null,
-  invoice_no:inv.invoice_no,
-  settlement_no:settlementKey,
-  created_by:currentUser.username
- }));
- const {error} = await client.from("inventory_items").insert(rows);
- if(error){
-  alert("تم حفظ الفاتورة لكن لم يتم ترحيل العدة للمخزن. تأكد من تشغيل SQL الخاص بالمخزن. الخطأ: " + error.message);
- }else{
-  if(document.getElementById("inventoryPage") && !document.getElementById("inventoryPage").classList.contains("hidden")) loadInventory();
+ let inserted = 0, skipped = 0;
+ for(const x of transferable){
+  const itemName = cleanText(x.description) || "صنف بدون بيان";
+  const category = cleanText(x.item_category) || "خامات";
+  const qty = Number(x.quantity||0);
+  if(!itemName || !qty) continue;
+  const {data:existing} = await client.from("inventory_items").select("id").eq("invoice_no",inv.invoice_no).eq("settlement_no",settlementKey).eq("item_name",itemName).maybeSingle();
+  if(existing){ skipped++; continue; }
+  const row={
+   item_code:"",
+   item_name:itemName,
+   category,
+   unit:x.unit || "عدد",
+   warehouse:"مخزن القاهرة",
+   initial_qty:0,
+   purchased_qty:qty,
+   current_qty:qty,
+   purchase_date:(document.getElementById("lineDate")?.value || inv.invoice_date || new Date().toISOString().slice(0,10)),
+   buyer_name:currentUser.username,
+   supplier_name:inv.seller_name || "",
+   unit_price:Number(x.unit_price||0),
+   total_value:Number(x.total||0),
+   spent_by:"",
+   spent_date:null,
+   invoice_no:inv.invoice_no,
+   settlement_no:settlementKey,
+   created_by:currentUser.username
+  };
+  const {error} = await client.from("inventory_items").insert(row);
+  if(error){ alert("تم حفظ الفاتورة لكن لم يتم ترحيل صنف للمخزن. تأكد من تشغيل SQL الخاص بالمخزن V22. الخطأ: " + error.message); return; }
+  inserted++;
  }
+ if(document.getElementById("inventoryPage") && !document.getElementById("inventoryPage").classList.contains("hidden")) loadInventory();
+ if(inserted || skipped) console.log(`Inventory transfer: inserted ${inserted}, skipped ${skipped}`);
 }
 
 async function manualTransferCurrentInvoiceTools(){
@@ -3213,10 +3583,10 @@ async function manualTransferCurrentInvoiceTools(){
  if(invErr || !inv){ alert("لم يتم العثور على الفاتورة المحفوظة"); return; }
  const {data:items,error:itemErr}=await client.from("material_invoice_items").select("*").eq("invoice_id",currentInvoiceId);
  if(itemErr){ alert("تعذر قراءة بنود الفاتورة: " + itemErr.message); return; }
- const tools=(items||[]).filter(x=>cleanText(x.item_category) === "عدة");
- if(!tools.length){ alert("لا توجد بنود مصنفة عدة في هذه الفاتورة"); return; }
+ const tools=(items||[]).filter(x=>["عدة","خامات","مهمات سلامة","مهمات مشروع","أخرى"].includes(cleanText(x.item_category)));
+ if(!tools.length){ alert("لا توجد بنود مصنفة قابلة للترحيل في هذه الفاتورة"); return; }
  await saveInvoiceToolsToInventory(tools, inv, currentInvoiceId);
- alert("تم ترحيل بنود العدة إلى المخزن");
+ alert("تم ترحيل بنود الفاتورة إلى المخزن");
 }
 
 async function loadUsersPermissions(){
