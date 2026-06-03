@@ -176,7 +176,7 @@ button.small{padding:6px 10px;font-size:12px}
 <div id="app" class="app">
 
 <div class="sidebar">
-<h2>Taswyat V29</h2>
+<h2>Taswyat V38</h2>
 <p id="currentUserText"></p>
 
 <button onclick="showPage('homePage')">الرئيسية</button>
@@ -220,12 +220,13 @@ button.small{padding:6px 10px;font-size:12px}
 <h2>بيانات التسوية</h2>
 
 <div class="grid">
-<input id="ownerName" placeholder="اسم صاحب التسوية" oninput="clearAutoSettlementNo()" onblur="previewNextSettlementNo()">
-<input id="settlementPaperNo" placeholder="رقم التسوية النهائى" readonly>
-<input id="settlementManualNo" placeholder="الرقم اليدوى / رقم الدفتر - ممكن يتكرر" oninput="updatePaperSettlementNo()">
+<div class="form-field"><label>اسم صاحب التسوية</label><input id="ownerName" list="ownerList" placeholder="اكتب أو اختر اسم صاحب التسوية" oninput="clearAutoSettlementNo(); rememberLineDropdownValue('ownerList', this.value)" onblur="previewNextSettlementNo(); rememberLineDropdownValue('ownerList', this.value)"></div>
+<div class="form-field"><label>رقم التسوية النهائي</label><input id="settlementPaperNo" placeholder="يظهر تلقائيًا" readonly></div>
+<div class="form-field"><label>الرقم اليدوي / رقم الدفتر</label><input id="settlementManualNo" placeholder="ممكن يتكرر" oninput="updatePaperSettlementNo()"></div>
 <input id="settlementAutoNo" type="hidden">
 <input id="settlementNo" type="hidden">
-<input id="entryDate" type="date">
+<div class="form-field"><label>تاريخ التسوية</label><input id="entryDate" type="date"></div>
+<datalist id="ownerList"></datalist>
 </div>
 
 <div class="msg" style="color:#475569;text-align:right">رقم التسوية النهائي يظهر بشكل موحد في كل البرنامج مثل: 5-2026 / 1</div>
@@ -233,7 +234,7 @@ button.small{padding:6px 10px;font-size:12px}
 <button onclick="createHeader()">دخول / إنشاء</button>
 <br><br>
 <div class="grid2">
-<input id="quickSettlementSearch" placeholder="ابحث برقم التسوية لفتحها وإضافة بنود عليها - مثال: 5-2026 / 1">
+<div class="form-field"><label>بحث سريع برقم التسوية</label><input id="quickSettlementSearch" placeholder="مثال: 5-2026 / 1"></div>
 <button class="gray" onclick="quickOpenSettlementByNumber()">بحث / فتح التسوية</button>
 </div>
 <div id="quickSearchResult" class="msg"></div>
@@ -243,10 +244,10 @@ button.small{padding:6px 10px;font-size:12px}
 <h2>إدخال بنود التسوية</h2>
 
 <div class="grid">
-<input id="lineDate" type="date">
-<input id="description" placeholder="البيان">
-<input id="addedTo" placeholder="مضاف إلى">
-<input id="paymentRef" placeholder="رقم مستند الدفع / شيك / تحويل">
+<div class="form-field"><label>تاريخ البند</label><input id="lineDate" type="date"></div>
+<div class="form-field"><label>البيان</label><input id="description" placeholder="اكتب بيان التسوية"></div>
+<div class="form-field"><label>مضاف إلى</label><input id="addedTo" list="addedToList" placeholder="اكتب أو اختر الاسم" onblur="rememberLineDropdownValue('addedToList', this.value)"></div>
+<div class="form-field"><label>رقم مستند الدفع / شيك / تحويل</label><input id="paymentRef" placeholder="يجب ألا يتكرر"></div>
 
 <select id="mainDirection" onchange="updateSubDirectionOptions()">
 <option value="">التوجيه العام</option>
@@ -272,20 +273,22 @@ button.small{padding:6px 10px;font-size:12px}
 <option>مستخلص تحت التحصيل</option>
 </select>
 
-<input id="site" placeholder="الموقع">
-<select id="currency" onchange="updateExchangeRate()">
+<div class="form-field"><label>الموقع</label><input id="site" list="siteList" placeholder="اكتب أو اختر الموقع" onblur="rememberLineDropdownValue('siteList', this.value)"></div>
+<div class="form-field"><label>العملة</label><select id="currency" onchange="updateExchangeRate()">
 <option value="EGP">جنيه مصرى EGP</option>
 <option value="USD">دولار USD</option>
 <option value="EUR">يورو EUR</option>
 <option value="SAR">ريال سعودى SAR</option>
 <option value="AED">درهم إماراتى AED</option>
 <option value="GBP">جنيه إسترلينى GBP</option>
-</select>
-<input id="foreignAmount" type="number" placeholder="المبلغ بالعملة المختارة" oninput="calculateEgpAmount()">
-<input id="exchangeRate" type="number" step="0.0001" placeholder="سعر الصرف مقابل الجنيه" oninput="calculateEgpAmount()">
-<input id="amount" type="number" readonly placeholder="المبلغ بالجنيه المصرى EGP">
+</select></div>
+<div class="form-field"><label>المبلغ بالعملة المختارة</label><input id="foreignAmount" type="number" placeholder="0" oninput="calculateEgpAmount()"></div>
+<div class="form-field"><label>سعر الصرف مقابل الجنيه</label><input id="exchangeRate" type="number" step="0.0001" placeholder="سعر الصرف" oninput="calculateEgpAmount()"></div>
+<div class="form-field"><label>المبلغ بالجنيه المصري EGP</label><input id="amount" type="number" readonly placeholder="يُحسب تلقائيًا"></div>
 <div class="currency-note" id="fxNote">الحسابات والتكاليف والأرباح تتم بالجنيه المصرى فقط.</div>
-<input id="lineAttachments" type="file" multiple>
+<div class="form-field"><label>مرفقات البند</label><input id="lineAttachments" type="file" multiple></div>
+<datalist id="siteList"></datalist>
+<datalist id="addedToList"></datalist>
 </div>
 
 <br>
@@ -300,7 +303,7 @@ button.small{padding:6px 10px;font-size:12px}
 <h2>بحث بالاسم أو رقم التسوية</h2>
 
 <div class="grid2">
-<input id="searchNo" placeholder="اكتب اسم صاحب التسوية أو رقم التسوية">
+<div class="form-field"><label>بحث باسم صاحب التسوية أو رقم التسوية</label><input id="searchNo" list="ownerList" placeholder="اكتب الاسم أو رقم التسوية"></div>
 <button onclick="searchSettlement()">بحث</button>
 </div>
 
@@ -311,7 +314,7 @@ button.small{padding:6px 10px;font-size:12px}
 <h2>كشف حساب</h2>
 
 <div class="grid2">
-<input id="accountOwner" placeholder="اكتب اسم صاحب العهدة">
+<div class="form-field"><label>اسم صاحب العهدة / صاحب التسوية</label><input id="accountOwner" list="ownerList" placeholder="اكتب أو اختر الاسم"></div>
 <button onclick="accountStatement()">عرض كشف الحساب</button>
 <button class="print-btn" onclick="printAccountPdf()">طباعة كشف الحساب PDF</button>
 </div>
@@ -372,9 +375,16 @@ button.small{padding:6px 10px;font-size:12px}
 </div>
 
 <div id="onlineUsersPage" class="card page hidden">
-<h2>🟢 المتواجدين الآن على السيستم</h2>
+<h2>🟢 متابعة المستخدمين على السيستم</h2>
+<p>يعرض كل الحسابات، الحالة Online/Offline، القسم الحالي أو آخر قسم، ووقت آخر تواجد. يتم الاحتفاظ بسجل الحركة لمدة شهر.</p>
+<div class="grid2">
 <button class="gray" onclick="loadOnlineUsers()">تحديث</button>
+<button class="export-btn" onclick="exportElementTableToExcel('onlineUsersArea','online_users_status.xls')">تصدير Excel</button>
+</div>
 <div id="onlineUsersArea"></div>
+<hr>
+<h3>سجل الحركة آخر شهر</h3>
+<div id="onlineHistoryArea"></div>
 </div>
 
 <div id="usersPage" class="card page hidden">
@@ -468,6 +478,7 @@ button.small{padding:6px 10px;font-size:12px}
 </thead>
 <tbody id="invoiceItems"></tbody>
 </table>
+<datalist id="inventoryItemSuggestions"></datalist>
 
 <table class="invoice-summary">
 <tr>
@@ -505,8 +516,9 @@ button.small{padding:6px 10px;font-size:12px}
 </div>
 
 <div class="invoice-actions">
-<button class="green" onclick="saveInvoiceToAmount()">حفظ الفاتورة وترحيل الصافى</button>
-<button class="orange" onclick="manualTransferCurrentInvoiceTools()">ترحيل العدة للمخزن</button>
+<button id="invoiceEditBtn" class="orange hidden" onclick="enableInvoiceEdit()">تعديل الفاتورة</button>
+<button id="invoiceSaveBtn" class="green" onclick="saveInvoiceToAmount()">حفظ الفاتورة وترحيل الصافى</button>
+<button id="invoiceTransferBtn" class="orange" onclick="manualTransferCurrentInvoiceTools()">ترحيل العدة للمخزن</button>
 <button class="print-btn" onclick="printInvoiceA4()">تحميل / طباعة PDF A4</button>
 <button id="deleteInvoiceBtn" class="red hidden" onclick="deleteCurrentInvoice()">حذف الفاتورة</button>
 </div>
@@ -520,7 +532,7 @@ button.small{padding:6px 10px;font-size:12px}
 <div class="modal-header"><h2 id="inventoryModalTitle">إضافة مخزن</h2><button class="red small" onclick="closeInventoryModal()">إغلاق</button></div>
 <div class="grid">
 <div class="form-field"><label>كود الصنف</label><input id="invItemCode" placeholder="مثال: TOOLS-001"></div>
-<div class="form-field"><label>اسم الصنف</label><input id="invItemName" placeholder="اكتب اسم الصنف"></div>
+<div class="form-field"><label>اسم الصنف</label><input id="invItemName" list="inventoryManualSuggestions" placeholder="اكتب اسم الصنف" onfocus="loadInventoryManualSuggestions()" oninput="checkInventoryExistingManual()"><datalist id="inventoryManualSuggestions"></datalist><div id="inventoryExistingInfo" class="msg" style="font-size:12px;text-align:right;margin-top:4px"></div></div>
 <div class="form-field"><label>الكمية المشتراه / الكمية</label><input id="invPurchasedQty" type="number" placeholder="0"></div>
 <div class="form-field"><label>الكمية بالمخزن أول جرد</label><input id="invCurrentQty" type="number" placeholder="0"></div>
 <div class="form-field"><label>تاريخ الشراء</label><input id="invPurchaseDate" type="date"></div>
@@ -687,7 +699,8 @@ button.small{padding:6px 10px;font-size:12px}
 </table>
 </div>
 <br>
-<button class="green" onclick="saveLaborExtractToAmount()">حفظ المستخلص وترحيل الحالي</button>
+<button id="laborEditBtn" class="orange hidden" onclick="enableLaborExtractEdit()">تعديل المستخلص</button>
+<button id="laborSaveBtn" class="green" onclick="saveLaborExtractToAmount()">حفظ المستخلص وترحيل الحالي</button>
 <button class="gray" onclick="printLaborExtractA4()">طباعة / PDF A4</button>
 </div>
 </div>
@@ -704,9 +717,11 @@ let activeSettlementOwnerName = "";
 let siteCostsData = [];
 let siteCostsHeaderMap = {};
 let currentInvoiceId = null;
+let currentLaborExtractId = null;
 let activeDistributionId = null;
 let activeDistributionRow = null;
 let currentEditingInventoryId = null;
+let currentMatchedInventoryId = null;
 let inventoryAllRows = [];
 let inventoryAllDistMap = {};
 let editingLineId = null;
@@ -814,6 +829,7 @@ if(document.getElementById("exportSiteCostsBtn")) exportSiteCostsBtn.classList.r
 }
 
 showPage("homePage");
+loadLineDropdownSuggestions();
 trackPresence();
 setInterval(trackPresence,30000);
 }
@@ -849,10 +865,28 @@ function canAccessPage(id){
  const allowed = currentUser.allowed_pages || [];
  return allowed.includes(id);
 }
+function pageTitle(id){
+ const map = {
+  homePage:"الرئيسية",
+  newSettlementPage:"إدخال تسوية",
+  searchPage:"بحث بالاسم أو رقم التسوية",
+  accountPage:"كشف حساب",
+  inventoryPage:"معدات المخزن",
+  onlineUsersPage:"المتواجدين الآن",
+  combinedSettlementsPage:"حساب التسويات المجمع",
+  siteCostsPage:"تكاليف المواقع",
+  usersPage:"اعتماد المستخدمين",
+  auditPage:"Audit Log"
+ };
+ return map[id] || id;
+}
 function showPage(id){
  if(!canAccessPage(id)){ alert("ليس لديك صلاحية دخول هذه الصفحة"); return; }
  document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));
  document.getElementById(id).classList.remove("hidden");
+ currentPageId = id;
+ currentPageName = pageTitle(id);
+ trackPresence(true);
 }
 
 function getCurrencyApiCode(){
@@ -1303,6 +1337,7 @@ updatePaperSettlementNo();
 activeSettlementNo = existingByAuto.settlement_no;
 activeSettlementSearchKey = displaySettlementNo(existingByAuto);
 activeSettlementOwnerName = existingByAuto.owner_name || ownerName.value || "";
+rememberLineDropdownValue("ownerList", activeSettlementOwnerName);
 lineSection.classList.remove("hidden");
 loadLines(activeSettlementSearchKey || activeSettlementNo);
 alert("تم فتح التسوية الموجودة لنفس الشخص ونفس الرقم التلقائى");
@@ -1371,6 +1406,58 @@ openLaborExtractModal();
 }
 }
 
+
+async function loadLineDropdownSuggestions(){
+try{
+const {data:lines} = await client
+.from("settlement_lines")
+.select("site,added_to")
+.not("deleted_by_super_admin","eq",true);
+
+const {data:headers} = await client
+.from("settlement_headers")
+.select("owner_name");
+
+let sites = new Set();
+let added = new Set();
+let owners = new Set();
+
+(lines || []).forEach(l=>{
+  if((l.site || "").trim()) sites.add((l.site || "").trim());
+  if((l.added_to || "").trim()) added.add((l.added_to || "").trim());
+});
+(headers || []).forEach(h=>{
+  if((h.owner_name || "").trim()){
+    owners.add((h.owner_name || "").trim());
+    added.add((h.owner_name || "").trim());
+  }
+});
+
+fillDatalist("siteList", Array.from(sites).sort());
+fillDatalist("addedToList", Array.from(added).sort());
+fillDatalist("ownerList", Array.from(owners).sort());
+}catch(e){ console.log("dropdown suggestions error", e); }
+}
+
+function fillDatalist(id, arr){
+const el = document.getElementById(id);
+if(!el) return;
+el.innerHTML = arr.map(v=>`<option value="${String(v).replaceAll('"','&quot;')}"></option>`).join("");
+}
+
+function rememberLineDropdownValue(listId, value){
+value = (value || "").trim();
+if(!value) return;
+const dl = document.getElementById(listId);
+if(!dl) return;
+let exists = Array.from(dl.options).some(o => (o.value || "").trim() === value);
+if(!exists){
+  const opt = document.createElement("option");
+  opt.value = value;
+  dl.appendChild(opt);
+}
+}
+
 async function addLine(){
 
 if(!activeSettlementNo){
@@ -1411,19 +1498,27 @@ deleted_by_super_admin:false,
 updated_at:new Date().toISOString()
 };
 
-const {data:dup} = await client
+let dupQuery = client
 .from("settlement_lines")
-.select("*")
+.select("id,settlement_no,description,amount,payment_ref")
 .eq("payment_ref",paymentRef.value.trim())
-.eq("description",description.value.trim())
-.eq("amount",Number(amount.value))
 .eq("cancelled",false)
-.eq("deleted_by_super_admin",false)
-.neq("id", editingLineId || 0)
-.maybeSingle();
+.eq("deleted_by_super_admin",false);
 
-if(dup){
-alert("هذا البند مكرر بنفس رقم مستند الدفع والبيان والقيمة");
+if(editingLineId){
+  dupQuery = dupQuery.neq("id", editingLineId);
+}
+
+const {data:dupList,error:dupErr} = await dupQuery;
+
+if(dupErr){
+alert("تعذر التحقق من تكرار رقم مستند الدفع");
+return;
+}
+
+if(dupList && dupList.length){
+const d = dupList[0];
+alert("رقم مستند الدفع مستخدم قبل كده ولا يمكن تكراره.\nرقم التسوية: " + (d.settlement_no || "-") + "\nالبيان: " + (d.description || "-") + "\nالمبلغ: " + Number(d.amount || 0).toLocaleString());
 return;
 }
 
@@ -1481,6 +1576,7 @@ exchangeRate.value = "1";
 if(document.getElementById("fxNote")) fxNote.innerHTML = "الحسابات والتكاليف والأرباح تتم بالجنيه المصرى فقط.";
 if(document.getElementById("lineAttachments")) lineAttachments.value = "";
 
+loadLineDropdownSuggestions();
 loadLines(activeSettlementNo);
 }
 
@@ -1666,6 +1762,15 @@ sub = `
 class="invoice-link"
 onclick="openInvoiceFromLine('${r.settlement_no}')">
 خامات
+</button>`;
+}
+
+if(r.sub_direction === "مصنعيات"){
+sub = `
+<button
+class="invoice-link"
+onclick="openLaborExtractFromLine('${r.settlement_no}', ${r.id})">
+مصنعيات
 </button>`;
 }
 
@@ -1931,6 +2036,7 @@ updatePaperSettlementNo();
 activeSettlementNo = h.settlement_no;
 activeSettlementSearchKey = displaySettlementNo(h);
 activeSettlementOwnerName = h.owner_name || "";
+rememberLineDropdownValue("ownerList", activeSettlementOwnerName);
 lineSection.classList.remove("hidden");
 showPage("newSettlementPage");
 loadLines(activeSettlementNo);
@@ -2541,11 +2647,52 @@ profitResult.innerHTML = `
 </div>`;
 }
 
-  function openInvoice(){
+  
+function setInvoiceReadOnly(readOnly){
+ const modal = document.getElementById("invoiceModal");
+ if(!modal) return;
+ modal.querySelectorAll("input, select, textarea").forEach(el=>{
+  if(el.id && ["invoiceTotal","discountValue","commercialTaxValue","vatValue","netTotal"].includes(el.id)){
+   el.readOnly = true;
+  }else{
+   el.disabled = readOnly;
+   el.readOnly = readOnly;
+  }
+ });
+ if(document.getElementById("invoiceSaveBtn")) invoiceSaveBtn.classList.toggle("hidden", readOnly);
+ if(document.getElementById("invoiceTransferBtn")) invoiceTransferBtn.classList.toggle("hidden", readOnly);
+ if(document.getElementById("invoiceEditBtn")) invoiceEditBtn.classList.toggle("hidden", !(readOnly && currentUser && currentUser.role === "super_admin"));
+ if(document.getElementById("deleteInvoiceBtn")) deleteInvoiceBtn.classList.toggle("hidden", !(readOnly && currentUser && currentUser.role === "super_admin" && currentInvoiceId));
+}
+function enableInvoiceEdit(){
+ if(!currentUser || currentUser.role !== "super_admin") return alert("التعديل للسوبر أدمن فقط");
+ setInvoiceReadOnly(false);
+ if(document.getElementById("invoiceEditBtn")) invoiceEditBtn.classList.add("hidden");
+ if(document.getElementById("deleteInvoiceBtn")) deleteInvoiceBtn.classList.remove("hidden");
+}
+
+function setLaborExtractReadOnly(readOnly){
+ const modal = document.getElementById("laborExtractModal");
+ if(!modal) return;
+ modal.querySelectorAll("input, select, textarea").forEach(el=>{
+  el.disabled = readOnly;
+  el.readOnly = readOnly;
+ });
+ if(document.getElementById("laborSaveBtn")) laborSaveBtn.classList.toggle("hidden", readOnly);
+ if(document.getElementById("laborEditBtn")) laborEditBtn.classList.toggle("hidden", !(readOnly && currentUser && currentUser.role === "super_admin"));
+}
+function enableLaborExtractEdit(){
+ if(!currentUser || currentUser.role !== "super_admin") return alert("التعديل للسوبر أدمن فقط");
+ setLaborExtractReadOnly(false);
+ if(document.getElementById("laborEditBtn")) laborEditBtn.classList.add("hidden");
+}
+
+function openInvoice(){
 currentInvoiceId = null;
 clearInvoiceForm();
-deleteInvoiceBtn.classList.add("hidden");
+if(document.getElementById("deleteInvoiceBtn")) deleteInvoiceBtn.classList.add("hidden");
 invoiceModal.style.display = "flex";
+setInvoiceReadOnly(false);
 }
 
 function closeInvoice(){
@@ -2584,7 +2731,7 @@ for(let i=1;i<=10;i++){
 html += `
 <tr>
 <td>${i}</td>
-<td><select class="inv-category"><option>خامات</option><option>عدة</option><option>مهمات سلامة</option><option>مهمات مشروع</option></select><input class="inv-desc" placeholder="بيان الخامات / الصنف"></td>
+<td><select class="inv-category"><option>خامات</option><option>عدة</option><option>مهمات سلامة</option><option>مهمات مشروع</option><option>أخرى</option></select><input class="inv-desc" list="inventoryItemSuggestions" placeholder="اكتب الصنف وسيظهر المتشابه من المخزن" onfocus="loadInventoryItemSuggestions()" oninput="applyInventorySuggestionToRow(this)"></td>
 <td><input class="inv-unit"></td>
 <td><input type="number" class="inv-qty" oninput="calcInvoice()"></td>
 <td><input type="number" class="inv-price" oninput="calcInvoice()"></td>
@@ -2593,6 +2740,7 @@ html += `
 }
 
 invoiceItems.innerHTML = html;
+setupInvoiceInventoryAutocomplete();
 }
 
 function calcInvoice(){
@@ -3111,8 +3259,26 @@ async function loadRentedSpaces(){
 async function addRentedSpace(){
  const name = rentNewSpace.value.trim();
  if(!name){ alert("اكتب اسم الشقة أو الحيز"); return; }
+
+ const {data:existing} = await client
+ .from("rented_spaces")
+ .select("*")
+ .eq("space_name",name)
+ .maybeSingle();
+
+ if(existing){
+  rentNewSpace.value = "";
+  await loadRentedSpaces();
+  chooseRentSpace(name);
+  alert("الحيز موجود بالفعل وتم اختياره");
+  return;
+ }
+
  const {error} = await client.from("rented_spaces").insert({space_name:name,created_by:currentUser.username});
- if(error){ alert("لم يتم الحفظ، ربما الاسم موجود أو الجدول غير منشأ"); return; }
+ if(error){
+  alert("لم يتم حفظ الحيز. شغل SQL صلاحيات الإيجارات في Supabase ثم حاول مرة أخرى.");
+  return;
+ }
  rentNewSpace.value = "";
  await loadRentedSpaces();
  chooseRentSpace(name);
@@ -3124,10 +3290,34 @@ function selectRentSpace(){
   description.value = `إيجار ${rentSpaceSelect.value} عن شهر ${rentMonth.value || ""}`;
  }
 }
-function saveRentToAmount(){
+async function checkRentAlreadyPaid(spaceName, monthValue, excludeLineId){
+ if(!spaceName || !monthValue) return null;
+ let q = client
+ .from("settlement_lines")
+ .select("*")
+ .eq("sub_direction","ايجارات")
+ .eq("site",spaceName)
+ .ilike("description",`%${monthValue}%`)
+ .neq("status","deleted");
+
+ if(excludeLineId){ q = q.neq("id",excludeLineId); }
+
+ const {data,error} = await q.limit(1);
+ if(error) return null;
+ return data && data.length ? data[0] : null;
+}
+
+async function saveRentToAmount(){
  if(!rentSpaceSelect.value){ alert("اختر الشقة / الحيز"); return; }
  if(!rentMonth.value){ alert("اختر الشهر"); return; }
  if(!rentAmount.value){ alert("اكتب قيمة الإيجار"); return; }
+
+ const paid = await checkRentAlreadyPaid(rentSpaceSelect.value, rentMonth.value, editingLineId);
+ if(paid){
+  alert(`تم دفع إيجار هذا الحيز عن نفس الشهر من قبل\nرقم التسوية: ${paid.settlement_no || "-"}\nالبيان: ${paid.description || "-"}\nالمبلغ: ${Number(paid.amount || 0).toLocaleString()}`);
+  return;
+ }
+
  site.value = rentSpaceSelect.value;
  description.value = `إيجار ${rentSpaceSelect.value} عن شهر ${rentMonth.value}`;
  currency.value = "EGP";
@@ -3138,8 +3328,112 @@ function saveRentToAmount(){
  closeRentModal();
 }
 
+
+async function openLaborExtractFromLine(settlementNo, lineId=null){
+ try{
+  let lineRow = null;
+  if(lineId){
+    const {data:lr} = await client.from("settlement_lines").select("*").eq("id", lineId).maybeSingle();
+    lineRow = lr || null;
+  }
+
+  let candidates = await getSettlementNoCandidates(settlementNo);
+  if(activeSettlementNo) candidates = [...new Set([...candidates, ...(await getSettlementNoCandidates(activeSettlementNo))])];
+  if(lineRow && lineRow.settlement_no) candidates = [...new Set([...candidates, ...(await getSettlementNoCandidates(lineRow.settlement_no))])];
+
+  let refs = [];
+  if(lineRow){
+    if(lineRow.payment_ref) refs.push(String(lineRow.payment_ref).trim());
+    if(lineRow.description) refs.push(String(lineRow.description).trim());
+  }
+  refs = refs.filter(Boolean);
+
+  let ex = null;
+
+  if(candidates.length){
+   const {data:rows} = await client
+   .from("labor_extracts")
+   .select("*")
+   .in("settlement_no", candidates)
+   .order("id",{ascending:false});
+   if(rows && rows.length) ex = rows[0];
+  }
+
+  if(!ex && refs.length){
+   const {data:rowsByRef} = await client
+   .from("labor_extracts")
+   .select("*")
+   .or(refs.map(v=>`extract_no.eq.${v},work_order.eq.${v}`).join(','))
+   .order("id",{ascending:false});
+   if(rowsByRef && rowsByRef.length) ex = rowsByRef[0];
+  }
+
+  if(!ex){
+   const {data:allRows} = await client
+   .from("labor_extracts")
+   .select("*")
+   .order("id",{ascending:false});
+
+   const normCandidates = candidates.map(x=>normalizeSettlementText(x));
+   const normRefs = refs.map(x=>normalizeSettlementText(x));
+   ex = (allRows || []).find(r=> 
+      normCandidates.includes(normalizeSettlementText(r.settlement_no)) ||
+      normRefs.includes(normalizeSettlementText(r.extract_no)) ||
+      normRefs.includes(normalizeSettlementText(r.work_order))
+   );
+  }
+
+  // fallback: افتح مستخلص قراءة فقط مبني من بيانات البند لو لم يوجد سجل مستخلص
+  if(!ex && lineRow){
+    currentLaborExtractId = null;
+    laborExtractModal.style.display = "flex";
+    buildLaborExtractRows();
+    laborProject.value = lineRow.site || "";
+    laborContractor.value = lineRow.added_to || "";
+    laborExtractDate.value = lineRow.line_date || "";
+    laborExtractNo.value = lineRow.payment_ref || "";
+    laborWorkOrder.value = lineRow.payment_ref || "";
+    laborNotes.value = "مستخلص قراءة فقط من بند التسوية";
+    const firstRow = document.querySelector('#laborExtractRows tr');
+    if(firstRow){
+      const inputs = firstRow.querySelectorAll('input');
+      if(inputs[0]) inputs[0].value = lineRow.description || "مصنعيات";
+      if(inputs[3]) inputs[3].value = Number(lineRow.amount || 0);
+      if(inputs[4]) inputs[4].value = Number(lineRow.amount || 0);
+    }
+    laborCurrentTotal.innerText = Number(lineRow.amount || 0).toFixed(2);
+    laborGrandTotal.innerText = Number(lineRow.amount || 0).toFixed(2);
+    setLaborExtractReadOnly(true);
+    return;
+  }
+
+  if(!ex){
+   alert("لا يوجد مستخلص مصنعيات محفوظ لهذه التسوية. افتح المستخلص من بند المصنعيات المحفوظ أو احفظ المستخلص مرة أخرى بعد فتح التسوية.");
+   return;
+  }
+
+  currentLaborExtractId = ex.id;
+  laborExtractModal.style.display = "flex";
+  buildLaborExtractRows();
+  laborProject.value = ex.project || "";
+  laborContractor.value = ex.contractor || "";
+  laborExtractDate.value = ex.extract_date || "";
+  laborExtractNo.value = ex.extract_no || "";
+  laborWorkOrder.value = ex.work_order || "";
+  laborNotes.value = ex.notes || "";
+  laborCurrentTotal.innerText = Number(ex.current_total || 0).toFixed(2);
+  laborGrandTotal.innerText = Number(ex.grand_total || 0).toFixed(2);
+  setLaborExtractReadOnly(true);
+ }catch(e){
+  console.error(e);
+  alert("حدث خطأ أثناء فتح المستخلص");
+ }
+}
+
 function openLaborExtractModal(){
+ currentLaborExtractId = null;
  laborExtractModal.style.display = "flex";
+ setLaborExtractReadOnly(false);
  laborExtractDate.value = new Date().toISOString().slice(0,10);
  laborProject.value = site.value || "";
  laborContractor.value = addedTo.value || "";
@@ -3187,10 +3481,16 @@ async function saveLaborExtractToAmount(){
  if(!paymentRef.value) paymentRef.value = laborExtractNo.value || laborWorkOrder.value || `LAB-${Date.now()}`;
  currency.value = "EGP"; exchangeRate.value = 1; foreignAmount.value = curTotal.toFixed(2); calculateEgpAmount();
  try{
-  await client.from("labor_extracts").insert({
+  const payload = {
    settlement_no:activeSettlementNo, extract_no:laborExtractNo.value, work_order:laborWorkOrder.value, project:laborProject.value,
    contractor:laborContractor.value, extract_date:laborExtractDate.value, current_total:curTotal, grand_total:Number(laborGrandTotal.innerText||0), notes:laborNotes.value, created_by:currentUser.username
-  });
+  };
+  if(currentLaborExtractId && currentUser.role === "super_admin"){
+   await client.from("labor_extracts").update(payload).eq("id", currentLaborExtractId);
+  }else{
+   const {data:newEx} = await client.from("labor_extracts").insert(payload).select().single();
+   if(newEx) currentLaborExtractId = newEx.id;
+  }
  }catch(e){}
  alert("تم ترحيل قيمة الحالي إلى بند التسوية");
  closeLaborExtractModal();
@@ -3211,18 +3511,67 @@ function printLaborExtractA4(){
 }
 
 
-async function trackPresence(){
+async function trackPresence(forceLog=false){
  if(!currentUser) return;
+ const ts = new Date().toISOString();
  try{
-  await client.from("online_users").upsert({username:currentUser.username, role:currentUser.role, last_seen:new Date().toISOString()},{onConflict:"username"});
+  await client.from("online_users").upsert({
+   username: currentUser.username,
+   role: currentUser.role,
+   current_page: currentPageId,
+   current_page_name: currentPageName,
+   last_seen: ts
+  },{onConflict:"username"});
+
+  const shouldLog = forceLog || lastActivityPageId !== currentPageId || (Date.now() - lastActivityLogAt > 5*60*1000);
+  if(shouldLog){
+   await client.from("user_activity_log").insert({
+    username: currentUser.username,
+    role: currentUser.role,
+    page_id: currentPageId,
+    page_name: currentPageName,
+    seen_at: ts
+   });
+   lastActivityLogAt = Date.now();
+   lastActivityPageId = currentPageId;
+  }
+
+  // تنظيف السجل الأقدم من شهر تلقائياً
+  const monthAgo = new Date(Date.now()-30*24*60*60*1000).toISOString();
+  await client.from("user_activity_log").delete().lt("seen_at", monthAgo);
  }catch(e){}
+}
+
+function onlineStatus(lastSeen){
+ if(!lastSeen) return {txt:"Offline", cls:"offline", mins:"-"};
+ const diffMin = Math.round((Date.now()-new Date(lastSeen).getTime())/60000);
+ return diffMin <= 2 ? {txt:"Online", cls:"online", mins:"الآن"} : {txt:"Offline", cls:"offline", mins: diffMin + " دقيقة"};
 }
 
 async function loadOnlineUsers(){
  if(currentUser.role !== "super_admin") return;
- const since = new Date(Date.now()-2*60*1000).toISOString();
- const {data} = await client.from("online_users").select("*").gte("last_seen",since).order("last_seen",{ascending:false});
- onlineUsersArea.innerHTML = `<table class="table"><thead><tr><th>الحالة</th><th>المستخدم</th><th>الصلاحية</th><th>آخر ظهور</th></tr></thead><tbody>${(data||[]).map(u=>`<tr><td><span class="online-dot"></span>Online</td><td>${u.username}</td><td>${u.role||""}</td><td>${new Date(u.last_seen).toLocaleString('ar-EG')}</td></tr>`).join("")}</tbody></table>`;
+ const {data:users} = await client.from("app_users").select("username,role,status").order("username");
+ const {data:online} = await client.from("online_users").select("*");
+ const monthAgo = new Date(Date.now()-30*24*60*60*1000).toISOString();
+ const {data:hist} = await client.from("user_activity_log").select("*").gte("seen_at", monthAgo).order("seen_at",{ascending:false}).limit(300);
+ const onlineMap = {};
+ (online||[]).forEach(o=>onlineMap[o.username]=o);
+ const rows = (users||[]).map(u=>{
+  const o = onlineMap[u.username] || {};
+  const st = onlineStatus(o.last_seen);
+  const color = st.txt === "Online" ? "#16a34a" : "#dc2626";
+  return `<tr>
+   <td><b style="color:${color}">${st.txt}</b></td>
+   <td>${u.username}</td>
+   <td>${u.role||""}</td>
+   <td>${u.status||""}</td>
+   <td>${o.current_page_name || "-"}</td>
+   <td>${o.last_seen ? new Date(o.last_seen).toLocaleString('ar-EG') : "-"}</td>
+   <td>${st.mins}</td>
+  </tr>`;
+ }).join("");
+ onlineUsersArea.innerHTML = `<table class="table"><thead><tr><th>الحالة</th><th>المستخدم</th><th>الصلاحية</th><th>حالة الحساب</th><th>القسم الحالي / آخر قسم</th><th>آخر وقت على السيستم</th><th>منذ</th></tr></thead><tbody>${rows}</tbody></table>`;
+ onlineHistoryArea.innerHTML = `<table class="table"><thead><tr><th>الوقت</th><th>المستخدم</th><th>الصلاحية</th><th>القسم</th></tr></thead><tbody>${(hist||[]).map(h=>`<tr><td>${new Date(h.seen_at).toLocaleString('ar-EG')}</td><td>${h.username}</td><td>${h.role||""}</td><td>${h.page_name||h.page_id||""}</td></tr>`).join("")}</tbody></table>`;
 }
 
 function canManageInventory(){
@@ -3234,11 +3583,12 @@ function canManageInventory(){
 }
 async function loadInventory(){
  try{
+  inventoryAddBtn.classList.remove("hidden");
   if(canManageInventory()){
-   inventoryAddBtn.classList.remove("hidden"); inventoryCountBtn.classList.remove("hidden"); inventoryReturnBtn.classList.remove("hidden");
+   inventoryCountBtn.classList.remove("hidden"); inventoryReturnBtn.classList.remove("hidden");
    if(document.getElementById("inventoryDistributeBtn")) inventoryDistributeBtn.classList.remove("hidden");
   }else{
-   inventoryAddBtn.classList.add("hidden"); inventoryCountBtn.classList.add("hidden"); inventoryReturnBtn.classList.add("hidden");
+   inventoryCountBtn.classList.add("hidden"); inventoryReturnBtn.classList.add("hidden");
    if(document.getElementById("inventoryDistributeBtn")) inventoryDistributeBtn.classList.add("hidden");
   }
   const {data} = await client.from("inventory_items").select("*").order("id",{ascending:false});
@@ -3300,7 +3650,8 @@ function renderInventoryRows(rows){
 function num(v){ return Number(v||0).toLocaleString(); }
 function clearInventoryModal(){
  currentEditingInventoryId = null;
- inventoryModalTitle.innerHTML = "إضافة مخزن";
+ currentMatchedInventoryId = null;
+ inventoryModalTitle.innerHTML = "إضافة / تحديث صنف مخزن";
  invItemCode.value = "";
  invItemName.value = "";
  invPurchasedQty.value = "";
@@ -3311,26 +3662,86 @@ function clearInventoryModal(){
  invInvoiceNo.value = "";
  invSettlementNo.value = "";
  invCategory.value = "عدة";
+ if(document.getElementById("invUnit")) invUnit.value = "عدد";
+ if(document.getElementById("inventoryExistingInfo")) inventoryExistingInfo.innerHTML = "";
 }
-function openInventoryAddModal(){ if(!canManageInventory()) return alert("ليس لديك صلاحية إضافة مخزن"); clearInventoryModal(); inventoryModal.style.display="flex"; }
-function closeInventoryModal(){ inventoryModal.style.display="none"; currentEditingInventoryId = null; }
+function openInventoryAddModal(){ clearInventoryModal(); inventoryModal.style.display="flex"; loadInventoryManualSuggestions(); }
+function closeInventoryModal(){ inventoryModal.style.display="none"; currentEditingInventoryId = null; currentMatchedInventoryId = null; }
+async function loadInventoryManualSuggestions(){
+ try{
+  const {data}=await client.from("inventory_items").select("id,item_name,item_code,category,unit,current_qty,purchased_qty,warehouse").order("item_name");
+  const dl=document.getElementById("inventoryManualSuggestions");
+  if(dl){ dl.innerHTML=(data||[]).map(x=>`<option value="${(x.item_name||'').replaceAll('"','&quot;')}">${x.item_code||''} - ${x.category||''} - رصيد ${num(x.current_qty)} ${x.unit||''}</option>`).join(""); }
+ }catch(e){}
+}
+async function checkInventoryExistingManual(){
+ const name=(invItemName.value||"").trim();
+ currentMatchedInventoryId = null;
+ if(!name){ if(document.getElementById("inventoryExistingInfo")) inventoryExistingInfo.innerHTML=""; return; }
+ let q = client.from("inventory_items").select("*").ilike("item_name", name).limit(1);
+ const {data,error}=await q.maybeSingle();
+ if(error || !data){
+   if(document.getElementById("inventoryExistingInfo")) inventoryExistingInfo.innerHTML = canManageInventory() ? "صنف جديد - سيتم إضافته إذا حفظت" : "الصنف غير موجود. المستخدم العادي يقدر يزود كمية على صنف موجود فقط.";
+   return;
+ }
+ currentMatchedInventoryId = data.id;
+ invItemCode.value = data.item_code || invItemCode.value || "";
+ invCurrentQty.value = data.current_qty || 0;
+ invCategory.value = data.category || "عدة";
+ if(document.getElementById("invUnit")) invUnit.value = data.unit || "عدد";
+ if(document.getElementById("inventoryExistingInfo")) inventoryExistingInfo.innerHTML = `الصنف موجود بالفعل | الكود: ${data.item_code||'-'} | الرصيد الحالي: ${num(data.current_qty)} ${data.unit||''} | إجمالي مشتريات سابق: ${num(data.purchased_qty)}. أدخل الكمية الجديدة وسيتم إضافتها على الموجود.`;
+}
+async function findExistingInventoryForManual(){
+ const name=(invItemName.value||"").trim();
+ const code=(invItemCode.value||"").trim();
+ if(currentMatchedInventoryId) return currentMatchedInventoryId;
+ if(code){ const {data}=await client.from("inventory_items").select("*").eq("item_code", code).limit(1).maybeSingle(); if(data) return data.id; }
+ if(name){ const {data}=await client.from("inventory_items").select("*").ilike("item_name", name).limit(1).maybeSingle(); if(data) return data.id; }
+ return null;
+}
 async function saveInventoryManual(){
- if(!canManageInventory()) return;
  if(!invItemName.value) return alert("اكتب اسم الصنف");
  const qty = Number(invPurchasedQty.value||0);
+ if(qty <= 0 && !currentEditingInventoryId) return alert("اكتب الكمية المراد إضافتها");
+ const existingId = await findExistingInventoryForManual();
+ // تعديل كامل من زر تعديل: للسوبر أدمن فقط
+ if(currentEditingInventoryId){
+   if(currentUser.role !== "super_admin") return alert("التعديل الكامل للسوبر أدمن فقط");
+   const init = Number(invCurrentQty.value||0);
+   const current = init + qty;
+   const payload = {item_code:invItemCode.value,item_name:invItemName.value,initial_qty:init,purchased_qty:qty,current_qty:current,purchase_date:invPurchaseDate.value,spent_by:invSpentBy.value,spent_date:invSpentDate.value,invoice_no:invInvoiceNo.value,settlement_no:invSettlementNo.value,category:invCategory.value,unit:(document.getElementById("invUnit")?.value || "عدد"),warehouse:"مخزن القاهرة",buyer_name:currentUser.username};
+   const {error}=await client.from("inventory_items").update(payload).eq("id",currentEditingInventoryId);
+   if(error){ alert("لم يتم الحفظ في المخزن: " + error.message); return; }
+   closeInventoryModal(); loadInventory(); return;
+ }
+ // لو الصنف موجود: أي مستخدم يقدر يضيف كمية فقط
+ if(existingId){
+   const {data:old,error:readErr}=await client.from("inventory_items").select("*").eq("id",existingId).maybeSingle();
+   if(readErr || !old){ alert("تعذر قراءة بيانات الصنف الموجود"); return; }
+   const payload = {
+    item_code: old.item_code || invItemCode.value,
+    item_name: old.item_name || invItemName.value,
+    category: old.category || invCategory.value,
+    unit: old.unit || (document.getElementById("invUnit")?.value || "عدد"),
+    purchased_qty: Number(old.purchased_qty||0) + qty,
+    current_qty: Number(old.current_qty||0) + qty,
+    purchase_date: invPurchaseDate.value || old.purchase_date,
+    invoice_no: invInvoiceNo.value || old.invoice_no,
+    settlement_no: invSettlementNo.value || old.settlement_no,
+    buyer_name: currentUser.username,
+    warehouse: old.warehouse || "مخزن القاهرة"
+   };
+   const {error}=await client.from("inventory_items").update(payload).eq("id",existingId);
+   if(error){ alert("تعذر تحديث الصنف الموجود: " + error.message); return; }
+   alert("تمت إضافة الكمية على الصنف الموجود وتحديث الرصيد");
+   closeInventoryModal(); loadInventory(); return;
+ }
+ // صنف جديد: يحتاج صلاحية مخزن
+ if(!canManageInventory()) return alert("الصنف غير موجود. المستخدم العادي لا يضيف صنف جديد؛ يمكنه فقط إضافة كمية على صنف موجود.");
  const init = Number(invCurrentQty.value||0);
  const current = init + qty;
- const payload = {item_code:invItemCode.value,item_name:invItemName.value,initial_qty:init,purchased_qty:qty,current_qty:current,purchase_date:invPurchaseDate.value,spent_by:invSpentBy.value,spent_date:invSpentDate.value,invoice_no:invInvoiceNo.value,settlement_no:invSettlementNo.value,category:invCategory.value,
-   unit:(document.getElementById("invUnit")?.value || "عدد"),warehouse:"مخزن القاهرة",buyer_name:currentUser.username};
- let error;
- if(currentEditingInventoryId){
-   const res = await client.from("inventory_items").update(payload).eq("id",currentEditingInventoryId);
-   error = res.error;
- }else{
-   payload.created_by = currentUser.username;
-   const res = await client.from("inventory_items").insert(payload);
-   error = res.error;
- }
+ const payload = {item_code:invItemCode.value,item_name:invItemName.value,initial_qty:init,purchased_qty:qty,current_qty:current,purchase_date:invPurchaseDate.value,spent_by:invSpentBy.value,spent_date:invSpentDate.value,invoice_no:invInvoiceNo.value,settlement_no:invSettlementNo.value,category:invCategory.value,unit:(document.getElementById("invUnit")?.value || "عدد"),warehouse:"مخزن القاهرة",buyer_name:currentUser.username,created_by:currentUser.username};
+ const {error}=await client.from("inventory_items").insert(payload);
  if(error){ alert("لم يتم الحفظ في المخزن: " + error.message); return; }
  closeInventoryModal(); loadInventory();
 }
@@ -3531,6 +3942,57 @@ async function saveInventoryDistReturn(){
  closeInventoryDistReturnModal(); await loadDistributionDetails(); loadInventory();
 }
 if(document.addEventListener){ document.addEventListener('change', function(e){ if(e.target && e.target.id==='distItemSelect') loadDistributionDetails(); }); }
+
+let inventoryItemCatalog = [];
+
+async function loadInventoryItemSuggestions(){
+ try{
+  const {data,error} = await client
+   .from("inventory_items")
+   .select("item_name,item_code,category,unit,warehouse,current_qty,purchased_qty,unit_price")
+   .order("item_name");
+  if(error){ console.warn("Inventory suggestion load error", error.message); return; }
+  const map = new Map();
+  (data||[]).forEach(x=>{
+   const name = cleanText(x.item_name);
+   if(!name) return;
+   const key = name.toLowerCase();
+   if(!map.has(key)) map.set(key, x);
+  });
+  inventoryItemCatalog = [...map.values()];
+  const dl = document.getElementById("inventoryItemSuggestions");
+  if(dl){
+   dl.innerHTML = inventoryItemCatalog.map(x=>`<option value="${escapeHtml(x.item_name||'')}">${escapeHtml((x.item_code||'') + ' - ' + (x.category||'') + ' - رصيد ' + (x.current_qty||0) + ' ' + (x.unit||''))}</option>`).join("");
+  }
+ }catch(e){ console.warn(e); }
+}
+
+function setupInvoiceInventoryAutocomplete(){
+ loadInventoryItemSuggestions();
+ document.querySelectorAll(".inv-desc").forEach(inp=>{
+  inp.setAttribute("list","inventoryItemSuggestions");
+  inp.onfocus = loadInventoryItemSuggestions;
+  inp.oninput = function(){ applyInventorySuggestionToRow(this); };
+ });
+}
+
+function applyInventorySuggestionToRow(input){
+ const name = cleanText(input.value).toLowerCase();
+ if(!name) return;
+ const found = inventoryItemCatalog.find(x=>cleanText(x.item_name).toLowerCase() === name);
+ if(!found) return;
+ const row = input.closest("tr");
+ if(!row) return;
+ const cat = row.querySelector(".inv-category");
+ const unit = row.querySelector(".inv-unit");
+ if(cat && found.category) cat.value = found.category;
+ if(unit && found.unit) unit.value = found.unit;
+}
+
+function escapeHtml(v){
+ return (v||"").toString().replace(/[&<>'"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[m]));
+}
+
 function cleanText(v){ return (v || "").toString().trim(); }
 
 async function saveInvoiceToolsToInventory(items, inv, invoiceId){
@@ -3538,40 +4000,89 @@ async function saveInvoiceToolsToInventory(items, inv, invoiceId){
  const transferable=(items||[]).filter(x=>allowedCats.includes(cleanText(x.item_category)) && (cleanText(x.description) || Number(x.quantity||0)));
  if(!transferable.length) return;
  const settlementKey = activeSettlementSearchKey || activeSettlementNo || inv.settlement_no || "";
- let inserted = 0, skipped = 0;
+ const purchaseDate = (document.getElementById("lineDate")?.value || inv.invoice_date || new Date().toISOString().slice(0,10));
+ let inserted = 0, updated = 0, skipped = 0;
+
  for(const x of transferable){
   const itemName = cleanText(x.description) || "صنف بدون بيان";
   const category = cleanText(x.item_category) || "خامات";
   const qty = Number(x.quantity||0);
+  const unitName = cleanText(x.unit) || "عدد";
+  const unitPrice = Number(x.unit_price||0);
+  const totalValue = Number(x.total||0);
   if(!itemName || !qty) continue;
-  const {data:existing} = await client.from("inventory_items").select("id").eq("invoice_no",inv.invoice_no).eq("settlement_no",settlementKey).eq("item_name",itemName).maybeSingle();
-  if(existing){ skipped++; continue; }
-  const row={
-   item_code:"",
-   item_name:itemName,
-   category,
-   unit:x.unit || "عدد",
-   warehouse:"مخزن القاهرة",
-   initial_qty:0,
-   purchased_qty:qty,
-   current_qty:qty,
-   purchase_date:(document.getElementById("lineDate")?.value || inv.invoice_date || new Date().toISOString().slice(0,10)),
-   buyer_name:currentUser.username,
-   supplier_name:inv.seller_name || "",
-   unit_price:Number(x.unit_price||0),
-   total_value:Number(x.total||0),
-   spent_by:"",
-   spent_date:null,
-   invoice_no:inv.invoice_no,
-   settlement_no:settlementKey,
-   created_by:currentUser.username
-  };
-  const {error} = await client.from("inventory_items").insert(row);
-  if(error){ alert("تم حفظ الفاتورة لكن لم يتم ترحيل صنف للمخزن. تأكد من تشغيل SQL الخاص بالمخزن V22. الخطأ: " + error.message); return; }
-  inserted++;
+
+  // منع ترحيل نفس بند نفس الفاتورة مرتين
+  const {data:duplicated} = await client
+   .from("inventory_items")
+   .select("id")
+   .eq("invoice_no", inv.invoice_no)
+   .eq("settlement_no", settlementKey)
+   .eq("item_name", itemName)
+   .maybeSingle();
+  if(duplicated){ skipped++; continue; }
+
+  // لو الصنف موجود قبل كده في مخزن القاهرة، نزود عليه الكمية بدل إنشاء صف جديد
+  const {data:existingItem,error:findErr} = await client
+   .from("inventory_items")
+   .select("*")
+   .eq("item_name", itemName)
+   .eq("category", category)
+   .eq("warehouse", "مخزن القاهرة")
+   .order("id", {ascending:true})
+   .limit(1)
+   .maybeSingle();
+
+  if(findErr){
+   alert("تم حفظ الفاتورة ولكن تعذر البحث في المخزن: " + findErr.message);
+   return;
+  }
+
+  if(existingItem){
+   const payload = {
+    unit: unitName || existingItem.unit || "عدد",
+    purchased_qty: Number(existingItem.purchased_qty||0) + qty,
+    current_qty: Number(existingItem.current_qty||0) + qty,
+    purchase_date: purchaseDate,
+    buyer_name: inv.buyer || currentUser.username,
+    supplier_name: inv.seller_name || existingItem.supplier_name || "",
+    unit_price: unitPrice || Number(existingItem.unit_price||0),
+    total_value: Number(existingItem.total_value||0) + totalValue,
+    invoice_no: inv.invoice_no,
+    settlement_no: settlementKey
+   };
+   const {error:updateErr} = await client.from("inventory_items").update(payload).eq("id", existingItem.id);
+   if(updateErr){ alert("تم حفظ الفاتورة لكن لم يتم تحديث الصنف في المخزن: " + updateErr.message); return; }
+   updated++;
+  }else{
+   const row={
+    item_code:"",
+    item_name:itemName,
+    category,
+    unit:unitName,
+    warehouse:"مخزن القاهرة",
+    initial_qty:0,
+    purchased_qty:qty,
+    current_qty:qty,
+    purchase_date:purchaseDate,
+    buyer_name:inv.buyer || currentUser.username,
+    supplier_name:inv.seller_name || "",
+    unit_price:unitPrice,
+    total_value:totalValue,
+    spent_by:"",
+    spent_date:null,
+    invoice_no:inv.invoice_no,
+    settlement_no:settlementKey,
+    created_by:currentUser.username
+   };
+   const {error} = await client.from("inventory_items").insert(row);
+   if(error){ alert("تم حفظ الفاتورة لكن لم يتم ترحيل صنف للمخزن. تأكد من SQL وصلاحيات المخزن. الخطأ: " + error.message); return; }
+   inserted++;
+  }
  }
+ await loadInventoryItemSuggestions();
  if(document.getElementById("inventoryPage") && !document.getElementById("inventoryPage").classList.contains("hidden")) loadInventory();
- if(inserted || skipped) console.log(`Inventory transfer: inserted ${inserted}, skipped ${skipped}`);
+ if(inserted || updated || skipped) console.log(`Inventory transfer: inserted ${inserted}, updated ${updated}, skipped ${skipped}`);
 }
 
 async function manualTransferCurrentInvoiceTools(){
