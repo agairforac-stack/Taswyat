@@ -2,8 +2,305 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<title>Taswyat System - UPGRADED V11</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<title>Taswyat System - UPGRADED V64</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
+
+/* ================= COST CONTROL V60 ================= */
+let ccOrdersCache = [];
+let ccOrderItemsCache = [];
+let ccSalesCache = [];
+let ccPurchaseRowsCache = [];
+
+function showCostTab(id){
+ if(!currentUser || currentUser.role !== "super_admin"){ alert("Cost Control للسوبر أدمن فقط"); return; }
+ document.querySelectorAll('#costControlPage .cc-tab').forEach(t=>t.classList.add('hidden'));
+ const el=document.getElementById(id); if(el) el.classList.remove('hidden');
+ if(id==='ccOrdersTab') loadCostOrders();
+ if(id==='ccSalesTab') loadSalesInvoices();
+ if(id==='ccPurchasesTab') loadCostPurchaseInvoices();
+}
+async function loadCostControl(){
+ if(!currentUser || currentUser.role !== "super_admin"){ alert("Cost Control للسوبر أدمن فقط"); return; }
+ await loadCostOrders(false);
+ await loadSalesInvoices(false);
+ await loadCostPurchaseInvoices();
+}
+function closeCostOrderModal(){costOrderModal.style.display='none'}
+function closeSalesInvoiceModal(){salesInvoiceModal.style.display='none'}
+function closePurchaseLinkModal(){purchaseLinkModal.style.display='none'}
+function addCostOrderItemRow(item={}){
+ const body=document.getElementById('ccOrderItemsBody'); if(!body) return;
+ const idx=body.children.length+1;
+ const tr=document.createElement('tr');
+ tr.innerHTML=`<td>${idx}</td><td><input class="ccOrderItemCode" value="${item.item_code||''}" placeholder="كود"></td><td><input class="ccOrderItemDesc" value="${item.description||''}" placeholder="وصف البند"></td><td><input class="ccOrderItemUnit" value="${item.unit||''}" placeholder="وحدة"></td><td><input class="ccOrderItemQty" type="number" value="${item.qty||0}"></td><td><input class="ccOrderItemValue" type="number" value="${item.amount||0}"></td>`;
+ body.appendChild(tr);
+}
+async function openCostOrderModal(orderId=null){
+ costOrderModal.style.display='flex';
+ ccOrderNo.value=''; ccOrderDate.value=new Date().toISOString().slice(0,10); ccOrderClient.value=''; ccOrderSite.value=''; ccOrderValue.value=''; ccOrderNotes.value='';
+ ccOrderItemsBody.innerHTML='';
+ addCostOrderItemRow();
+}
+async function saveCostOrder(){
+ const no=ccOrderNo.value.trim();
+ if(!no){alert('اكتب رقم أمر الإسناد');return;}
+ const payload={order_no:no,order_date:ccOrderDate.value||null,client_name:ccOrderClient.value.trim(),site:ccOrderSite.value.trim(),total_value:Number(ccOrderValue.value||0),notes:ccOrderNotes.value.trim(),created_by:currentUser.username};
+ const {data:ord,error}=await client.from('cost_orders').insert(payload).select().single();
+ if(error){alert('خطأ حفظ أمر الإسناد: تأكد من تشغيل SQL أو أن رقم الأمر غير مكرر');return;}
+ const items=[];
+ document.querySelectorAll('#ccOrderItemsBody tr').forEach((tr,i)=>{
+  const desc=tr.querySelector('.ccOrderItemDesc')?.value.trim()||'';
+  const code=tr.querySelector('.ccOrderItemCode')?.value.trim()||'';
+  if(desc||code) items.push({order_id:ord.id,serial_no:i+1,item_code:code,description:desc,unit:tr.querySelector('.ccOrderItemUnit')?.value.trim()||'',qty:Number(tr.querySelector('.ccOrderItemQty')?.value||0),amount:Number(tr.querySelector('.ccOrderItemValue')?.value||0)});
+ });
+ if(items.length) await client.from('cost_order_items').insert(items);
+ closeCostOrderModal(); loadCostOrders(); loadCostPurchaseInvoices();
+}
+async function loadCostOrders(render=true){
+ const {data:orders,error}=await client.from('cost_orders').select('*').order('id',{ascending:false}).limit(1000);
+ if(error){ if(render) costOrdersArea.innerHTML='شغّل SQL الخاص بـ Cost Control أولاً'; return; }
+ ccOrdersCache=orders||[];
+ const {data:items}=await client.from('cost_order_items').select('*').order('serial_no');
+ ccOrderItemsCache=items||[];
+ refreshCostControlSelects();
+ if(!render||!document.getElementById('costOrdersArea')) return;
+ costOrdersArea.innerHTML=`<table class="table"><thead><tr><th>رقم الأمر</th><th>التاريخ</th><th>العميل</th><th>الموقع</th><th>القيمة</th><th>عدد البنود</th><th>ملاحظات</th></tr></thead><tbody>${ccOrdersCache.map(o=>`<tr><td>${o.order_no||''}</td><td>${o.order_date||''}</td><td>${o.client_name||''}</td><td>${o.site||''}</td><td>${Number(o.total_value||0).toLocaleString()}</td><td>${ccOrderItemsCache.filter(i=>i.order_id===o.id).length}</td><td>${o.notes||''}</td></tr>`).join('')}</tbody></table>`;
+}
+function refreshCostControlSelects(){
+ const orderOpts='<option value="">كل الأوامر</option>'+ccOrdersCache.map(o=>`<option value="${o.id}">${o.order_no||''} - ${o.client_name||''} - ${o.site||''}</option>`).join('');
+ const linkOpts='<option value="">اختر أمر الإسناد</option>'+ccOrdersCache.map(o=>`<option value="${o.id}">${o.order_no||''} - ${o.client_name||''} - ${o.site||''}</option>`).join('');
+ if(document.getElementById('ccPurchaseOrderFilter')) ccPurchaseOrderFilter.innerHTML=orderOpts;
+ if(document.getElementById('ccLinkOrder')) ccLinkOrder.innerHTML=linkOpts;
+ if(document.getElementById('salesInvOrderId')) salesInvOrderId.innerHTML='<option value="">بدون</option>'+ccOrdersCache.map(o=>`<option value="${o.id}">${o.order_no||''} - ${o.client_name||''}</option>`).join('');
+ const salesOpts='<option value="">كل الفواتير</option>'+ccSalesCache.map(s=>`<option value="${s.id}">${s.invoice_no||''} - ${s.client_name||''}</option>`).join('');
+ if(document.getElementById('ccPurchaseSalesFilter')) ccPurchaseSalesFilter.innerHTML=salesOpts;
+ const linkSales='<option value="">اختر فاتورة مبيعات</option>'+ccSalesCache.map(s=>`<option value="${s.id}">${s.invoice_no||''} - ${s.client_name||''} - ${Number(s.total_amount||0).toLocaleString()}</option>`).join('');
+ if(document.getElementById('ccLinkSalesInvoice')) ccLinkSalesInvoice.innerHTML=linkSales;
+}
+async function openSalesInvoiceModal(){
+ await loadCostOrders(false);
+ salesInvoiceModal.style.display='flex';
+ salesInvNo.value=''; salesInvDate.value=new Date().toISOString().slice(0,10); salesInvClient.value=''; salesInvSite.value=''; salesInvSubtotal.value=''; salesInvVat.value=''; salesInvTotal.value=''; salesInvNotes.value=''; salesInvFile.value='';
+}
+function calcSalesInvoiceTotals(){
+ const sub=Number(salesInvSubtotal.value||0); salesInvVat.value=(sub*0.14).toFixed(2); salesInvTotal.value=(sub*1.14).toFixed(2);
+}
+async function saveSalesInvoice(){
+ const no=salesInvNo.value.trim(); if(!no){alert('اكتب رقم فاتورة المبيعات');return;}
+ let f=null; if(salesInvFile.files && salesInvFile.files[0]) f=await readFileAsDataUrl(salesInvFile.files[0]);
+ calcSalesInvoiceTotals();
+ const payload={invoice_no:no,invoice_date:salesInvDate.value||null,client_name:salesInvClient.value.trim(),site:salesInvSite.value.trim(),order_id:salesInvOrderId.value?Number(salesInvOrderId.value):null,subtotal:Number(salesInvSubtotal.value||0),vat_amount:Number(salesInvVat.value||0),total_amount:Number(salesInvTotal.value||0),client_invoice_file:f,notes:salesInvNotes.value.trim(),created_by:currentUser.username};
+ const {error}=await client.from('sales_invoices').insert(payload);
+ if(error){alert('خطأ حفظ فاتورة المبيعات: تأكد من SQL أو رقم الفاتورة غير مكرر');return;}
+ closeSalesInvoiceModal(); loadSalesInvoices(); loadCostPurchaseInvoices();
+}
+function renderSingleFileLinkLocal(f,label='فتح'){
+ if(!f) return '-';
+ if(typeof renderSingleFileLink==='function') return renderSingleFileLink(f,label);
+ return `<a href="${f.data||'#'}" download="${f.name||label}" target="_blank">${label}</a>`;
+}
+async function loadSalesInvoices(render=true){
+ const {data,error}=await client.from('sales_invoices').select('*').order('id',{ascending:false}).limit(1000);
+ if(error){ if(render) salesInvoicesArea.innerHTML='شغّل SQL الخاص بفواتير المبيعات أولاً'; return; }
+ ccSalesCache=data||[]; refreshCostControlSelects();
+ if(!render||!document.getElementById('salesInvoicesArea')) return;
+ salesInvoicesArea.innerHTML=`<table class="table"><thead><tr><th>رقم الفاتورة</th><th>التاريخ</th><th>العميل</th><th>الموقع</th><th>قبل الضريبة</th><th>الضريبة</th><th>الإجمالي</th><th>فاتورة العميل</th><th>ملاحظات</th></tr></thead><tbody>${ccSalesCache.map(s=>`<tr><td>${s.invoice_no||''}</td><td>${s.invoice_date||''}</td><td>${s.client_name||''}</td><td>${s.site||''}</td><td>${Number(s.subtotal||0).toLocaleString()}</td><td>${Number(s.vat_amount||0).toLocaleString()}</td><td>${Number(s.total_amount||0).toLocaleString()}</td><td>${renderSingleFileLinkLocal(s.client_invoice_file,'فتح/تحميل')}</td><td>${s.notes||''}</td></tr>`).join('')}</tbody></table>`;
+}
+async function loadCostPurchaseInvoices(){
+ const area=document.getElementById('costControlActiveArea'); if(!area) return;
+ await loadCostOrders(false); await loadSalesInvoices(false);
+ const {data:lines,error}=await client.from('settlement_lines').select('*').eq('main_direction','مصروفات').neq('status','deleted').order('id',{ascending:false}).limit(5000);
+ if(error){area.innerHTML='خطأ تحميل المصروفات';return;}
+ const lineIds=(lines||[]).map(l=>l.id);
+ const {data:links}=lineIds.length? await client.from('purchase_cost_links').select('*').in('line_id',lineIds):{data:[]};
+ const linkMap={}; (links||[]).forEach(l=>linkMap[l.line_id]=l);
+ const orderMap={}; ccOrdersCache.forEach(o=>orderMap[o.id]=o);
+ const itemMap={}; ccOrderItemsCache.forEach(i=>itemMap[i.id]=i);
+ const salesMap={}; ccSalesCache.forEach(s=>salesMap[s.id]=s);
+ let rows=(lines||[]).map(l=>({line:l,link:linkMap[l.id]||null}));
+ const q=(document.getElementById('ccPurchaseSearch')?.value||'').toLowerCase().trim();
+ const of=(document.getElementById('ccPurchaseOrderFilter')?.value||''); const sf=(document.getElementById('ccPurchaseSalesFilter')?.value||'');
+ if(q) rows=rows.filter(r=>[r.line.description,r.line.site,r.line.payment_ref,r.line.sub_direction,r.line.added_to].some(v=>String(v||'').toLowerCase().includes(q)));
+ if(of) rows=rows.filter(r=>String(r.link?.order_id||'')===of);
+ if(sf) rows=rows.filter(r=>String(r.link?.sales_invoice_id||'')===sf);
+ const total=rows.reduce((s,r)=>s+Number(r.line.amount||0),0);
+ area.innerHTML=`<div class="summary" style="margin-bottom:12px"><div class="box"><h3>عدد بنود التسويات</h3><h2>${rows.length}</h2></div><div class="box"><h3>إجمالي البنود</h3><h2>${total.toLocaleString()}</h2></div><div class="box"><h3>بنود موجهة</h3><h2>${rows.filter(r=>r.link).length}</h2></div></div>
+ <table class="table"><thead><tr><th>تعديل التوجيه</th><th>التاريخ</th><th>رقم التسوية</th><th>البيان</th><th>مستند الدفع</th><th>التوجيه الفرعي</th><th>الموقع</th><th>المبلغ</th><th>أمر الإسناد</th><th>بند الأمر</th><th>فاتورة المبيعات</th><th>ملاحظات</th></tr></thead><tbody>${rows.map(r=>{const l=r.line,link=r.link||{};const o=orderMap[link.order_id]||{};const it=itemMap[link.order_item_id]||{};const si=salesMap[link.sales_invoice_id]||{};return `<tr><td><button class="small orange" onclick="openPurchaseLinkModal(${l.id})">تعديل</button></td><td>${l.line_date||''}</td><td>${l.settlement_no||''}</td><td>${l.description||''}</td><td>${l.payment_ref||''}</td><td>${l.sub_direction||''}</td><td>${l.site||''}</td><td>${Number(l.amount||0).toLocaleString()}</td><td>${o.order_no||'-'}</td><td>${it.description||'-'}</td><td>${si.invoice_no||'-'}</td><td>${link.notes||''}</td></tr>`}).join('')}</tbody></table>`;
+}
+async function openPurchaseLinkModal(lineId){
+ await loadCostOrders(false); await loadSalesInvoices(false);
+ const {data:l}=await client.from('settlement_lines').select('*').eq('id',lineId).maybeSingle(); if(!l){alert('البند غير موجود');return;}
+ const {data:link}=await client.from('purchase_cost_links').select('*').eq('line_id',lineId).maybeSingle();
+ purchaseLinkModal.style.display='flex'; ccLinkLineId.value=lineId; ccLinkDesc.textContent=l.description||''; ccLinkAmount.textContent=Number(l.amount||0).toLocaleString(); ccLinkSite.textContent=l.site||'';
+ ccLinkOrder.value=link?.order_id||''; await loadOrderItemsForLink(link?.order_item_id||''); ccLinkSalesInvoice.value=link?.sales_invoice_id||''; ccLinkNotes.value=link?.notes||'';
+}
+async function loadOrderItemsForLink(selected=''){
+ const orderId=Number(ccLinkOrder.value||0);
+ const items=ccOrderItemsCache.filter(i=>i.order_id===orderId);
+ ccLinkOrderItem.innerHTML='<option value="">اختر بند أمر الإسناد</option>'+items.map(i=>`<option value="${i.id}">${i.item_code||''} - ${i.description||''} - ${Number(i.amount||0).toLocaleString()}</option>`).join('');
+ if(selected) ccLinkOrderItem.value=selected;
+}
+async function savePurchaseLink(){
+ const lineId=Number(ccLinkLineId.value||0); if(!lineId){alert('لا يوجد بند');return;}
+ const payload={line_id:lineId,order_id:ccLinkOrder.value?Number(ccLinkOrder.value):null,order_item_id:ccLinkOrderItem.value?Number(ccLinkOrderItem.value):null,sales_invoice_id:ccLinkSalesInvoice.value?Number(ccLinkSalesInvoice.value):null,notes:ccLinkNotes.value.trim(),updated_by:currentUser.username,updated_at:new Date().toISOString()};
+ const {data:existing}=await client.from('purchase_cost_links').select('id').eq('line_id',lineId).maybeSingle();
+ let error;
+ if(existing) ({error}=await client.from('purchase_cost_links').update(payload).eq('id',existing.id));
+ else ({error}=await client.from('purchase_cost_links').insert({...payload,created_by:currentUser.username}));
+ if(error){alert('خطأ حفظ التوجيه: تأكد من تشغيل SQL');return;}
+ closePurchaseLinkModal(); loadCostPurchaseInvoices();
+}
+
+</script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js">
+
+/* ================= COST CONTROL V60 ================= */
+let ccOrdersCache = [];
+let ccOrderItemsCache = [];
+let ccSalesCache = [];
+let ccPurchaseRowsCache = [];
+
+function showCostTab(id){
+ if(!currentUser || currentUser.role !== "super_admin"){ alert("Cost Control للسوبر أدمن فقط"); return; }
+ document.querySelectorAll('#costControlPage .cc-tab').forEach(t=>t.classList.add('hidden'));
+ const el=document.getElementById(id); if(el) el.classList.remove('hidden');
+ if(id==='ccOrdersTab') loadCostOrders();
+ if(id==='ccSalesTab') loadSalesInvoices();
+ if(id==='ccPurchasesTab') loadCostPurchaseInvoices();
+}
+async function loadCostControl(){
+ if(!currentUser || currentUser.role !== "super_admin"){ alert("Cost Control للسوبر أدمن فقط"); return; }
+ await loadCostOrders(false);
+ await loadSalesInvoices(false);
+ await loadCostPurchaseInvoices();
+}
+function closeCostOrderModal(){costOrderModal.style.display='none'}
+function closeSalesInvoiceModal(){salesInvoiceModal.style.display='none'}
+function closePurchaseLinkModal(){purchaseLinkModal.style.display='none'}
+function addCostOrderItemRow(item={}){
+ const body=document.getElementById('ccOrderItemsBody'); if(!body) return;
+ const idx=body.children.length+1;
+ const tr=document.createElement('tr');
+ tr.innerHTML=`<td>${idx}</td><td><input class="ccOrderItemCode" value="${item.item_code||''}" placeholder="كود"></td><td><input class="ccOrderItemDesc" value="${item.description||''}" placeholder="وصف البند"></td><td><input class="ccOrderItemUnit" value="${item.unit||''}" placeholder="وحدة"></td><td><input class="ccOrderItemQty" type="number" value="${item.qty||0}"></td><td><input class="ccOrderItemValue" type="number" value="${item.amount||0}"></td>`;
+ body.appendChild(tr);
+}
+async function openCostOrderModal(orderId=null){
+ costOrderModal.style.display='flex';
+ ccOrderNo.value=''; ccOrderDate.value=new Date().toISOString().slice(0,10); ccOrderClient.value=''; ccOrderSite.value=''; ccOrderValue.value=''; ccOrderNotes.value='';
+ ccOrderItemsBody.innerHTML='';
+ addCostOrderItemRow();
+}
+async function saveCostOrder(){
+ const no=ccOrderNo.value.trim();
+ if(!no){alert('اكتب رقم أمر الإسناد');return;}
+ const payload={order_no:no,order_date:ccOrderDate.value||null,client_name:ccOrderClient.value.trim(),site:ccOrderSite.value.trim(),total_value:Number(ccOrderValue.value||0),notes:ccOrderNotes.value.trim(),created_by:currentUser.username};
+ const {data:ord,error}=await client.from('cost_orders').insert(payload).select().single();
+ if(error){alert('خطأ حفظ أمر الإسناد: تأكد من تشغيل SQL أو أن رقم الأمر غير مكرر');return;}
+ const items=[];
+ document.querySelectorAll('#ccOrderItemsBody tr').forEach((tr,i)=>{
+  const desc=tr.querySelector('.ccOrderItemDesc')?.value.trim()||'';
+  const code=tr.querySelector('.ccOrderItemCode')?.value.trim()||'';
+  if(desc||code) items.push({order_id:ord.id,serial_no:i+1,item_code:code,description:desc,unit:tr.querySelector('.ccOrderItemUnit')?.value.trim()||'',qty:Number(tr.querySelector('.ccOrderItemQty')?.value||0),amount:Number(tr.querySelector('.ccOrderItemValue')?.value||0)});
+ });
+ if(items.length) await client.from('cost_order_items').insert(items);
+ closeCostOrderModal(); loadCostOrders(); loadCostPurchaseInvoices();
+}
+async function loadCostOrders(render=true){
+ const {data:orders,error}=await client.from('cost_orders').select('*').order('id',{ascending:false}).limit(1000);
+ if(error){ if(render) costOrdersArea.innerHTML='شغّل SQL الخاص بـ Cost Control أولاً'; return; }
+ ccOrdersCache=orders||[];
+ const {data:items}=await client.from('cost_order_items').select('*').order('serial_no');
+ ccOrderItemsCache=items||[];
+ refreshCostControlSelects();
+ if(!render||!document.getElementById('costOrdersArea')) return;
+ costOrdersArea.innerHTML=`<table class="table"><thead><tr><th>رقم الأمر</th><th>التاريخ</th><th>العميل</th><th>الموقع</th><th>القيمة</th><th>عدد البنود</th><th>ملاحظات</th></tr></thead><tbody>${ccOrdersCache.map(o=>`<tr><td>${o.order_no||''}</td><td>${o.order_date||''}</td><td>${o.client_name||''}</td><td>${o.site||''}</td><td>${Number(o.total_value||0).toLocaleString()}</td><td>${ccOrderItemsCache.filter(i=>i.order_id===o.id).length}</td><td>${o.notes||''}</td></tr>`).join('')}</tbody></table>`;
+}
+function refreshCostControlSelects(){
+ const orderOpts='<option value="">كل الأوامر</option>'+ccOrdersCache.map(o=>`<option value="${o.id}">${o.order_no||''} - ${o.client_name||''} - ${o.site||''}</option>`).join('');
+ const linkOpts='<option value="">اختر أمر الإسناد</option>'+ccOrdersCache.map(o=>`<option value="${o.id}">${o.order_no||''} - ${o.client_name||''} - ${o.site||''}</option>`).join('');
+ if(document.getElementById('ccPurchaseOrderFilter')) ccPurchaseOrderFilter.innerHTML=orderOpts;
+ if(document.getElementById('ccLinkOrder')) ccLinkOrder.innerHTML=linkOpts;
+ if(document.getElementById('salesInvOrderId')) salesInvOrderId.innerHTML='<option value="">بدون</option>'+ccOrdersCache.map(o=>`<option value="${o.id}">${o.order_no||''} - ${o.client_name||''}</option>`).join('');
+ const salesOpts='<option value="">كل الفواتير</option>'+ccSalesCache.map(s=>`<option value="${s.id}">${s.invoice_no||''} - ${s.client_name||''}</option>`).join('');
+ if(document.getElementById('ccPurchaseSalesFilter')) ccPurchaseSalesFilter.innerHTML=salesOpts;
+ const linkSales='<option value="">اختر فاتورة مبيعات</option>'+ccSalesCache.map(s=>`<option value="${s.id}">${s.invoice_no||''} - ${s.client_name||''} - ${Number(s.total_amount||0).toLocaleString()}</option>`).join('');
+ if(document.getElementById('ccLinkSalesInvoice')) ccLinkSalesInvoice.innerHTML=linkSales;
+}
+async function openSalesInvoiceModal(){
+ await loadCostOrders(false);
+ salesInvoiceModal.style.display='flex';
+ salesInvNo.value=''; salesInvDate.value=new Date().toISOString().slice(0,10); salesInvClient.value=''; salesInvSite.value=''; salesInvSubtotal.value=''; salesInvVat.value=''; salesInvTotal.value=''; salesInvNotes.value=''; salesInvFile.value='';
+}
+function calcSalesInvoiceTotals(){
+ const sub=Number(salesInvSubtotal.value||0); salesInvVat.value=(sub*0.14).toFixed(2); salesInvTotal.value=(sub*1.14).toFixed(2);
+}
+async function saveSalesInvoice(){
+ const no=salesInvNo.value.trim(); if(!no){alert('اكتب رقم فاتورة المبيعات');return;}
+ let f=null; if(salesInvFile.files && salesInvFile.files[0]) f=await readFileAsDataUrl(salesInvFile.files[0]);
+ calcSalesInvoiceTotals();
+ const payload={invoice_no:no,invoice_date:salesInvDate.value||null,client_name:salesInvClient.value.trim(),site:salesInvSite.value.trim(),order_id:salesInvOrderId.value?Number(salesInvOrderId.value):null,subtotal:Number(salesInvSubtotal.value||0),vat_amount:Number(salesInvVat.value||0),total_amount:Number(salesInvTotal.value||0),client_invoice_file:f,notes:salesInvNotes.value.trim(),created_by:currentUser.username};
+ const {error}=await client.from('sales_invoices').insert(payload);
+ if(error){alert('خطأ حفظ فاتورة المبيعات: تأكد من SQL أو رقم الفاتورة غير مكرر');return;}
+ closeSalesInvoiceModal(); loadSalesInvoices(); loadCostPurchaseInvoices();
+}
+function renderSingleFileLinkLocal(f,label='فتح'){
+ if(!f) return '-';
+ if(typeof renderSingleFileLink==='function') return renderSingleFileLink(f,label);
+ return `<a href="${f.data||'#'}" download="${f.name||label}" target="_blank">${label}</a>`;
+}
+async function loadSalesInvoices(render=true){
+ const {data,error}=await client.from('sales_invoices').select('*').order('id',{ascending:false}).limit(1000);
+ if(error){ if(render) salesInvoicesArea.innerHTML='شغّل SQL الخاص بفواتير المبيعات أولاً'; return; }
+ ccSalesCache=data||[]; refreshCostControlSelects();
+ if(!render||!document.getElementById('salesInvoicesArea')) return;
+ salesInvoicesArea.innerHTML=`<table class="table"><thead><tr><th>رقم الفاتورة</th><th>التاريخ</th><th>العميل</th><th>الموقع</th><th>قبل الضريبة</th><th>الضريبة</th><th>الإجمالي</th><th>فاتورة العميل</th><th>ملاحظات</th></tr></thead><tbody>${ccSalesCache.map(s=>`<tr><td>${s.invoice_no||''}</td><td>${s.invoice_date||''}</td><td>${s.client_name||''}</td><td>${s.site||''}</td><td>${Number(s.subtotal||0).toLocaleString()}</td><td>${Number(s.vat_amount||0).toLocaleString()}</td><td>${Number(s.total_amount||0).toLocaleString()}</td><td>${renderSingleFileLinkLocal(s.client_invoice_file,'فتح/تحميل')}</td><td>${s.notes||''}</td></tr>`).join('')}</tbody></table>`;
+}
+async function loadCostPurchaseInvoices(){
+ const area=document.getElementById('costControlActiveArea'); if(!area) return;
+ await loadCostOrders(false); await loadSalesInvoices(false);
+ const {data:lines,error}=await client.from('settlement_lines').select('*').eq('main_direction','مصروفات').neq('status','deleted').order('id',{ascending:false}).limit(5000);
+ if(error){area.innerHTML='خطأ تحميل المصروفات';return;}
+ const lineIds=(lines||[]).map(l=>l.id);
+ const {data:links}=lineIds.length? await client.from('purchase_cost_links').select('*').in('line_id',lineIds):{data:[]};
+ const linkMap={}; (links||[]).forEach(l=>linkMap[l.line_id]=l);
+ const orderMap={}; ccOrdersCache.forEach(o=>orderMap[o.id]=o);
+ const itemMap={}; ccOrderItemsCache.forEach(i=>itemMap[i.id]=i);
+ const salesMap={}; ccSalesCache.forEach(s=>salesMap[s.id]=s);
+ let rows=(lines||[]).map(l=>({line:l,link:linkMap[l.id]||null}));
+ const q=(document.getElementById('ccPurchaseSearch')?.value||'').toLowerCase().trim();
+ const of=(document.getElementById('ccPurchaseOrderFilter')?.value||''); const sf=(document.getElementById('ccPurchaseSalesFilter')?.value||'');
+ if(q) rows=rows.filter(r=>[r.line.description,r.line.site,r.line.payment_ref,r.line.sub_direction,r.line.added_to].some(v=>String(v||'').toLowerCase().includes(q)));
+ if(of) rows=rows.filter(r=>String(r.link?.order_id||'')===of);
+ if(sf) rows=rows.filter(r=>String(r.link?.sales_invoice_id||'')===sf);
+ const total=rows.reduce((s,r)=>s+Number(r.line.amount||0),0);
+ area.innerHTML=`<div class="summary" style="margin-bottom:12px"><div class="box"><h3>عدد بنود التسويات</h3><h2>${rows.length}</h2></div><div class="box"><h3>إجمالي البنود</h3><h2>${total.toLocaleString()}</h2></div><div class="box"><h3>بنود موجهة</h3><h2>${rows.filter(r=>r.link).length}</h2></div></div>
+ <table class="table"><thead><tr><th>تعديل التوجيه</th><th>التاريخ</th><th>رقم التسوية</th><th>البيان</th><th>مستند الدفع</th><th>التوجيه الفرعي</th><th>الموقع</th><th>المبلغ</th><th>أمر الإسناد</th><th>بند الأمر</th><th>فاتورة المبيعات</th><th>ملاحظات</th></tr></thead><tbody>${rows.map(r=>{const l=r.line,link=r.link||{};const o=orderMap[link.order_id]||{};const it=itemMap[link.order_item_id]||{};const si=salesMap[link.sales_invoice_id]||{};return `<tr><td><button class="small orange" onclick="openPurchaseLinkModal(${l.id})">تعديل</button></td><td>${l.line_date||''}</td><td>${l.settlement_no||''}</td><td>${l.description||''}</td><td>${l.payment_ref||''}</td><td>${l.sub_direction||''}</td><td>${l.site||''}</td><td>${Number(l.amount||0).toLocaleString()}</td><td>${o.order_no||'-'}</td><td>${it.description||'-'}</td><td>${si.invoice_no||'-'}</td><td>${link.notes||''}</td></tr>`}).join('')}</tbody></table>`;
+}
+async function openPurchaseLinkModal(lineId){
+ await loadCostOrders(false); await loadSalesInvoices(false);
+ const {data:l}=await client.from('settlement_lines').select('*').eq('id',lineId).maybeSingle(); if(!l){alert('البند غير موجود');return;}
+ const {data:link}=await client.from('purchase_cost_links').select('*').eq('line_id',lineId).maybeSingle();
+ purchaseLinkModal.style.display='flex'; ccLinkLineId.value=lineId; ccLinkDesc.textContent=l.description||''; ccLinkAmount.textContent=Number(l.amount||0).toLocaleString(); ccLinkSite.textContent=l.site||'';
+ ccLinkOrder.value=link?.order_id||''; await loadOrderItemsForLink(link?.order_item_id||''); ccLinkSalesInvoice.value=link?.sales_invoice_id||''; ccLinkNotes.value=link?.notes||'';
+}
+async function loadOrderItemsForLink(selected=''){
+ const orderId=Number(ccLinkOrder.value||0);
+ const items=ccOrderItemsCache.filter(i=>i.order_id===orderId);
+ ccLinkOrderItem.innerHTML='<option value="">اختر بند أمر الإسناد</option>'+items.map(i=>`<option value="${i.id}">${i.item_code||''} - ${i.description||''} - ${Number(i.amount||0).toLocaleString()}</option>`).join('');
+ if(selected) ccLinkOrderItem.value=selected;
+}
+async function savePurchaseLink(){
+ const lineId=Number(ccLinkLineId.value||0); if(!lineId){alert('لا يوجد بند');return;}
+ const payload={line_id:lineId,order_id:ccLinkOrder.value?Number(ccLinkOrder.value):null,order_item_id:ccLinkOrderItem.value?Number(ccLinkOrderItem.value):null,sales_invoice_id:ccLinkSalesInvoice.value?Number(ccLinkSalesInvoice.value):null,notes:ccLinkNotes.value.trim(),updated_by:currentUser.username,updated_at:new Date().toISOString()};
+ const {data:existing}=await client.from('purchase_cost_links').select('id').eq('line_id',lineId).maybeSingle();
+ let error;
+ if(existing) ({error}=await client.from('purchase_cost_links').update(payload).eq('id',existing.id));
+ else ({error}=await client.from('purchase_cost_links').insert({...payload,created_by:currentUser.username}));
+ if(error){alert('خطأ حفظ التوجيه: تأكد من تشغيل SQL');return;}
+ closePurchaseLinkModal(); loadCostPurchaseInvoices();
+}
+
+</script>
 
 <style>
 body{margin:0;font-family:Arial;background:#eef2f7;color:#1f2937}
@@ -142,6 +439,55 @@ button.small{padding:6px 10px;font-size:12px}
 .dist-split-row{border:1px solid #cbd5e1;border-radius:8px;margin:3px 0;padding:4px;background:#f8fafc;text-align:right}
 .dist-split-row b{color:#0f172a}
 .dist-doc-link{display:inline-block;margin-top:3px;color:#0a6cff;font-weight:bold}
+
+.cc-order-desc-input{min-width:320px!important;font-weight:bold!important}
+.cc-detail-routing{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:8px;margin-top:8px}
+.cc-detail-routing select,.cc-detail-routing input{min-width:130px}
+
+
+/* ===== V64 Cost Control Purchases Sheet View ===== */
+.cc-purchases-wrap{width:100%;overflow:auto;border:1px solid #e5e7eb;border-radius:12px;background:white;max-height:calc(100vh - 255px)}
+.cc-purchases-table{width:100%;min-width:1280px;border-collapse:collapse;background:white;font-size:11px;table-layout:fixed}
+.cc-purchases-table th,.cc-purchases-table td{border:1px solid #e5e7eb;padding:3px;text-align:center;vertical-align:middle}
+.cc-purchases-table th{position:sticky;top:0;z-index:5;background:#f8fafc;color:#0f172a;white-space:nowrap}
+.cc-purchases-table td.cc-text{text-align:right;font-weight:bold;white-space:normal;line-height:1.35}
+.cc-purchases-table .cc-main-cell{background:#fff}
+.cc-purchases-table .cc-item-cell{background:#fbfdff}
+.cc-purchases-table select,.cc-purchases-table input{width:100%;min-width:0;padding:3px;font-size:10px;border-radius:5px}
+.cc-purchases-table .cc-small-input{min-width:0;width:100%}
+.cc-purchases-table .cc-wide-select{min-width:0;width:100%}
+.cc-purchases-table .cc-muted{color:#94a3b8;font-weight:bold}
+.cc-purchases-table .cc-line-separator td{border-top:2px solid #94a3b8}
+.cc-purchases-note{background:#f8fafc;border:1px dashed #cbd5e1;border-radius:10px;padding:10px;margin:8px 0;color:#475569;text-align:right}
+
+.cc-purchases-table th:nth-child(1){width:42px}
+.cc-purchases-table th:nth-child(2){width:70px}
+.cc-purchases-table th:nth-child(3){width:92px}
+.cc-purchases-table th:nth-child(4){width:155px}
+.cc-purchases-table th:nth-child(5){width:82px}
+.cc-purchases-table th:nth-child(6){width:70px}
+.cc-purchases-table th:nth-child(7){width:78px}
+.cc-purchases-table th:nth-child(8){width:70px}
+.cc-purchases-table th:nth-child(9){width:28px}
+.cc-purchases-table th:nth-child(10){width:140px}
+.cc-purchases-table th:nth-child(11){width:42px}
+.cc-purchases-table th:nth-child(12){width:45px}
+.cc-purchases-table th:nth-child(13){width:58px}
+.cc-purchases-table th:nth-child(14){width:65px}
+.cc-purchases-table th:nth-child(15){width:120px}
+.cc-purchases-table th:nth-child(16){width:130px}
+.cc-purchases-table th:nth-child(17){width:115px}
+.cc-purchases-table th:nth-child(18){width:65px}
+.cc-purchases-table th:nth-child(19){width:80px}
+.cc-purchases-table th:nth-child(20){width:80px}
+.cc-purchases-table th:nth-child(21){width:40px}
+.cc-purchases-table button.small{padding:4px 6px;font-size:10px}
+
+
+.cc-order-open-card{background:#fff;border:1px solid #dbe3ef;border-radius:12px;padding:12px;margin-top:12px;box-shadow:0 3px 12px rgba(15,23,42,.06)}
+.cc-negative{color:#dc2626!important;font-weight:bold}
+.cc-positive{color:#059669!important;font-weight:bold}
+
 </style>
 </head>
 
@@ -149,14 +495,14 @@ button.small{padding:6px 10px;font-size:12px}
 
 <div id="loginPage" class="login-wrap">
 <div class="card login-card">
-<h1>برنامج التسويات</h1>
+<h1 style="letter-spacing:1px">TASWYAT AG AIR</h1>
 
 <div id="loginBox">
 <input id="loginUser" placeholder="User Name">
 <br><br>
 <input id="loginPass" type="password" placeholder="Password">
 <br><br>
-<button onclick="login()">Login</button>
+<button id="loginBtn" onclick="login()">Login</button>
 <div class="link" onclick="showRegister()">تسجيل مستخدم جديد</div>
 </div>
 
@@ -176,13 +522,15 @@ button.small{padding:6px 10px;font-size:12px}
 <div id="app" class="app">
 
 <div class="sidebar">
-<h2>Taswyat V42</h2>
+<h2>Taswyat V69</h2>
 <p id="currentUserText"></p>
 
 <button onclick="showPage('homePage')">الرئيسية</button>
 <button onclick="showPage('newSettlementPage')">إدخال تسوية</button>
 <button onclick="showPage('searchPage')">بحث بالاسم أو رقم التسوية</button>
 <button onclick="showPage('accountPage')">كشف حساب</button>
+<button id="accountsBtn" onclick="showPage('accountsPage');loadAccountsInvoices()">🧾 حسابات</button>
+<button id="costControlBtn" class="hidden" onclick="showPage('costControlPage');loadCostControl()">📌 Cost Control</button>
 
 <button id="inventoryBtn" onclick="showPage('inventoryPage');loadInventory()">
 📦 معدات المخزن
@@ -322,6 +670,62 @@ button.small{padding:6px 10px;font-size:12px}
 <div id="accountResult"></div>
 </div>
 
+
+<div id="accountsPage" class="card page hidden">
+<h2>🧾 حسابات - الفواتير</h2>
+<p class="msg" style="color:#475569">نسخة مستقلة من شاشة الفواتير. رقم الفاتورة يتولد تلقائيًا بتسلسل، ويمكن فتح أي فاتورة قراءة فقط ثم تعديلها بواسطة Super Admin.</p>
+<div class="actions-wrap" style="justify-content:flex-start;margin-bottom:10px">
+<button class="green" onclick="openAccountsInvoiceNew()">+ فاتورة جديدة</button>
+<button class="export-btn" onclick="exportElementTableToExcel('accountsInvoicesArea','accounts_invoices.xls')">تصدير Excel</button>
+<button class="gray" onclick="loadAccountsInvoices()">تحديث</button>
+</div>
+<div class="grid" style="background:#f8fafc;border:1px solid #e2e8f0;padding:12px;border-radius:12px;margin-bottom:12px">
+<div class="form-field"><label>بحث برقم الفاتورة</label><input id="accountsInvSearchNo" oninput="loadAccountsInvoices()" placeholder="رقم الفاتورة"></div>
+<div class="form-field"><label>بحث بالموقع</label><input id="accountsInvSearchSite" list="siteList" oninput="loadAccountsInvoices()" placeholder="اختر أو اكتب الموقع"></div>
+<div class="form-field"><label>بحث بالبائع / المشترى</label><input id="accountsInvSearchParty" oninput="loadAccountsInvoices()" placeholder="اسم البائع أو المشترى"></div>
+</div>
+<div id="accountsInvoicesArea"></div>
+</div>
+
+
+<div id="costControlPage" class="card page hidden">
+<h2>📌 Cost Control</h2>
+<p class="msg" style="color:#475569">متابعة أوامر الإسناد/التوريد، فواتير المبيعات، وربط بنود المصروفات ببنود الأوامر وفواتير المبيعات. لا يتم حذف بنود المصروفات لأنها حركات فعلية، ويمكن تعديل التوجيه فقط.</p>
+<div class="actions-wrap" style="justify-content:flex-start;margin-bottom:12px">
+<button class="gray" onclick="showCostTab('ccOrdersTab');loadCostOrders()">1- أوامر الإسناد / التوريد</button>
+<button class="gray" onclick="showCostTab('ccSalesTab');loadSalesInvoices()">2- فواتير المبيعات</button>
+<button class="gray" onclick="showCostTab('ccPurchasesTab');loadCostPurchaseInvoices()">3- فواتير المشتريات</button>
+<button class="export-btn" onclick="exportElementTableToExcel('costControlActiveArea','cost_control.xls')">تصدير Excel</button>
+<button class="gray" onclick="loadCostControl()">تحديث</button>
+</div>
+
+<div id="ccOrdersTab" class="cc-tab">
+<h3>أوامر الإسناد / التوريد</h3>
+<div class="actions-wrap" style="justify-content:flex-start;margin-bottom:10px">
+<button class="green" onclick="openCostOrderModal()">+ إضافة أمر إسناد / توريد</button>
+</div>
+<div id="costOrdersArea"></div>
+</div>
+
+<div id="ccSalesTab" class="cc-tab hidden">
+<h3>فواتير المبيعات</h3>
+<div class="actions-wrap" style="justify-content:flex-start;margin-bottom:10px">
+<button class="green" onclick="openSalesInvoiceModal()">+ إضافة فاتورة مبيعات</button>
+</div>
+<div id="salesInvoicesArea"></div>
+</div>
+
+<div id="ccPurchasesTab" class="cc-tab hidden">
+<h3>فواتير المشتريات / بنود المصروفات</h3>
+<div class="grid" style="background:#f8fafc;border:1px solid #e2e8f0;padding:12px;border-radius:12px;margin-bottom:12px">
+<div class="form-field"><label>بحث بالبيان / الموقع / المستند</label><input id="ccPurchaseSearch" oninput="loadCostPurchaseInvoices()" placeholder="اكتب للبحث"></div>
+<div class="form-field"><label>فلتر أمر الإسناد</label><select id="ccPurchaseOrderFilter" onchange="loadCostPurchaseInvoices()"><option value="">كل الأوامر</option></select></div>
+<div class="form-field"><label>فلتر فاتورة المبيعات</label><select id="ccPurchaseSalesFilter" onchange="loadCostPurchaseInvoices()"><option value="">كل الفواتير</option></select></div>
+</div>
+<div id="costControlActiveArea"></div>
+</div>
+</div>
+
 <div id="combinedSettlementsPage" class="card page hidden">
 <h2>📚 حساب التسويات المجمع</h2>
 <p class="msg" style="color:#475569">كل التسويات لكل الأفراد والحسابات البنكية. اكتب تحت رأس العمود أو اختر من القائمة لتصفية البيانات، واضغط على عنوان العمود للترتيب.</p>
@@ -428,7 +832,7 @@ button.small{padding:6px 10px;font-size:12px}
 
 <div>
 <label>الموقع</label>
-<input id="invSite" placeholder="الموقع">
+<input id="invSite" list="siteList" placeholder="الموقع من قائمة مواقع التسويات">
 </div>
 </div>
 
@@ -445,7 +849,7 @@ button.small{padding:6px 10px;font-size:12px}
 
 <div>
 <label>نوع الفاتورة</label>
-<select id="invType" onchange="calcInvoice()">
+<select id="invType" onchange="calcInvoice();syncInvoiceTypeView()">
 <option>ضريبية</option>
 <option>بدون ضريبة</option>
 </select>
@@ -466,6 +870,21 @@ button.small{padding:6px 10px;font-size:12px}
 <div>
 <label>بيانات إضافية</label>
 <input id="invoiceNotes" placeholder="بيانات إضافية">
+</div>
+</div>
+
+<div class="invoice-seller">
+<div>
+<label>تصنيف الفاتورة</label>
+<input id="invoiceTypeView" readonly placeholder="يتحدد تلقائيًا: ضريبية / بدون ضريبة">
+</div>
+<div>
+<label>رفع الفاتورة الضريبية / المرفق</label>
+<input id="taxInvoiceFile" type="file" accept=".pdf,.jpg,.jpeg,.png,.webp">
+</div>
+<div>
+<label>رابط المرفق المحفوظ</label>
+<div id="taxInvoiceLink" class="attach-list">-</div>
 </div>
 </div>
 
@@ -628,6 +1047,41 @@ button.small{padding:6px 10px;font-size:12px}
 </div>
 </div>
 
+
+
+<div id="salaryModal" class="modal-bg">
+<div class="modal">
+<div class="modal-header">
+<h2>توزيع المرتبات على المواقع</h2>
+<button class="red small" onclick="closeSalaryModal()">إغلاق</button>
+</div>
+<p style="color:#475569;font-weight:bold">اختر الموظف وارفع ملف اليوميات. اكتب رقم حركة بجوار كل يوم تريد تحميله على المواقع. كل رقم حركة = يوم مستحق من الراتب الأساسي بقيمة الراتب ÷ 30 ويوجه للموقع المكتوب في نفس الحركة. الإضافي والتأخير يحسبان بالساعة لكل موقع، وأي يوم/فرق غير موجه يتحمل على المكتب.</p>
+<div class="grid">
+<div class="form-field"><label>اسم الموظف</label><input id="salaryEmployee" list="salaryEmployeeList" placeholder="اكتب أو اختر اسم الموظف" onblur="rememberLineDropdownValue('salaryEmployeeList', this.value)"></div>
+<datalist id="salaryEmployeeList"></datalist>
+<div class="form-field"><label>شهر المرتب</label><input id="salaryMonth" type="month"></div>
+<div class="form-field"><label>طبيعة الموظف</label><select id="salaryEmployeeType" onchange="salaryPaidManual=false;recalculateSalaryAllocation()"><option value="site">مواقع - من 08:30 إلى 17:00</option><option value="admin">إدارة - من 09:00 إلى 17:00</option></select></div>
+<div class="form-field"><label>الراتب الأساسي للشخص بالجنيه</label><input id="salaryBasicAmount" type="number" placeholder="مرتب الشهر الأساسي قبل الخصم/الإضافة" oninput="salaryPaidManual=false;recalculateSalaryAllocation()"></div>
+<div class="form-field"><label>المدفوع فعليًا بالجنيه</label><input id="salaryPaidAmount" type="number" placeholder="افتراضيًا يساوي الراتب الأساسي ويمكن تعديله كمكافأة/خصم" oninput="salaryPaidManual=true;recalculateSalaryAllocation()"></div>
+<div class="form-field"><label>ملف الحضور Excel</label><input id="salaryExcelFile" type="file" accept=".xlsx,.xls,.csv" onchange="salaryPaidManual=false;parseSalaryExcelFile()"></div>
+<div class="form-field"><label>موقع فرق التسوية</label><input id="salaryOfficeSite" value="المكتب" oninput="recalculateSalaryAllocation()"></div>
+<div class="form-field"><label>طريقة الحساب</label><input value="حسب رقم الحركة: كل حركة = يوم من الراتب الأساسي ÷ 30" readonly></div>
+<div class="form-field"><label>المبلغ المحسوب تلقائيًا</label><input id="salaryCalculatedPaid" readonly></div>
+<div class="form-field"><label>إجمالي التأخير بالساعات</label><input id="salaryLateTotal" readonly></div>
+<div class="form-field"><label>إجمالي الإضافي بالساعات</label><input id="salaryOvertimeTotal" readonly></div>
+<div class="form-field"><label>تكلفة الساعة</label><input id="salaryHourRate" readonly></div>
+<div class="form-field"><label>قيمة التأخير للمراجعة فقط</label><input id="salaryLateValue" readonly></div>
+<div class="form-field"><label>قيمة الإضافي للمراجعة فقط</label><input id="salaryOvertimeValue" readonly></div>
+</div>
+<br>
+<button class="gray" onclick="recalculateSalaryAllocation()">حساب التوزيع</button>
+<button class="green" onclick="applySalaryAllocationToLine()">اعتماد التوزيع للبند</button>
+<div id="salaryParseInfo" class="msg"></div>
+<div id="salarySiteCards" class="summary"></div>
+<div id="salaryAllocationArea"></div>
+</div>
+</div>
+
 <div id="transportModal" class="modal-bg">
 <div class="modal">
 
@@ -710,6 +1164,64 @@ button.small{padding:6px 10px;font-size:12px}
 </div>
 </div>
 
+
+<div id="costOrderModal" class="modal-bg">
+<div class="modal">
+<div class="modal-header"><h2>أمر إسناد / توريد</h2><button class="red small" onclick="closeCostOrderModal()">إغلاق</button></div>
+<div class="grid">
+<div class="form-field"><label>رقم الأمر</label><input id="ccOrderNo" placeholder="مثال: PO-001"></div>
+<div class="form-field"><label>تاريخ الأمر</label><input id="ccOrderDate" type="date"></div>
+<div class="form-field"><label>العميل / الجهة</label><input id="ccOrderClient" placeholder="اسم العميل"></div>
+<div class="form-field"><label>الموقع / المشروع</label><input id="ccOrderSite" list="siteList" placeholder="اختر أو اكتب الموقع"></div>
+<div class="form-field"><label>قيمة الأمر</label><input id="ccOrderValue" type="number" placeholder="0"></div>
+<div class="form-field"><label>ملاحظات</label><input id="ccOrderNotes" placeholder="ملاحظات"></div>
+</div>
+<h3>بنود أمر الإسناد</h3>
+<table class="table" id="ccOrderItemsTable"><thead><tr><th>م</th><th>كود/بند</th><th style="min-width:320px">وصف البند</th><th>الوحدة</th><th>الكمية</th><th>سعر الوحدة</th><th>العملة</th><th>الإجمالى</th></tr></thead><tbody id="ccOrderItemsBody"></tbody></table>
+<br><button class="gray" onclick="addCostOrderItemRow()">+ إضافة بند</button>
+<button class="green" onclick="saveCostOrder()">حفظ الأمر</button>
+</div>
+</div>
+
+<div id="salesInvoiceModal" class="modal-bg">
+<div class="modal">
+<div class="modal-header"><h2>فاتورة مبيعات ضريبية</h2><button class="red small" onclick="closeSalesInvoiceModal()">إغلاق</button></div>
+<div class="grid">
+<div class="form-field"><label>رقم الفاتورة</label><input id="salesInvNo" placeholder="رقم الفاتورة"></div>
+<div class="form-field"><label>تاريخ الفاتورة</label><input id="salesInvDate" type="date"></div>
+<div class="form-field"><label>العميل</label><input id="salesInvClient" placeholder="اسم العميل"></div>
+<div class="form-field"><label>الموقع / المشروع</label><input id="salesInvSite" list="siteList" placeholder="اختر أو اكتب الموقع"></div>
+<div class="form-field"><label>أمر الإسناد المرتبط</label><select id="salesInvOrderId"><option value="">بدون</option></select></div>
+<div class="form-field"><label>القيمة قبل الضريبة</label><input id="salesInvSubtotal" type="number" placeholder="0" oninput="calcSalesInvoiceTotals()"></div>
+<div class="form-field"><label>ضريبة القيمة المضافة 14%</label><input id="salesInvVat" readonly></div>
+<div class="form-field"><label>الإجمالي شامل الضريبة</label><input id="salesInvTotal" readonly></div>
+<div class="form-field"><label>رفع فاتورة العميل الحقيقية</label><input id="salesInvFile" type="file"></div>
+<div class="form-field"><label>ملاحظات</label><input id="salesInvNotes" placeholder="ملاحظات"></div>
+</div>
+<br><button class="green" onclick="saveSalesInvoice()">حفظ فاتورة المبيعات</button>
+</div>
+</div>
+
+<div id="purchaseLinkModal" class="modal-bg">
+<div class="modal">
+<div class="modal-header"><h2>توجيه بند مشتريات / مصروفات</h2><button class="red small" onclick="closePurchaseLinkModal()">إغلاق</button></div>
+<input type="hidden" id="ccLinkLineId">
+<div class="summary" style="margin-bottom:12px">
+<div class="box"><h3>البيان</h3><h2 id="ccLinkDesc" style="font-size:15px"></h2></div>
+<div class="box"><h3>المبلغ</h3><h2 id="ccLinkAmount"></h2></div>
+<div class="box"><h3>الموقع</h3><h2 id="ccLinkSite" style="font-size:15px"></h2></div>
+</div>
+<div class="grid">
+<div class="form-field"><label>أمر الإسناد / التوريد</label><select id="ccLinkOrder" onchange="loadOrderItemsForLink()"><option value="">اختر أمر الإسناد</option></select></div>
+<div class="form-field"><label>بند أمر الإسناد</label><select id="ccLinkOrderItem"><option value="">اختر البند</option></select></div>
+<div class="form-field"><label>رقم فاتورة المبيعات</label><select id="ccLinkSalesInvoice"><option value="">اختر فاتورة مبيعات</option></select></div>
+<div class="form-field"><label>المبلغ المحمل على فاتورة المبيعات</label><input id="ccLinkSalesAmount" type="number" placeholder="اكتب الجزء المحمل على الفاتورة"></div>
+<div class="form-field"><label>ملاحظات التوجيه</label><input id="ccLinkNotes" placeholder="ملاحظات"></div>
+</div>
+<br><button class="green" onclick="savePurchaseLink()">حفظ التوجيه</button>
+</div>
+</div>
+
 <script>
 const SUPABASE_URL = "https://qsfbbsnjwoltvppfmgvi.supabase.co";
 const SUPABASE_KEY = "sb_publishable_Nhl9BWQngYQKiz140tYYHg_Qe-Xa2wQ";
@@ -722,6 +1234,13 @@ let activeSettlementOwnerName = "";
 let siteCostsData = [];
 let siteCostsHeaderMap = {};
 let currentInvoiceId = null;
+let currentInvoiceLineId = null;
+let salaryExcelRows = [];
+let salaryAllocationRows = [];
+let salaryAllocationFileName = "";
+let salaryPaidManual = false;
+let salaryMetrics = {late:0,overtime:0,hourRate:0,calculatedPaid:0};
+let currentInvoicePaymentRef = "";
 let currentLaborExtractId = null;
 let activeDistributionId = null;
 let activeDistributionRow = null;
@@ -825,6 +1344,7 @@ app.style.display = "block";
 currentUserText.innerHTML = "المستخدم : " + currentUser.username;
 
 if(currentUser.role === "super_admin"){
+if(document.getElementById("costControlBtn")) costControlBtn.classList.remove("hidden");
 usersBtn.classList.remove("hidden");
 combinedSettlementsBtn.classList.remove("hidden");
 siteCostsBtn.classList.remove("hidden");
@@ -866,7 +1386,7 @@ if(document.getElementById("currency")) updateExchangeRate();
 function canAccessPage(id){
  if(!currentUser) return false;
  if(currentUser.role === "super_admin") return true;
- if(["homePage","newSettlementPage","searchPage","accountPage","inventoryPage"].includes(id)) return true;
+ if(["homePage","newSettlementPage","searchPage","accountPage","accountsPage","inventoryPage"].includes(id)) return true;
  const allowed = currentUser.allowed_pages || [];
  return allowed.includes(id);
 }
@@ -876,6 +1396,8 @@ function pageTitle(id){
   newSettlementPage:"إدخال تسوية",
   searchPage:"بحث بالاسم أو رقم التسوية",
   accountPage:"كشف حساب",
+  accountsPage:"حسابات",
+  costControlPage:"Cost Control",
   inventoryPage:"معدات المخزن",
   onlineUsersPage:"المتواجدين الآن",
   combinedSettlementsPage:"حساب التسويات المجمع",
@@ -891,6 +1413,9 @@ function showPage(id){
  document.getElementById(id).classList.remove("hidden");
  currentPageId = id;
  currentPageName = pageTitle(id);
+ if(["newSettlementPage","accountsPage","costControlPage","siteCostsPage"].includes(id)){
+   loadLineDropdownSuggestions();
+ }
  trackPresence(true);
 }
 
@@ -1181,6 +1706,30 @@ reader.readAsDataURL(file);
 });
 }
 
+function renderSingleFileLink(fileObj, label="فتح / تحميل"){
+ if(!fileObj || !fileObj.data) return "-";
+ const name = fileObj.name || label;
+ return `<a href="${fileObj.data}" download="${name}" target="_blank">📎 ${name}</a>`;
+}
+
+async function getTaxInvoiceFilePayload(existingFile=null){
+ const input = document.getElementById("taxInvoiceFile");
+ if(input && input.files && input.files.length){
+  const f = input.files[0];
+  if(f.size > 5 * 1024 * 1024){
+   alert("حجم مرفق الفاتورة أكبر من 5MB");
+   return null;
+  }
+  return await readFileAsDataUrl(f);
+ }
+ return existingFile || null;
+}
+
+function syncInvoiceTypeView(){
+ const v = document.getElementById("invoiceTypeView");
+ if(v) v.value = (document.getElementById("invType")?.value || "بدون ضريبة");
+}
+
 async function getSelectedAttachments(){
 const input = document.getElementById("lineAttachments");
 if(!input || !input.files || input.files.length === 0) return [];
@@ -1409,6 +1958,9 @@ openRentModal();
 if(subDirection.value === "مصنعيات"){
 openLaborExtractModal();
 }
+if(subDirection.value === "مرتبات"){
+openSalaryModal();
+}
 }
 
 
@@ -1416,7 +1968,7 @@ async function loadLineDropdownSuggestions(){
 try{
 const {data:lines} = await client
 .from("settlement_lines")
-.select("site,added_to")
+.select("site,added_to,main_direction,sub_direction")
 .not("deleted_by_super_admin","eq",true);
 
 const {data:headers} = await client
@@ -1426,9 +1978,14 @@ const {data:headers} = await client
 let sites = new Set();
 let added = new Set();
 let owners = new Set();
+const forbiddenSiteWords = new Set([
+ "مصروفات","ايرادات","تمويل","جارى العهدة","خامات","انتقالات","بدلات","مرتبات","مصنعيات",
+ "ايجارات","نثريات","خدمات","عهدة","اخرى","مستخلصات تحت التحصيل","مصروفات ادارية وعمومية","مصروفات بنكية"
+]);
 
 (lines || []).forEach(l=>{
-  if((l.site || "").trim()) sites.add((l.site || "").trim());
+  const st = (l.site || "").trim();
+  if(st && !forbiddenSiteWords.has(st) && st.length > 1) sites.add(st);
   if((l.added_to || "").trim()) added.add((l.added_to || "").trim());
 });
 (headers || []).forEach(h=>{
@@ -1438,9 +1995,10 @@ let owners = new Set();
   }
 });
 
-fillDatalist("siteList", Array.from(sites).sort());
-fillDatalist("addedToList", Array.from(added).sort());
-fillDatalist("ownerList", Array.from(owners).sort());
+const siteArr = Array.from(sites).sort((a,b)=>a.localeCompare(b,'ar'));
+fillDatalist("siteList", siteArr);
+fillDatalist("addedToList", Array.from(added).sort((a,b)=>a.localeCompare(b,'ar')));
+fillDatalist("ownerList", Array.from(owners).sort((a,b)=>a.localeCompare(b,'ar')));
 }catch(e){ console.log("dropdown suggestions error", e); }
 }
 
@@ -1461,6 +2019,365 @@ if(!exists){
   opt.value = value;
   dl.appendChild(opt);
 }
+}
+
+
+function openSalaryModal(){
+  try{
+    salaryEmployee.value = addedTo.value || "";
+    salaryPaidAmount.value = amount.value || foreignAmount.value || "";
+    salaryBasicAmount.value = salaryBasicAmount.value || amount.value || foreignAmount.value || "";
+    if(!salaryMonth.value){
+      const d = lineDate.value || new Date().toISOString().slice(0,10);
+      salaryMonth.value = d.slice(0,7);
+    }
+    fillDatalist("salaryEmployeeList", Array.from(new Set(Array.from(document.querySelectorAll('#addedToList option,#ownerList option')).map(o=>o.value).filter(Boolean))).sort());
+    renderSalaryAllocation([]);
+    salaryModal.style.display = "flex";
+  }catch(e){ console.log(e); salaryModal.style.display = "flex"; }
+}
+function closeSalaryModal(){ salaryModal.style.display = "none"; }
+
+function normalizeArabicText(v){
+  return String(v||"").trim().replace(/[أإآ]/g,"ا").replace(/ى/g,"ي").replace(/ة/g,"ه").replace(/\s+/g," ").toLowerCase();
+}
+function findColumnIndex(headers, keys){
+  const hs = headers.map(h=>normalizeArabicText(h));
+  for(const k of keys){
+    const nk = normalizeArabicText(k);
+    let idx = hs.findIndex(h=>h === nk || h.includes(nk));
+    if(idx >= 0) return idx;
+  }
+  return -1;
+}
+function excelDateToJs(v){
+  if(v instanceof Date) return v;
+  if(typeof v === 'number'){
+    const d = XLSX.SSF.parse_date_code(v);
+    if(d) return new Date(d.y, d.m-1, d.d, d.H||0, d.M||0, d.S||0);
+  }
+  const s = String(v||'').trim();
+  if(!s) return null;
+  const d = new Date(s);
+  if(!isNaN(d.getTime())) return d;
+  return null;
+}
+function timeToHours(v){
+  if(v === null || v === undefined || v === '') return null;
+  if(typeof v === 'number'){
+    if(v < 1) return v * 24;
+    return v;
+  }
+  if(v instanceof Date) return v.getHours() + v.getMinutes()/60;
+  let s = String(v).trim();
+  let m = s.match(/(\d{1,2})[:\.](\d{1,2})/);
+  if(m) return Number(m[1]) + Number(m[2])/60;
+  let n = Number(s);
+  return isNaN(n) ? null : n;
+}
+function getSalarySchedule(){
+  const type = (salaryEmployeeType && salaryEmployeeType.value) || 'site';
+  return type === 'admin'
+    ? {start:9, end:17, stdHours:8, label:'إدارة'}
+    : {start:8.5, end:17, stdHours:8.5, label:'مواقع'};
+}
+function calcWorkHours(inVal,outVal,hoursVal){
+  const direct = timeToHours(hoursVal);
+  if(direct !== null && direct > 0) return {worked:direct, late:0, overtime:0};
+  const inn = timeToHours(inVal), out = timeToHours(outVal);
+  const sch = getSalarySchedule();
+  if(inn !== null && out !== null){
+    let worked = out - inn;
+    if(worked < 0) worked += 24;
+    const late = Math.max(0, inn - sch.start);
+    const overtime = Math.max(0, out - sch.end);
+    return {worked: worked > 0 ? worked : 0, late, overtime};
+  }
+  return {worked:sch.stdHours, late:0, overtime:0};
+}
+async function parseSalaryExcelFile(){
+  salaryExcelRows = [];
+  salaryAllocationRows = [];
+  const f = salaryExcelFile.files && salaryExcelFile.files[0];
+  if(!f){ return; }
+  salaryAllocationFileName = f.name;
+  const buf = await f.arrayBuffer();
+  const wb = XLSX.read(buf,{type:'array', cellDates:true});
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const arr = XLSX.utils.sheet_to_json(ws,{header:1, defval:""});
+  if(!arr.length){ salaryParseInfo.innerHTML = "الملف فارغ"; return; }
+
+  function isEmpty(v){ return v === null || v === undefined || String(v).trim() === ""; }
+  function cleanSite(v){ return String(v||'').trim(); }
+  function isNonWorkSite(v){
+    const s = normalizeArabicText(v).replace(/[-ـ]/g,'').trim();
+    if(!s) return true;
+    if(s === '0') return true;
+    return ['اجازه','اجازة','غياب','خصم','خصم نصف يوم جزاء','خصم اليوم جزاء','جزاء'].some(k=>s.includes(normalizeArabicText(k)));
+  }
+  function addAttendanceRow(emp, dtVal, siteVal, inVal, outVal, hoursVal, sourceRow, movementNo){
+    const empName = String(emp||'').trim();
+    if(!empName) return;
+    const dt = excelDateToJs(dtVal);
+    if(!dt) return;
+    const siteNameRaw = cleanSite(siteVal);
+    const inn = timeToHours(inVal);
+    const out = timeToHours(outVal);
+    const hasTime = inn !== null && out !== null;
+    const directed = hasTime && !isNonWorkSite(siteNameRaw);
+    const calc = directed ? calcWorkHours(inVal, outVal, hoursVal) : {worked:0, late:0, overtime:0};
+    salaryExcelRows.push({
+      employee: empName,
+      site: directed ? siteNameRaw : (salaryOfficeSite.value || 'المكتب'),
+      originalSite: siteNameRaw || '-',
+      date: dt.toISOString().slice(0,10),
+      hours: calc.worked,
+      late: calc.late,
+      overtime: calc.overtime,
+      movementNo: String(movementNo || '').trim(),
+      selected: String(movementNo || '').trim() !== '',
+      directed: directed,
+      raw:Object.assign([], sourceRow || [], {__inVal:inVal, __outVal:outVal})
+    });
+  }
+
+  // 1) محاولة قراءة الشكل العادي: صف عناوين يحتوي على عمود اسم الموظف.
+  let parsed = false;
+  let headerRowIndex = 0;
+  for(let i=0;i<Math.min(arr.length,12);i++){
+    const line = arr[i].map(x=>normalizeArabicText(x)).join(' ');
+    if((line.includes('اسم') || line.includes('موظف')) && (line.includes('موقع') || line.includes('حضور') || line.includes('انصراف'))){ headerRowIndex = i; break; }
+  }
+  const headers = (arr[headerRowIndex] || []).map(x=>String(x||'').trim());
+  const nameIdx = findColumnIndex(headers,["الاسم","اسم الموظف","الموظف","name","employee"]);
+  if(nameIdx >= 0){
+    const siteIdx = findColumnIndex(headers,["الموقع","موقع","المشروع","الفرع","مكان العمل","site","project","location"]);
+    const dateIdx = findColumnIndex(headers,["التاريخ","اليوم","date"]);
+    const inIdx = findColumnIndex(headers,["الحضور","وقت الحضور","دخول","in","check in"]);
+    const outIdx = findColumnIndex(headers,["الانصراف","وقت الانصراف","خروج","out","check out"]);
+    const hoursIdx = findColumnIndex(headers,["ساعات","عدد الساعات","hours","work hours"]);
+    const moveIdx = findColumnIndex(headers,["رقم الحركة","الحركة","حركة","م","كود الحركة","movement","movement no","no"]);
+    if(dateIdx >= 0){
+      for(let r=headerRowIndex+1;r<arr.length;r++){
+        const row = arr[r] || [];
+        if(isEmpty(row[nameIdx])) continue;
+        addAttendanceRow(row[nameIdx], row[dateIdx], siteIdx>=0?row[siteIdx]:'', inIdx>=0?row[inIdx]:null, outIdx>=0?row[outIdx]:null, hoursIdx>=0?row[hoursIdx]:null, row, moveIdx>=0?row[moveIdx]:'');
+      }
+      parsed = salaryExcelRows.length > 0;
+    }
+  }
+
+  // 2) قراءة شكل اليوميات الذي أرسلته: كل موظف في بلوك أفقي من 5 أعمدة: التاريخ/اليوم/الانصراف/الموقع/الحضور.
+  if(!parsed){
+    const maxCols = Math.max(...arr.map(r=>(r||[]).length));
+    const employeeRow = arr[0] || [];
+    const headerRow = arr[1] || [];
+    for(let c=0;c<maxCols;c++){
+      const empName = String(employeeRow[c]||'').trim();
+      if(!empName) continue;
+      const blockHeaders = headerRow.slice(c, c+6).map(x=>String(x||'').trim());
+      const dateOff = findColumnIndex(blockHeaders,["التاريخ","date"]);
+      const siteOff = findColumnIndex(blockHeaders,["الموقع","موقع","site","project"]);
+      const inOff = findColumnIndex(blockHeaders,["الحضور","وقت الحضور","دخول","in"]);
+      const outOff = findColumnIndex(blockHeaders,["الانصراف","وقت الانصراف","خروج","out"]);
+      const moveOff = findColumnIndex(blockHeaders,["رقم الحركة","الحركة","حركة","م","كود الحركة","movement","no"]);
+      if(dateOff < 0 || siteOff < 0 || inOff < 0 || outOff < 0) continue;
+      for(let r=2;r<arr.length;r++){
+        const row = arr[r] || [];
+        if(row.slice(c, c+6).every(isEmpty)) continue;
+        addAttendanceRow(empName, row[c+dateOff], row[c+siteOff], row[c+inOff], row[c+outOff], null, row.slice(c, c+6), moveOff>=0?row[c+moveOff]:'');
+      }
+      c += Math.max(4, blockHeaders.length-1);
+    }
+  }
+
+  const names = Array.from(new Set(salaryExcelRows.map(x=>x.employee).filter(Boolean))).sort();
+  fillDatalist('salaryEmployeeList', names);
+  if(!names.length){
+    salaryParseInfo.innerHTML = "لم أستطع قراءة أسماء الموظفين من الملف. تأكد أن الملف يحتوي إما على عمود اسم الموظف، أو بلوكات أفقية مثل ملف اليوميات المرسل.";
+    return;
+  }
+  salaryParseInfo.innerHTML = `تم قراءة ${salaryExcelRows.length} حركة/يوم حضور من الملف لعدد ${names.length} موظف. اختر الموظف ثم اضغط حساب التوزيع.`;
+  recalculateSalaryAllocation();
+}
+function getSalaryMonthDays(){
+  const m = (salaryMonth && salaryMonth.value) || '';
+  const parts = m.split('-');
+  if(parts.length === 2){
+    const y = Number(parts[0]);
+    const mon = Number(parts[1]);
+    if(y && mon) return new Date(y, mon, 0).getDate();
+  }
+  return 30;
+}
+function getSalaryMonthDateKeys(){
+  const m = (salaryMonth && salaryMonth.value) || '';
+  const parts = m.split('-');
+  if(parts.length !== 2) return [];
+  const y = Number(parts[0]);
+  const mon = Number(parts[1]);
+  const days = getSalaryMonthDays();
+  let keys = [];
+  for(let d=1; d<=days; d++){
+    keys.push(new Date(y, mon-1, d).toISOString().slice(0,10));
+  }
+  return keys;
+}
+function salaryNameMatch(a,b){
+  const x = normalizeArabicText(a).replace(/\s+/g,'');
+  const y = normalizeArabicText(b).replace(/\s+/g,'');
+  if(!x || !y) return false;
+  return x === y || x.includes(y) || y.includes(x);
+}
+function recalculateSalaryAllocation(){
+  const empRaw = salaryEmployee.value || '';
+  const basic = Number(salaryBasicAmount.value || 0);
+  if(!empRaw || !salaryExcelRows.length || !basic){ renderSalaryAllocation([]); return; }
+
+  const sch = getSalarySchedule();
+  const officeName = salaryOfficeSite.value || 'المكتب';
+  const monthDays = getSalaryMonthDays();
+  const monthPrefix = (salaryMonth && salaryMonth.value) ? salaryMonth.value + '-' : '';
+  const dayRate = basic / 30;                // سياسة المرتب الأساسية: كل حركة مختارة = يوم ÷ 30
+  const hourRate = basic / 30 / 8.5;         // الإضافي والتأخير ساعة بساعة على 8.5 ساعة
+
+  const allRows = salaryExcelRows.filter(r=>salaryNameMatch(r.employee, empRaw) && (!monthPrefix || String(r.date||'').startsWith(monthPrefix)));
+  if(!allRows.length){ salaryParseInfo.innerHTML = "لا توجد حركات لهذا الاسم داخل ملف الحضور في الشهر المختار."; renderSalaryAllocation([]); return; }
+
+  // لو الملف به عمود رقم حركة، نحاسب الحركات التي لها رقم فقط. لو لا يوجد رقم حركة نهائيًا نستخدم كل الصفوف لتجنب توقف الحساب.
+  const hasAnyMovementNo = allRows.some(r=>String(r.movementNo||'').trim() !== '');
+  const rows = hasAnyMovementNo ? allRows.filter(r=>String(r.movementNo||'').trim() !== '') : allRows;
+  if(!rows.length){ salaryParseInfo.innerHTML = "لا توجد حركات عليها رقم حركة لهذا الموظف. اكتب رقم الحركة بجانب كل حركة تريد تحميلها."; renderSalaryAllocation([]); return; }
+
+  function ensureSite(obj, siteName){
+    const k = siteName || officeName;
+    if(!obj[k]) obj[k] = {site:k, movements:0, daysCost:0, hours:0, late:0, overtime:0, overtimeValue:0, lateValue:0, amount:0, movementNos:[], unassigned:false};
+    return obj[k];
+  }
+  function normalHours(r){
+    const raw = r.raw || [];
+    const inn = timeToHours(raw.__inVal);
+    const out = timeToHours(raw.__outVal);
+    if(inn !== null && out !== null){
+      let o = out;
+      if(o < inn) o += 24;
+      return Math.max(0, Math.min(o, sch.end) - Math.max(inn, sch.start));
+    }
+    return Math.max(0, Math.min(Number(r.hours||0), sch.stdHours));
+  }
+
+  const bySite = {};
+  let totalLate = 0, totalOvertime = 0, directedMovements = 0, officeMovements = 0;
+  rows.forEach(r=>{
+    const siteName = r.directed ? (r.site || officeName) : officeName;
+    const target = ensureSite(bySite, siteName);
+    target.movements += 1;
+    target.daysCost += dayRate;
+    target.movementNos.push(r.movementNo || '-');
+    target.hours += Number(r.hours || 0);
+    if(r.directed){ directedMovements += 1; } else { officeMovements += 1; target.unassigned = true; }
+    const late = Number(r.late || 0);
+    const overtime = Number(r.overtime || 0);
+    target.late += late;
+    target.overtime += overtime;
+    totalLate += late;
+    totalOvertime += overtime;
+  });
+
+  // الإضافي والتأخير لكل موقع على حدة، ساعة بساعة.
+  Object.values(bySite).forEach(x=>{
+    x.overtimeValue = x.overtime * hourRate;
+    x.lateValue = x.late * hourRate;
+    x.amount = x.daysCost + x.overtimeValue - x.lateValue;
+  });
+
+  // باقي الراتب الأساسي الذي لم يوجه برقم حركة يتحمل على المكتب.
+  const countedBase = rows.length * dayRate;
+  const unallocatedBase = basic - countedBase;
+  if(Math.abs(unallocatedBase) >= 0.01){
+    const office = ensureSite(bySite, officeName);
+    office.amount += unallocatedBase;
+    office.daysCost += unallocatedBase;
+    office.unassigned = true;
+  }
+
+  salaryAllocationRows = Object.values(bySite).map(x=>({
+    site:x.site,
+    movements:x.movements,
+    days:Math.round(x.movements * 100) / 100,
+    attendanceRows:x.movements,
+    hours:Math.round(x.hours * 100) / 100,
+    normalHours:0,
+    late:Math.round(x.late * 100) / 100,
+    overtime:Math.round(x.overtime * 100) / 100,
+    netHours:Math.round((x.overtime - x.late) * 100) / 100,
+    percent:Math.round((x.daysCost / basic) * 10000) / 100,
+    baseValue:Math.round(x.daysCost * 100) / 100,
+    overtimeValue:Math.round(x.overtimeValue * 100) / 100,
+    lateValue:Math.round(x.lateValue * 100) / 100,
+    amount:Math.round(x.amount * 100) / 100,
+    is_difference:false,
+    movementNos:x.movementNos.join('، '),
+    note:x.unassigned ? 'مكتب: فرق/إجازات/أيام غير موجهة أو حركة غير صالحة' : 'حسب أرقام الحركة + إضافي الموقع - تأخير الموقع'
+  })).sort((a,b)=>String(a.site).localeCompare(String(b.site),'ar'));
+
+  let calculatedPaid = Math.round(salaryAllocationRows.reduce((a,b)=>a+Number(b.amount||0),0) * 100) / 100;
+  const lateDeduction = totalLate * hourRate;
+  const overtimeAdd = totalOvertime * hourRate;
+  salaryMetrics = {late:totalLate, overtime:totalOvertime, hourRate, calculatedPaid, lateDeduction, overtimeAdd, attendanceReviewNet:calculatedPaid};
+
+  salaryCalculatedPaid.value = calculatedPaid.toFixed(2);
+  salaryLateTotal.value = totalLate.toFixed(2);
+  salaryOvertimeTotal.value = totalOvertime.toFixed(2);
+  salaryHourRate.value = hourRate.toFixed(2);
+  if(document.getElementById('salaryLateValue')) salaryLateValue.value = lateDeduction.toFixed(2) + ' قيمة التأخير';
+  if(document.getElementById('salaryOvertimeValue')) salaryOvertimeValue.value = overtimeAdd.toFixed(2) + ' قيمة الإضافي';
+
+  if(!salaryPaidManual){ salaryPaidAmount.value = calculatedPaid.toFixed(2); }
+
+  const paid = Number(salaryPaidAmount.value || calculatedPaid || 0);
+  const diff = Math.round((paid - calculatedPaid) * 100) / 100;
+  if(Math.abs(diff) >= 0.01){
+    salaryAllocationRows.push({
+      site: officeName, movements:0, days:0, attendanceRows:0, hours:0, normalHours:0, late:0, overtime:0, netHours:0,
+      percent:0, baseValue:0, overtimeValue:0, lateValue:0, amount:diff, is_difference:true, movementNos:'-',
+      note:'فرق بين المدفوع فعليًا والمحسوب - يحمّل على المكتب'
+    });
+    calculatedPaid = Math.round(salaryAllocationRows.reduce((a,b)=>a+Number(b.amount||0),0) * 100) / 100;
+  }
+
+  salaryParseInfo.innerHTML = `تمت قراءة ${salaryExcelRows.length} حركة من الملف، المطابق للموظف داخل الشهر: ${allRows.length}، الحركات المحتسبة برقم حركة: ${rows.length}. تكلفة اليوم = الراتب ÷ 30، والإضافي/التأخير ساعة بساعة. أي فرق أو يوم غير موجه يتحمل على المكتب.`;
+  renderSalaryAllocation(salaryAllocationRows);
+}
+function renderSalaryAllocation(rows){
+  if(!rows || !rows.length){ salaryAllocationArea.innerHTML = ""; salarySiteCards.innerHTML = ""; return; }
+  const total = rows.reduce((a,b)=>a+Number(b.amount||0),0);
+  salarySiteCards.innerHTML = rows.map(r=>`
+    <div class="box">
+      <h3>${r.site}</h3>
+      <h2>${money(r.amount)}</h2>
+      <p>أيام حضور: ${Number(r.days||0).toFixed(2)} | نسبة الأساسي: ${Number(r.percent||0).toFixed(2)}%</p>
+      <p>الأساسي: ${money(r.baseValue||0)} | إضافي: ${money(r.overtimeValue||0)} | تأخير: ${money(r.lateValue||0)}</p>
+      <p>ساعات حضور: ${Number(r.hours||0).toFixed(2)} | صافي ساعات: ${Number(r.netHours||0).toFixed(2)}</p>
+      <p>تأخير: ${Number(r.late||0).toFixed(2)} | إضافي: ${Number(r.overtime||0).toFixed(2)}</p>
+      <p style="color:#64748b">${r.note || ''}</p>
+    </div>`).join('');
+  salaryAllocationArea.innerHTML = `
+  <br><h3>نتيجة توزيع المرتب على المواقع</h3>
+  <table class="table"><tr><th>الموقع</th><th>أرقام الحركة</th><th>عدد الحركات</th><th>ساعات الحضور</th><th>صافي الساعات</th><th>التأخير</th><th>الإضافي</th><th>نسبة الأساسي</th><th>نصيب الأساسي</th><th>قيمة الإضافي</th><th>قيمة التأخير</th><th>القيمة المحملة</th><th>ملاحظة</th></tr>
+  ${rows.map(r=>`<tr><td>${r.site}</td><td>${r.movementNos || "-"}</td><td>${Number(r.movements||r.days||0).toFixed(2)}</td><td>${Number(r.hours||0).toFixed(2)}</td><td>${Number(r.netHours||0).toFixed(2)}</td><td>${Number(r.late||0).toFixed(2)}</td><td>${Number(r.overtime||0).toFixed(2)}</td><td>${Number(r.percent||0).toFixed(2)}%</td><td>${money(r.baseValue||0)}</td><td>${money(r.overtimeValue||0)}</td><td>${money(r.lateValue||0)}</td><td>${money(r.amount)}</td><td>${r.note || ''}</td></tr>`).join('')}
+  <tr><th colspan="10">الإجمالي المحمل على البند</th><th>${money(total)}</th><th></th></tr></table>`;
+}
+function applySalaryAllocationToLine(){
+  if(!salaryEmployee.value){ alert('اختر اسم الموظف'); return; }
+  recalculateSalaryAllocation();
+  if(!salaryAllocationRows.length){ alert('ارفع ملف الحضور واحسب التوزيع أولاً'); return; }
+  addedTo.value = salaryEmployee.value;
+  description.value = description.value || ('مرتب ' + salaryEmployee.value + ' عن شهر ' + (salaryMonth.value || ''));
+  mainDirection.value = 'مصروفات';
+  updateSubDirectionOptions('مرتبات');
+  if(!site.value) site.value = 'مرتبات موزعة';
+  closeSalaryModal();
 }
 
 async function addLine(){
@@ -1568,6 +2485,16 @@ alert("خطأ بالحفظ");
 return;
 }
 await addAudit("create_line","settlement_lines",data.id,activeSettlementNo,null,data,"إضافة بند تسوية");
+
+if(subDirection.value === "مرتبات" && salaryAllocationRows && salaryAllocationRows.length){
+  await saveSalaryAllocationsForLine(data.id);
+}
+
+/* ربط الفاتورة المحفوظة بالبند نفسه حتى لا تفتح آخر فاتورة بالتسوية */
+if((subDirection.value === "خامات") && currentInvoiceId){
+  await client.from("material_invoices").update({line_id:data.id}).eq("id",currentInvoiceId);
+  currentInvoiceLineId = data.id;
+}
 }
 
 description.value = "";
@@ -1580,9 +2507,44 @@ currency.value = "EGP";
 exchangeRate.value = "1";
 if(document.getElementById("fxNote")) fxNote.innerHTML = "الحسابات والتكاليف والأرباح تتم بالجنيه المصرى فقط.";
 if(document.getElementById("lineAttachments")) lineAttachments.value = "";
+salaryAllocationRows = [];
+salaryExcelRows = [];
+salaryAllocationFileName = "";
 
 loadLineDropdownSuggestions();
 loadLines(activeSettlementNo);
+}
+
+
+async function saveSalaryAllocationsForLine(lineId){
+  try{
+    await client.from('salary_allocations').delete().eq('line_id', lineId);
+    const rows = (salaryAllocationRows || []).map(r=>({
+      line_id: lineId,
+      settlement_no: activeSettlementNo,
+      employee_name: salaryEmployee.value || addedTo.value || '',
+      salary_month: salaryMonth.value || (lineDate.value || '').slice(0,7),
+      site: r.site || 'المكتب',
+      days: Number(r.days || 0),
+      hours: Number(r.hours || 0),
+      percent: Number(r.percent || 0),
+      amount: Number(r.amount || 0),
+      basic_salary: Number(salaryBasicAmount.value || 0),
+      paid_amount: Number(salaryPaidAmount.value || amount.value || 0),
+      employee_type: salaryEmployeeType.value || 'site',
+      late_hours: Number(r.late || 0),
+      overtime_hours: Number(r.overtime || 0),
+      hour_rate: Number(salaryMetrics.hourRate || 0),
+      calculated_paid: Number(salaryMetrics.calculatedPaid || 0),
+      is_difference: !!r.is_difference,
+      source_file_name: salaryAllocationFileName || '',
+      created_by: currentUser.username
+    }));
+    if(rows.length){
+      const {error} = await client.from('salary_allocations').insert(rows);
+      if(error){ alert('تم حفظ بند المرتب لكن لم يتم حفظ توزيع المرتب: ' + error.message); }
+    }
+  }catch(e){ console.log(e); alert('تم حفظ بند المرتب لكن تعذر حفظ توزيع المرتب'); }
 }
 
 async function getSettlementNoCandidates(no){
@@ -1765,7 +2727,7 @@ if(r.sub_direction === "خامات"){
 sub = `
 <button
 class="invoice-link"
-onclick="openInvoiceFromLine('${r.settlement_no}')">
+onclick="openInvoiceFromLine('${r.settlement_no}', ${r.id}, '${(r.payment_ref || "").replaceAll("'", "\\'")}')">
 خامات
 </button>`;
 }
@@ -1870,6 +2832,7 @@ await client
 
 await addAudit("attachment_lock","settlement_lines",id,oldLine.settlement_no,oldLine,{status:"attachment_locked"},"تم قفل المرفقات");
 loadLines(activeSettlementSearchKey || activeSettlementNo);
+loadLineDropdownSuggestions();
 }
 
 async function approveLine(id){
@@ -2008,6 +2971,8 @@ return;
 }
 
 editingLineId = id;
+currentInvoiceLineId = id;
+currentInvoicePaymentRef = data.payment_ref || "";
 lineDate.value = data.line_date;
 description.value = data.description;
 addedTo.value = data.added_to || "";
@@ -2483,7 +3448,35 @@ siteCostsHeaderMap = {};
   if(displayNo) siteCostsHeaderMap[displayNo] = h.owner_name || "";
 });
 
-siteCostsData = lines || [];
+const {data:salaryRowsRaw} = await client
+.from("salary_allocations")
+.select("*");
+
+const approvedLineIds = new Set((lines || []).map(l=>String(l.id)));
+const salaryRows = (salaryRowsRaw || []).filter(a=>approvedLineIds.has(String(a.line_id || '')));
+const salaryLineIds = new Set((salaryRows || []).map(x=>String(x.line_id || '')));
+// في تكلفة المواقع: لا نحمل بند المرتبات الأصلي على أي موقع، ونستخدم توزيع المرتبات فقط بعد اعتماد البند.
+const regularLines = (lines || []).filter(l => !(l.sub_direction === "مرتبات" && salaryLineIds.has(String(l.id))));
+const salaryVirtualLines = (salaryRows || []).map(a=>({
+  id: 'salary-' + a.id,
+  settlement_no: a.settlement_no,
+  line_date: (a.salary_month ? a.salary_month + '-01' : ''),
+  description: 'توزيع مرتب - ' + (a.employee_name || '') + (a.is_difference ? ' - فرق مكتب' : ''),
+  added_to: a.employee_name || '',
+  site: a.site || 'المكتب',
+  main_direction: 'مصروفات',
+  sub_direction: 'مرتبات',
+  amount: Number(a.amount || 0),
+  foreign_amount: Number(a.amount || 0),
+  currency: 'EGP',
+  exchange_rate: 1,
+  payment_ref: 'Salary allocation / ' + (a.line_id || ''),
+  status: 'approved',
+  created_by: a.created_by || '',
+  attachment_files: []
+}));
+
+siteCostsData = regularLines.concat(salaryVirtualLines);
 renderSiteCostReport();
 }
 
@@ -2745,9 +3738,248 @@ function enableLaborExtractEdit(){
  if(document.getElementById("laborEditBtn")) laborEditBtn.classList.add("hidden");
 }
 
-function openInvoice(){
+
+async function getNextInvoiceSerial(){
+try{
+ const {data,error} = await client
+  .from("material_invoices")
+  .select("invoice_no")
+  .order("id",{ascending:false})
+  .limit(500);
+ if(error) return "1";
+ let maxNo = 0;
+ (data||[]).forEach(r=>{
+   const raw = String(r.invoice_no || "").trim();
+   const m = raw.match(/\d+/g);
+   if(m && m.length){
+    const n = Number(m[m.length-1]);
+    if(!isNaN(n) && n > maxNo) maxNo = n;
+   }
+ });
+ return String(maxNo + 1);
+}catch(e){ return "1"; }
+}
+
+async function setNextInvoiceNoIfEmpty(){
+ if(!document.getElementById("invNo")) return;
+ if(String(invNo.value || "").trim()) return;
+ invNo.value = await getNextInvoiceSerial();
+}
+
+async function openAccountsInvoiceNew(){
+ activeSettlementNo = activeSettlementNo || null;
+ currentInvoiceId = null;
+ currentInvoiceLineId = null;
+ currentInvoicePaymentRef = "";
+ clearInvoiceForm();
+ await setNextInvoiceNoIfEmpty();
+ invoiceModal.style.display = "flex";
+ setInvoiceReadOnly(false);
+ if(document.getElementById("deleteInvoiceBtn")) deleteInvoiceBtn.classList.add("hidden");
+}
+
+async function loadAccountsInvoices(){
+ const area = document.getElementById("accountsInvoicesArea");
+ if(!area) return;
+ await loadLineDropdownSuggestions();
+ const no = (document.getElementById("accountsInvSearchNo")?.value || "").trim();
+ const siteV = (document.getElementById("accountsInvSearchSite")?.value || "").trim();
+ const party = (document.getElementById("accountsInvSearchParty")?.value || "").trim();
+
+ // 1) كل الفواتير المحفوظة فعلاً
+ const {data:invoices,error:invError} = await client
+  .from("material_invoices")
+  .select("*")
+  .order("id",{ascending:false})
+  .limit(2000);
+ if(invError){ area.innerHTML = "خطأ في تحميل الفواتير"; return; }
+
+ // 2) كل بنود التسويات التي تعتبر فواتير، حتى لو لم تكن محفوظة في material_invoices
+ const invoiceSubDirections = ["خامات","عدة","مهمات سلامة","مهمات مشروع"];
+ const {data:lines,error:lineError} = await client
+  .from("settlement_lines")
+  .select("id,settlement_no,line_date,description,added_to,payment_ref,main_direction,sub_direction,site,amount,status,currency,created_by")
+  .in("sub_direction", invoiceSubDirections)
+  .neq("status","deleted")
+  .order("id",{ascending:false})
+  .limit(3000);
+ if(lineError){ area.innerHTML = "خطأ في تحميل بنود التسويات الخاصة بالفواتير"; return; }
+
+ const lineIds = Array.from(new Set([...(invoices||[]).map(r=>r.line_id).filter(Boolean), ...(lines||[]).map(l=>l.id)]));
+ const settlementNos = Array.from(new Set([...(invoices||[]).map(r=>r.settlement_no).filter(Boolean), ...(lines||[]).map(l=>l.settlement_no).filter(Boolean)]));
+ let lineMap = {}, headerMap = {};
+ if(lineIds.length){
+   const {data:lineRows} = await client.from("settlement_lines").select("id,settlement_no,site,payment_ref,description,sub_direction,amount,line_date,added_to,created_by,status").in("id", lineIds);
+   (lineRows||[]).forEach(l=>lineMap[l.id]=l);
+ }
+ if(settlementNos.length){
+   const {data:heads} = await client.from("settlement_headers").select("settlement_no,owner_name,settlement_auto_no,settlement_manual_no").in("settlement_no", settlementNos);
+   (heads||[]).forEach(h=>headerMap[h.settlement_no]=h);
+ }
+
+ const usedLineIds = new Set();
+ const usedPaymentKeys = new Set();
+ let rows = [];
+
+ (invoices||[]).forEach(inv=>{
+   const ln = lineMap[inv.line_id] || {};
+   if(inv.line_id) usedLineIds.add(String(inv.line_id));
+   if(inv.settlement_no && inv.invoice_no) usedPaymentKeys.add(normalizeSettlementText(inv.settlement_no) + '|' + normalizeSettlementText(inv.invoice_no));
+   rows.push({
+     row_type:'invoice',
+     invoice_id:inv.id,
+     line_id:inv.line_id || null,
+     invoice_no:inv.invoice_no || '',
+     invoice_type:inv.invoice_type || 'بدون ضريبة',
+     tax_invoice_file:inv.tax_invoice_file || null,
+     invoice_date:inv.invoice_date || ln.line_date || '',
+     effective_site:ln.site || inv.site || '',
+     buyer:inv.buyer || (headerMap[inv.settlement_no]?.owner_name || ''),
+     seller_name:inv.seller_name || '',
+     settlement_no:inv.settlement_no || ln.settlement_no || '',
+     display_settlement_no:displaySettlementNo(headerMap[inv.settlement_no]) || inv.settlement_no || '',
+     net_total:Number(inv.net_total || ln.amount || 0),
+     created_by:inv.created_by || ln.created_by || '',
+     description:ln.description || '',
+     payment_ref:ln.payment_ref || inv.invoice_no || '',
+     status:ln.status || ''
+   });
+ });
+
+ (lines||[]).forEach(l=>{
+   const payKey = normalizeSettlementText(l.settlement_no) + '|' + normalizeSettlementText(l.payment_ref);
+   if(usedLineIds.has(String(l.id)) || (l.payment_ref && usedPaymentKeys.has(payKey))) return;
+   const h = headerMap[l.settlement_no] || {};
+   rows.push({
+     row_type:'line',
+     invoice_id:null,
+     line_id:l.id,
+     invoice_no:l.payment_ref || '',
+     invoice_type:'غير محفوظة كفاتورة',
+     tax_invoice_file:null,
+     invoice_date:l.line_date || '',
+     effective_site:l.site || '',
+     buyer:h.owner_name || '',
+     seller_name:l.added_to || '',
+     settlement_no:l.settlement_no || '',
+     display_settlement_no:displaySettlementNo(h) || l.settlement_no || '',
+     net_total:Number(l.amount || 0),
+     created_by:l.created_by || '',
+     description:l.description || '',
+     payment_ref:l.payment_ref || '',
+     status:l.status || ''
+   });
+ });
+
+ if(no){
+   const nKey = no.toLowerCase();
+   rows = rows.filter(r => String(r.invoice_no||'').toLowerCase().includes(nKey) || String(r.payment_ref||'').toLowerCase().includes(nKey));
+ }
+ if(siteV){
+   const sKey = siteV.toLowerCase();
+   rows = rows.filter(r => String(r.effective_site||'').toLowerCase().includes(sKey));
+ }
+ if(party){
+  const p = party.toLowerCase();
+  rows = rows.filter(r => String(r.buyer||'').toLowerCase().includes(p) || String(r.seller_name||'').toLowerCase().includes(p) || String(r.description||'').toLowerCase().includes(p));
+ }
+ rows.sort((a,b)=>String(b.invoice_date||'').localeCompare(String(a.invoice_date||'')) || Number(b.invoice_id||b.line_id||0)-Number(a.invoice_id||a.line_id||0));
+ if(!rows.length){ area.innerHTML = "لا توجد فواتير أو بنود خامات مطابقة"; return; }
+ const total = rows.reduce((s,r)=>s+Number(r.net_total||0),0);
+ area.innerHTML = `
+ <div class="summary" style="margin-bottom:12px">
+   <div class="box"><h3>عدد السجلات المعروضة</h3><h2>${rows.length}</h2></div>
+   <div class="box"><h3>إجمالي الصافي</h3><h2>${total.toLocaleString()}</h2></div>
+   <div class="box"><h3>فواتير محفوظة / بنود تسوية</h3><h2>${rows.filter(r=>r.row_type==='invoice').length} / ${rows.filter(r=>r.row_type==='line').length}</h2></div>
+ </div>
+ <table class="table"><thead><tr><th>فتح</th><th>المصدر</th><th>رقم الفاتورة / المستند</th><th>التصنيف</th><th>مرفق الضريبية</th><th>التاريخ</th><th>الموقع من بند التسوية</th><th>البيان</th><th>المشترى</th><th>البائع / مضاف إلى</th><th>رقم التسوية</th><th>الصافي</th><th>بواسطة</th></tr></thead><tbody>${rows.map(r=>`<tr><td><button class="small" onclick="${r.row_type==='invoice' ? `openAccountsInvoice(${r.invoice_id})` : `openAccountsLineInvoice(${r.line_id})`}">فتح</button></td><td>${r.row_type==='invoice'?'فاتورة محفوظة':'بند تسوية'}</td><td>${r.invoice_no||''}</td><td><span class="badge ${r.invoice_type==='ضريبية'?'approved':(r.row_type==='line'?'locked':'pending')}">${r.invoice_type||'بدون ضريبة'}</span></td><td>${renderSingleFileLink(r.tax_invoice_file, "فاتورة ضريبية")}</td><td>${r.invoice_date||''}</td><td>${r.effective_site||''}</td><td>${r.description||''}</td><td>${r.buyer||''}</td><td>${r.seller_name||''}</td><td>${r.display_settlement_no||r.settlement_no||''}</td><td>${Number(r.net_total||0).toLocaleString()}</td><td>${r.created_by||''}</td></tr>`).join("")}</tbody></table>`;
+}
+
+async function openAccountsLineInvoice(lineId){
+ const {data:l,error} = await client.from("settlement_lines").select("*").eq("id",lineId).maybeSingle();
+ if(error || !l){ alert("لم يتم العثور على بند التسوية"); return; }
+ const {data:h} = await client.from("settlement_headers").select("*").eq("settlement_no",l.settlement_no).maybeSingle();
+ currentInvoiceId = null;
+ currentInvoiceLineId = l.id;
+ currentInvoicePaymentRef = l.payment_ref || "";
+ clearInvoiceForm();
+ invoiceModal.style.display = "flex";
+ invDate.value = l.line_date || "";
+ invSite.value = l.site || "";
+ invType.value = "بدون ضريبة";
+ syncInvoiceTypeView();
+ invNo.value = l.payment_ref || "";
+ invBuyer.value = (h && h.owner_name) || "";
+ sellerName.value = l.added_to || "";
+ invoiceTotal.value = Number(l.amount || 0).toFixed(2);
+ discountPercent.value = 0;
+ discountValue.value = 0;
+ commercialTaxPercent.value = 0;
+ commercialTaxValue.value = 0;
+ vatValue.value = 0;
+ netTotal.value = Number(l.amount || 0).toFixed(2);
+ buildInvoiceRows(10);
+ const row = document.querySelector("#invoiceItems tr");
+ if(row){
+   if(row.querySelector(".inv-category")) row.querySelector(".inv-category").value = l.sub_direction || "خامات";
+   row.querySelector(".inv-desc").value = l.description || "";
+   row.querySelector(".inv-unit").value = "";
+   row.querySelector(".inv-qty").value = 1;
+   row.querySelector(".inv-price").value = Number(l.amount || 0).toFixed(2);
+   row.querySelector(".inv-total").value = Number(l.amount || 0).toFixed(2);
+ }
+ if(document.getElementById("deleteInvoiceBtn")) deleteInvoiceBtn.classList.add("hidden");
+ if(document.getElementById("invoiceEditBtn")) invoiceEditBtn.classList.toggle("hidden", currentUser.role !== "super_admin");
+ setInvoiceReadOnly(true);
+ alert("هذا بند تسوية لم يتم حفظه كفاتورة تفصيلية، تم فتحه كفاتورة قراءة فقط من بيانات البند.");
+}
+
+async function openAccountsInvoice(invoiceId){
+ const {data:inv,error} = await client.from("material_invoices").select("*").eq("id",invoiceId).maybeSingle();
+ if(error || !inv){ alert("لم يتم العثور على الفاتورة"); return; }
+ currentInvoiceId = inv.id;
+ currentInvoiceLineId = inv.line_id || null;
+ currentInvoicePaymentRef = inv.invoice_no || "";
+ invoiceModal.style.display = "flex";
+ clearInvoiceForm();
+ invDate.value = inv.invoice_date || "";
+ invSite.value = inv.site || "";
+ invType.value = inv.invoice_type || "ضريبية";
+ invNo.value = inv.invoice_no || "";
+ invBuyer.value = inv.buyer || "";
+ sellerName.value = inv.seller_name || "";
+ sellerPhone.value = inv.seller_phone || "";
+ sellerAddress.value = inv.seller_address || "";
+ invoiceTotal.value = inv.total_before_discount || 0;
+ discountPercent.value = inv.discount_percent || 0;
+ discountValue.value = inv.discount_value || 0;
+ commercialTaxPercent.value = inv.commercial_tax_percent || 0;
+ commercialTaxValue.value = inv.commercial_tax_value || 0;
+ vatValue.value = inv.vat_value || 0;
+ netTotal.value = inv.net_total || 0;
+ const {data:items} = await client.from("material_invoice_items").select("*").eq("invoice_id",inv.id).order("serial_no");
+ buildInvoiceRows(Math.max(10,(items||[]).length));
+ (items||[]).forEach((it,idx)=>{
+  const row = document.querySelectorAll("#invoiceItems tr")[idx];
+  if(row){
+   row.querySelector(".inv-desc").value = it.description || "";
+   if(row.querySelector(".inv-category")) row.querySelector(".inv-category").value = it.item_category || "خامات";
+   row.querySelector(".inv-unit").value = it.unit || "";
+   row.querySelector(".inv-qty").value = it.quantity || 0;
+   row.querySelector(".inv-price").value = it.unit_price || 0;
+   row.querySelector(".inv-total").value = it.total || 0;
+  }
+ });
+ setInvoiceReadOnly(true);
+}
+
+async function openInvoice(){
 currentInvoiceId = null;
+currentInvoiceLineId = null;
+currentInvoicePaymentRef = "";
 clearInvoiceForm();
+await setNextInvoiceNoIfEmpty();
+syncInvoiceTypeView();
 if(document.getElementById("deleteInvoiceBtn")) deleteInvoiceBtn.classList.add("hidden");
 invoiceModal.style.display = "flex";
 setInvoiceReadOnly(false);
@@ -2768,6 +4000,9 @@ sellerName.value = "";
 sellerPhone.value = "";
 sellerAddress.value = "";
 invoiceNotes.value = "";
+if(document.getElementById("invoiceTypeView")) invoiceTypeView.value = invType.value || "ضريبية";
+if(document.getElementById("taxInvoiceFile")) taxInvoiceFile.value = "";
+if(document.getElementById("taxInvoiceLink")) taxInvoiceLink.innerHTML = "-";
 
 invoiceTotal.value = "";
 discountPercent.value = "";
@@ -2855,8 +4090,7 @@ async function saveInvoiceToAmount(){
 calcInvoice();
 
 if(!invNo.value.trim()){
-alert("اكتب رقم الفاتورة");
-return;
+ await setNextInvoiceNoIfEmpty();
 }
 
 /* منع تكرار رقم الفاتورة */
@@ -2885,15 +4119,23 @@ if(!description.value){
 description.value = "فاتورة خامات رقم " + invNo.value;
 }
 
-if(!site.value){
-site.value = invSite.value || "";
+// الموقع الأساسي للبند هو خانة الموقع في التسوية، وليس موقع الفاتورة.
+// الفاتورة تأخذ الموقع من القائمة للعرض فقط ولا تنشئ موقعًا جديدًا في قائمة التسوية.
+let previousTaxFile = null;
+if(currentInvoiceId){
+ const {data:oldInvForFile} = await client.from("material_invoices").select("tax_invoice_file").eq("id",currentInvoiceId).maybeSingle();
+ previousTaxFile = oldInvForFile ? oldInvForFile.tax_invoice_file : null;
 }
+const taxFilePayload = await getTaxInvoiceFilePayload(previousTaxFile);
+if(taxFilePayload === null && document.getElementById("taxInvoiceFile")?.files?.length){ return; }
 
 const inv = {
 settlement_no:activeSettlementNo,
+line_id: currentInvoiceLineId || editingLineId || null,
 invoice_date:invDate.value,
-site:invSite.value,
+site:(site.value || invSite.value || ""),
 invoice_type:invType.value,
+tax_invoice_file: taxFilePayload,
 invoice_no:invNo.value.trim(),
 buyer:invBuyer.value,
 seller_name:sellerName.value,
@@ -2984,36 +4226,78 @@ return;
 await saveInvoiceToolsToInventory(items, inv, invoiceId);
 }
 
-alert("تم حفظ الفاتورة وترحيل الصافي إلى خانة المبلغ، وأي بند تصنيفه عدة تم ترحيله للمخزن");
+alert("تم حفظ الفاتورة وترحيل الصافي إلى خانة المبلغ، وتم تحديث المخزن للأصناف الموجودة أو إضافة الأصناف الجديدة.");
 closeInvoice();
+if(document.getElementById("accountsPage") && !document.getElementById("accountsPage").classList.contains("hidden")) loadAccountsInvoices();
 }
 
-async function openInvoiceFromLine(settlementNo){
+async function openInvoiceFromLine(settlementNo, lineId=null, paymentRef=""){
 
-const {data:inv} = await client
-.from("material_invoices")
-.select("*")
-.eq("settlement_no",settlementNo)
-.order("id",{ascending:false})
-.limit(1)
-.maybeSingle();
+let inv = null;
+
+/* أولاً: البحث بالفاتورة المرتبطة بنفس البند */
+if(lineId){
+  const {data:byLine} = await client
+  .from("material_invoices")
+  .select("*")
+  .eq("line_id",lineId)
+  .order("id",{ascending:false})
+  .limit(1)
+  .maybeSingle();
+
+  if(byLine) inv = byLine;
+}
+
+/* ثانياً: لو الفواتير القديمة لم تكن مربوطة بـ line_id، نطابق رقم الفاتورة مع رقم مستند الدفع */
+if(!inv && paymentRef){
+  const {data:byPaymentRef} = await client
+  .from("material_invoices")
+  .select("*")
+  .eq("settlement_no",settlementNo)
+  .eq("invoice_no",paymentRef)
+  .order("id",{ascending:false})
+  .limit(1)
+  .maybeSingle();
+
+  if(byPaymentRef) inv = byPaymentRef;
+}
+
+/* أخيراً: fallback للبيانات القديمة فقط */
+if(!inv){
+  const {data:bySettlement} = await client
+  .from("material_invoices")
+  .select("*")
+  .eq("settlement_no",settlementNo)
+  .order("id",{ascending:false})
+  .limit(1)
+  .maybeSingle();
+
+  if(bySettlement) inv = bySettlement;
+}
 
 if(!inv){
-alert("لا توجد فاتورة محفوظة لهذه التسوية");
+alert("لا توجد فاتورة محفوظة لهذا البند");
 return;
 }
 
 currentInvoiceId = inv.id;
+currentInvoiceLineId = lineId || inv.line_id || null;
+currentInvoicePaymentRef = paymentRef || "";
 
 openInvoice();
 
 currentInvoiceId = inv.id;
+currentInvoiceLineId = lineId || inv.line_id || null;
+currentInvoicePaymentRef = paymentRef || "";
 
 deleteInvoiceBtn.classList.remove("hidden");
 
 invDate.value = inv.invoice_date || "";
 invSite.value = inv.site || "";
 invType.value = inv.invoice_type || "ضريبية";
+syncInvoiceTypeView();
+if(document.getElementById("taxInvoiceLink")) taxInvoiceLink.innerHTML = renderSingleFileLink(inv.tax_invoice_file, "مرفق الفاتورة الضريبية");
+if(document.getElementById("taxInvoiceFile")) taxInvoiceFile.value = "";
 invNo.value = inv.invoice_no || "";
 invBuyer.value = inv.buyer || "";
 sellerName.value = inv.seller_name || "";
@@ -3049,7 +4333,9 @@ row.querySelector(".inv-price").value = it.unit_price || 0;
 row.querySelector(".inv-total").value = it.total || 0;
 }
 });
+setInvoiceReadOnly(true);
 }
+
   async function deleteCurrentInvoice(){
 
 if(currentUser.role !== "super_admin"){
@@ -4066,14 +5352,31 @@ function escapeHtml(v){
 
 function cleanText(v){ return (v || "").toString().trim(); }
 
+function inventoryNameKey(v){
+ return String(v||"").trim()
+  .replace(/[أإآ]/g,"ا").replace(/ى/g,"ي").replace(/ة/g,"ه")
+  .replace(/\s+/g," ").toLowerCase();
+}
+
 async function saveInvoiceToolsToInventory(items, inv, invoiceId){
  const allowedCats = ["عدة","خامات","مهمات سلامة","مهمات مشروع","أخرى"];
- const transferable=(items||[]).filter(x=>allowedCats.includes(cleanText(x.item_category)) && (cleanText(x.description) || Number(x.quantity||0)));
- if(!transferable.length) return;
+ const raw=(items||[]).filter(x=>allowedCats.includes(cleanText(x.item_category)) && cleanText(x.description) && Number(x.quantity||0));
+ if(!raw.length) return;
  const settlementKey = activeSettlementSearchKey || activeSettlementNo || inv.settlement_no || "";
  const purchaseDate = (document.getElementById("lineDate")?.value || inv.invoice_date || new Date().toISOString().slice(0,10));
- let inserted = 0, updated = 0, skipped = 0;
 
+ // نجمع البنود المتكررة داخل نفس الفاتورة قبل الترحيل
+ const grouped = {};
+ raw.forEach(x=>{
+   const key = inventoryNameKey(x.description);
+   if(!grouped[key]) grouped[key] = {description:cleanText(x.description), item_category:cleanText(x.item_category)||"خامات", unit:cleanText(x.unit)||"عدد", quantity:0, unit_price:0, total:0};
+   grouped[key].quantity += Number(x.quantity||0);
+   grouped[key].unit_price = Number(x.unit_price||grouped[key].unit_price||0);
+   grouped[key].total += Number(x.total||0);
+ });
+ const transferable = Object.values(grouped);
+
+ let inserted = 0, updated = 0, skipped = 0;
  for(const x of transferable){
   const itemName = cleanText(x.description) || "صنف بدون بيان";
   const category = cleanText(x.item_category) || "خامات";
@@ -4083,37 +5386,34 @@ async function saveInvoiceToolsToInventory(items, inv, invoiceId){
   const totalValue = Number(x.total||0);
   if(!itemName || !qty) continue;
 
-  // منع ترحيل نفس بند نفس الفاتورة مرتين
-  const {data:duplicated} = await client
+  // لو نفس الفاتورة ونفس الصنف تم ترحيله مسبقًا لا نكرره حتى لا تتضاعف الكمية عند فتح الفاتورة وحفظها مرة أخرى
+  const {data:alreadyForInvoice} = await client
    .from("inventory_items")
    .select("id")
    .eq("invoice_no", inv.invoice_no)
    .eq("settlement_no", settlementKey)
-   .eq("item_name", itemName)
-   .maybeSingle();
-  if(duplicated){ skipped++; continue; }
+   .ilike("item_name", itemName)
+   .limit(1);
+  if(alreadyForInvoice && alreadyForInvoice.length){ skipped++; continue; }
 
-  // لو الصنف موجود قبل كده في مخزن القاهرة، نزود عليه الكمية بدل إنشاء صف جديد
-  const {data:existingItem,error:findErr} = await client
+  // البحث الذكي عن نفس الصنف في مخزن القاهرة بغض النظر عن اختلاف التصنيف أو المسافات
+  const {data:allItems,error:findErr} = await client
    .from("inventory_items")
    .select("*")
-   .eq("item_name", itemName)
-   .eq("category", category)
    .eq("warehouse", "مخزن القاهرة")
-   .order("id", {ascending:true})
-   .limit(1)
-   .maybeSingle();
-
-  if(findErr){
-   alert("تم حفظ الفاتورة ولكن تعذر البحث في المخزن: " + findErr.message);
-   return;
-  }
+   .limit(1000);
+  if(findErr){ alert("تم حفظ الفاتورة ولكن تعذر البحث في المخزن: " + findErr.message); return; }
+  const nameKey = inventoryNameKey(itemName);
+  const existingItem = (allItems||[]).find(r=>inventoryNameKey(r.item_name) === nameKey);
 
   if(existingItem){
+   const oldPurchased = Number(existingItem.purchased_qty||0);
+   const oldCurrent = Number(existingItem.current_qty||0);
    const payload = {
+    category: existingItem.category || category,
     unit: unitName || existingItem.unit || "عدد",
-    purchased_qty: Number(existingItem.purchased_qty||0) + qty,
-    current_qty: Number(existingItem.current_qty||0) + qty,
+    purchased_qty: oldPurchased + qty,
+    current_qty: oldCurrent + qty,
     purchase_date: purchaseDate,
     buyer_name: inv.buyer || currentUser.username,
     supplier_name: inv.seller_name || existingItem.supplier_name || "",
@@ -4152,6 +5452,7 @@ async function saveInvoiceToolsToInventory(items, inv, invoiceId){
   }
  }
  await loadInventoryItemSuggestions();
+ await loadLineDropdownSuggestions();
  if(document.getElementById("inventoryPage") && !document.getElementById("inventoryPage").classList.contains("hidden")) loadInventory();
  if(inserted || updated || skipped) console.log(`Inventory transfer: inserted ${inserted}, updated ${updated}, skipped ${skipped}`);
 }
@@ -4182,6 +5483,598 @@ async function saveUserPermissions(id){
  const inv=document.getElementById(`invperm-${id}`)?.checked || false;
  await client.from("app_users").update({allowed_pages:allowed,can_manage_inventory:inv}).eq("id",id);
  alert("تم حفظ الصلاحيات");
+}
+
+
+
+/* ================= COST CONTROL V60 ================= */
+let ccOrdersCache = [];
+let ccOrderItemsCache = [];
+let ccSalesCache = [];
+let ccPurchaseRowsCache = [];
+
+function showCostTab(id){
+ if(!currentUser || currentUser.role !== "super_admin"){ alert("Cost Control للسوبر أدمن فقط"); return; }
+ document.querySelectorAll('#costControlPage .cc-tab').forEach(t=>t.classList.add('hidden'));
+ const el=document.getElementById(id); if(el) el.classList.remove('hidden');
+ if(id==='ccOrdersTab') loadCostOrders();
+ if(id==='ccSalesTab') loadSalesInvoices();
+ if(id==='ccPurchasesTab') loadCostPurchaseInvoices();
+}
+async function loadCostControl(){
+ if(!currentUser || currentUser.role !== "super_admin"){ alert("Cost Control للسوبر أدمن فقط"); return; }
+ await loadCostOrders(false);
+ await loadSalesInvoices(false);
+ await loadCostPurchaseInvoices();
+}
+function closeCostOrderModal(){costOrderModal.style.display='none'}
+function closeSalesInvoiceModal(){salesInvoiceModal.style.display='none'}
+function closePurchaseLinkModal(){purchaseLinkModal.style.display='none'}
+function addCostOrderItemRow(item={}){
+ const body=document.getElementById('ccOrderItemsBody'); if(!body) return;
+ const idx=body.children.length+1;
+ const tr=document.createElement('tr');
+ tr.innerHTML=`<td>${idx}</td><td><input class="ccOrderItemCode" value="${item.item_code||''}" placeholder="كود"></td><td><input class="ccOrderItemDesc" value="${item.description||''}" placeholder="وصف البند"></td><td><input class="ccOrderItemUnit" value="${item.unit||''}" placeholder="وحدة"></td><td><input class="ccOrderItemQty" type="number" value="${item.qty||0}"></td><td><input class="ccOrderItemValue" type="number" value="${item.amount||0}"></td>`;
+ body.appendChild(tr);
+}
+async function openCostOrderModal(orderId=null){
+ costOrderModal.style.display='flex';
+ ccOrderNo.value=''; ccOrderDate.value=new Date().toISOString().slice(0,10); ccOrderClient.value=''; ccOrderSite.value=''; ccOrderValue.value=''; ccOrderNotes.value='';
+ ccOrderItemsBody.innerHTML='';
+ addCostOrderItemRow();
+}
+async function saveCostOrder(){
+ const no=ccOrderNo.value.trim();
+ if(!no){alert('اكتب رقم أمر الإسناد');return;}
+ const payload={order_no:no,order_date:ccOrderDate.value||null,client_name:ccOrderClient.value.trim(),site:ccOrderSite.value.trim(),total_value:Number(ccOrderValue.value||0),notes:ccOrderNotes.value.trim(),created_by:currentUser.username};
+ const {data:ord,error}=await client.from('cost_orders').insert(payload).select().single();
+ if(error){alert('خطأ حفظ أمر الإسناد: تأكد من تشغيل SQL أو أن رقم الأمر غير مكرر');return;}
+ const items=[];
+ document.querySelectorAll('#ccOrderItemsBody tr').forEach((tr,i)=>{
+  const desc=tr.querySelector('.ccOrderItemDesc')?.value.trim()||'';
+  const code=tr.querySelector('.ccOrderItemCode')?.value.trim()||'';
+  if(desc||code) items.push({order_id:ord.id,serial_no:i+1,item_code:code,description:desc,unit:tr.querySelector('.ccOrderItemUnit')?.value.trim()||'',qty:Number(tr.querySelector('.ccOrderItemQty')?.value||0),amount:Number(tr.querySelector('.ccOrderItemValue')?.value||0)});
+ });
+ if(items.length) await client.from('cost_order_items').insert(items);
+ closeCostOrderModal(); loadCostOrders(); loadCostPurchaseInvoices();
+}
+async function loadCostOrders(render=true){
+ const {data:orders,error}=await client.from('cost_orders').select('*').order('id',{ascending:false}).limit(1000);
+ if(error){ if(render) costOrdersArea.innerHTML='شغّل SQL الخاص بـ Cost Control أولاً'; return; }
+ ccOrdersCache=orders||[];
+ const {data:items}=await client.from('cost_order_items').select('*').order('serial_no');
+ ccOrderItemsCache=items||[];
+ refreshCostControlSelects();
+ if(!render||!document.getElementById('costOrdersArea')) return;
+ costOrdersArea.innerHTML=`<table class="table"><thead><tr><th>رقم الأمر</th><th>التاريخ</th><th>العميل</th><th>الموقع</th><th>القيمة</th><th>عدد البنود</th><th>ملاحظات</th></tr></thead><tbody>${ccOrdersCache.map(o=>`<tr><td>${o.order_no||''}</td><td>${o.order_date||''}</td><td>${o.client_name||''}</td><td>${o.site||''}</td><td>${Number(o.total_value||0).toLocaleString()}</td><td>${ccOrderItemsCache.filter(i=>i.order_id===o.id).length}</td><td>${o.notes||''}</td></tr>`).join('')}</tbody></table>`;
+}
+function refreshCostControlSelects(){
+ const orderOpts='<option value="">كل الأوامر</option>'+ccOrdersCache.map(o=>`<option value="${o.id}">${o.order_no||''} - ${o.client_name||''} - ${o.site||''}</option>`).join('');
+ const linkOpts='<option value="">اختر أمر الإسناد</option>'+ccOrdersCache.map(o=>`<option value="${o.id}">${o.order_no||''} - ${o.client_name||''} - ${o.site||''}</option>`).join('');
+ if(document.getElementById('ccPurchaseOrderFilter')) ccPurchaseOrderFilter.innerHTML=orderOpts;
+ if(document.getElementById('ccLinkOrder')) ccLinkOrder.innerHTML=linkOpts;
+ if(document.getElementById('salesInvOrderId')) salesInvOrderId.innerHTML='<option value="">بدون</option>'+ccOrdersCache.map(o=>`<option value="${o.id}">${o.order_no||''} - ${o.client_name||''}</option>`).join('');
+ const salesOpts='<option value="">كل الفواتير</option>'+ccSalesCache.map(s=>`<option value="${s.id}">${s.invoice_no||''} - ${s.client_name||''}</option>`).join('');
+ if(document.getElementById('ccPurchaseSalesFilter')) ccPurchaseSalesFilter.innerHTML=salesOpts;
+ const linkSales='<option value="">اختر فاتورة مبيعات</option>'+ccSalesCache.map(s=>`<option value="${s.id}">${s.invoice_no||''} - ${s.client_name||''} - ${Number(s.total_amount||0).toLocaleString()}</option>`).join('');
+ if(document.getElementById('ccLinkSalesInvoice')) ccLinkSalesInvoice.innerHTML=linkSales;
+}
+async function openSalesInvoiceModal(){
+ await loadCostOrders(false);
+ salesInvoiceModal.style.display='flex';
+ salesInvNo.value=''; salesInvDate.value=new Date().toISOString().slice(0,10); salesInvClient.value=''; salesInvSite.value=''; salesInvSubtotal.value=''; salesInvVat.value=''; salesInvTotal.value=''; salesInvNotes.value=''; salesInvFile.value='';
+}
+function calcSalesInvoiceTotals(){
+ const sub=Number(salesInvSubtotal.value||0); salesInvVat.value=(sub*0.14).toFixed(2); salesInvTotal.value=(sub*1.14).toFixed(2);
+}
+async function saveSalesInvoice(){
+ const no=salesInvNo.value.trim(); if(!no){alert('اكتب رقم فاتورة المبيعات');return;}
+ let f=null; if(salesInvFile.files && salesInvFile.files[0]) f=await readFileAsDataUrl(salesInvFile.files[0]);
+ calcSalesInvoiceTotals();
+ const payload={invoice_no:no,invoice_date:salesInvDate.value||null,client_name:salesInvClient.value.trim(),site:salesInvSite.value.trim(),order_id:salesInvOrderId.value?Number(salesInvOrderId.value):null,subtotal:Number(salesInvSubtotal.value||0),vat_amount:Number(salesInvVat.value||0),total_amount:Number(salesInvTotal.value||0),client_invoice_file:f,notes:salesInvNotes.value.trim(),created_by:currentUser.username};
+ const {error}=await client.from('sales_invoices').insert(payload);
+ if(error){alert('خطأ حفظ فاتورة المبيعات: تأكد من SQL أو رقم الفاتورة غير مكرر');return;}
+ closeSalesInvoiceModal(); loadSalesInvoices(); loadCostPurchaseInvoices();
+}
+function renderSingleFileLinkLocal(f,label='فتح'){
+ if(!f) return '-';
+ if(typeof renderSingleFileLink==='function') return renderSingleFileLink(f,label);
+ return `<a href="${f.data||'#'}" download="${f.name||label}" target="_blank">${label}</a>`;
+}
+async function loadSalesInvoices(render=true){
+ const {data,error}=await client.from('sales_invoices').select('*').order('id',{ascending:false}).limit(1000);
+ if(error){ if(render) salesInvoicesArea.innerHTML='شغّل SQL الخاص بفواتير المبيعات أولاً'; return; }
+ ccSalesCache=data||[]; refreshCostControlSelects();
+ if(!render||!document.getElementById('salesInvoicesArea')) return;
+ salesInvoicesArea.innerHTML=`<table class="table"><thead><tr><th>رقم الفاتورة</th><th>التاريخ</th><th>العميل</th><th>الموقع</th><th>قبل الضريبة</th><th>الضريبة</th><th>الإجمالي</th><th>فاتورة العميل</th><th>ملاحظات</th></tr></thead><tbody>${ccSalesCache.map(s=>`<tr><td>${s.invoice_no||''}</td><td>${s.invoice_date||''}</td><td>${s.client_name||''}</td><td>${s.site||''}</td><td>${Number(s.subtotal||0).toLocaleString()}</td><td>${Number(s.vat_amount||0).toLocaleString()}</td><td>${Number(s.total_amount||0).toLocaleString()}</td><td>${renderSingleFileLinkLocal(s.client_invoice_file,'فتح/تحميل')}</td><td>${s.notes||''}</td></tr>`).join('')}</tbody></table>`;
+}
+async function loadCostPurchaseInvoices(){
+ const area=document.getElementById('costControlActiveArea'); if(!area) return;
+ await loadCostOrders(false); await loadSalesInvoices(false);
+ const {data:lines,error}=await client.from('settlement_lines').select('*').eq('main_direction','مصروفات').neq('status','deleted').order('id',{ascending:false}).limit(5000);
+ if(error){area.innerHTML='خطأ تحميل المصروفات';return;}
+ const lineIds=(lines||[]).map(l=>l.id);
+ const {data:links}=lineIds.length? await client.from('purchase_cost_links').select('*').in('line_id',lineIds):{data:[]};
+ const linkMap={}; (links||[]).forEach(l=>linkMap[l.line_id]=l);
+ const orderMap={}; ccOrdersCache.forEach(o=>orderMap[o.id]=o);
+ const itemMap={}; ccOrderItemsCache.forEach(i=>itemMap[i.id]=i);
+ const salesMap={}; ccSalesCache.forEach(s=>salesMap[s.id]=s);
+ let rows=(lines||[]).map(l=>({line:l,link:linkMap[l.id]||null}));
+ const q=(document.getElementById('ccPurchaseSearch')?.value||'').toLowerCase().trim();
+ const of=(document.getElementById('ccPurchaseOrderFilter')?.value||''); const sf=(document.getElementById('ccPurchaseSalesFilter')?.value||'');
+ if(q) rows=rows.filter(r=>[r.line.description,r.line.site,r.line.payment_ref,r.line.sub_direction,r.line.added_to].some(v=>String(v||'').toLowerCase().includes(q)));
+ if(of) rows=rows.filter(r=>String(r.link?.order_id||'')===of);
+ if(sf) rows=rows.filter(r=>String(r.link?.sales_invoice_id||'')===sf);
+ const total=rows.reduce((s,r)=>s+Number(r.line.amount||0),0);
+ area.innerHTML=`<div class="summary" style="margin-bottom:12px"><div class="box"><h3>عدد بنود التسويات</h3><h2>${rows.length}</h2></div><div class="box"><h3>إجمالي البنود</h3><h2>${total.toLocaleString()}</h2></div><div class="box"><h3>بنود موجهة</h3><h2>${rows.filter(r=>r.link).length}</h2></div></div>
+ <table class="table"><thead><tr><th>تعديل التوجيه</th><th>التاريخ</th><th>رقم التسوية</th><th>البيان</th><th>مستند الدفع</th><th>التوجيه الفرعي</th><th>الموقع</th><th>المبلغ</th><th>أمر الإسناد</th><th>بند الأمر</th><th>فاتورة المبيعات</th><th>ملاحظات</th></tr></thead><tbody>${rows.map(r=>{const l=r.line,link=r.link||{};const o=orderMap[link.order_id]||{};const it=itemMap[link.order_item_id]||{};const si=salesMap[link.sales_invoice_id]||{};return `<tr><td><button class="small orange" onclick="openPurchaseLinkModal(${l.id})">تعديل</button></td><td>${l.line_date||''}</td><td>${l.settlement_no||''}</td><td>${l.description||''}</td><td>${l.payment_ref||''}</td><td>${l.sub_direction||''}</td><td>${l.site||''}</td><td>${Number(l.amount||0).toLocaleString()}</td><td>${o.order_no||'-'}</td><td>${it.description||'-'}</td><td>${si.invoice_no||'-'}</td><td>${link.notes||''}</td></tr>`}).join('')}</tbody></table>`;
+}
+async function openPurchaseLinkModal(lineId){
+ await loadCostOrders(false); await loadSalesInvoices(false);
+ const {data:l}=await client.from('settlement_lines').select('*').eq('id',lineId).maybeSingle(); if(!l){alert('البند غير موجود');return;}
+ const {data:link}=await client.from('purchase_cost_links').select('*').eq('line_id',lineId).maybeSingle();
+ purchaseLinkModal.style.display='flex'; ccLinkLineId.value=lineId; ccLinkDesc.textContent=l.description||''; ccLinkAmount.textContent=Number(l.amount||0).toLocaleString(); ccLinkSite.textContent=l.site||'';
+ ccLinkOrder.value=link?.order_id||''; await loadOrderItemsForLink(link?.order_item_id||''); ccLinkSalesInvoice.value=link?.sales_invoice_id||''; ccLinkNotes.value=link?.notes||'';
+}
+async function loadOrderItemsForLink(selected=''){
+ const orderId=Number(ccLinkOrder.value||0);
+ const items=ccOrderItemsCache.filter(i=>i.order_id===orderId);
+ ccLinkOrderItem.innerHTML='<option value="">اختر بند أمر الإسناد</option>'+items.map(i=>`<option value="${i.id}">${i.item_code||''} - ${i.description||''} - ${Number(i.amount||0).toLocaleString()}</option>`).join('');
+ if(selected) ccLinkOrderItem.value=selected;
+}
+async function savePurchaseLink(){
+ const lineId=Number(ccLinkLineId.value||0); if(!lineId){alert('لا يوجد بند');return;}
+ const payload={line_id:lineId,order_id:ccLinkOrder.value?Number(ccLinkOrder.value):null,order_item_id:ccLinkOrderItem.value?Number(ccLinkOrderItem.value):null,sales_invoice_id:ccLinkSalesInvoice.value?Number(ccLinkSalesInvoice.value):null,notes:ccLinkNotes.value.trim(),updated_by:currentUser.username,updated_at:new Date().toISOString()};
+ const {data:existing}=await client.from('purchase_cost_links').select('id').eq('line_id',lineId).maybeSingle();
+ let error;
+ if(existing) ({error}=await client.from('purchase_cost_links').update(payload).eq('id',existing.id));
+ else ({error}=await client.from('purchase_cost_links').insert({...payload,created_by:currentUser.username}));
+ if(error){alert('خطأ حفظ التوجيه: تأكد من تشغيل SQL');return;}
+ closePurchaseLinkModal(); loadCostPurchaseInvoices();
+}
+
+
+/* ===== V62 Cost Control Details Override ===== */
+function escapeHtmlV62(v){return String(v??'').replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));}
+async function toggleCostLineDetails(lineId, btn){
+ const row=document.getElementById('ccDetailsRow_'+lineId);
+ if(!row) return;
+ if(row.dataset.loaded==='1'){
+   row.classList.toggle('hidden');
+   if(btn) btn.textContent=row.classList.contains('hidden')?'تفاصيل':'إخفاء';
+   return;
+ }
+ row.classList.remove('hidden'); if(btn) btn.textContent='إخفاء';
+ const box=document.getElementById('ccDetailsBox_'+lineId);
+ box.innerHTML='جارى تحميل التفاصيل...';
+ try{
+   const {data:line}=await client.from('settlement_lines').select('*').eq('id',lineId).maybeSingle();
+   let html='';
+   const {data:invs}=await client.from('material_invoices').select('*').eq('line_id',lineId).order('id',{ascending:false});
+   if(invs && invs.length){
+     for(const inv of invs){
+       const {data:items}=await client.from('material_invoice_items').select('*').eq('invoice_id',inv.id).order('serial_no');
+       html += `<h3>تفاصيل فاتورة خامات رقم ${escapeHtmlV62(inv.invoice_no||'')}</h3>`;
+       html += `<table class="table"><thead><tr><th>م</th><th>تصنيف</th><th>البيان</th><th>الوحدة</th><th>الكمية</th><th>سعر الوحدة</th><th>الإجمالي</th></tr></thead><tbody>${(items||[]).map(it=>`<tr><td>${it.serial_no||''}</td><td>${escapeHtmlV62(it.item_category||'')}</td><td style="font-weight:bold;text-align:right">${escapeHtmlV62(it.description||'')}</td><td>${escapeHtmlV62(it.unit||'')}</td><td>${Number(it.quantity||0).toLocaleString()}</td><td>${Number(it.unit_price||0).toLocaleString()}</td><td>${Number(it.total||0).toLocaleString()}</td></tr>`).join('')}</tbody></table>`;
+     }
+   }
+   if(line && String(line.sub_direction||'').includes('مرتبات')){
+     const {data:sal}=await client.from('salary_allocations').select('*').eq('line_id',lineId).order('site');
+     if(sal && sal.length){
+       html += `<h3>تفاصيل تحميل المرتب على المواقع</h3>`;
+       html += `<table class="table"><thead><tr><th>الموظف</th><th>الشهر</th><th>الموقع</th><th>الأيام</th><th>الساعات</th><th>النسبة</th><th>المبلغ المحمل</th><th>فرق؟</th></tr></thead><tbody>${sal.map(a=>`<tr><td>${escapeHtmlV62(a.employee_name||'')}</td><td>${escapeHtmlV62(a.salary_month||'')}</td><td>${escapeHtmlV62(a.site||'')}</td><td>${Number(a.days||0).toLocaleString()}</td><td>${Number(a.hours||0).toLocaleString()}</td><td>${Number(a.percent||0).toLocaleString()}%</td><td>${Number(a.amount||0).toLocaleString()}</td><td>${a.is_difference?'نعم':'-'}</td></tr>`).join('')}</tbody></table>`;
+     }
+   }
+   if(!html){
+     html = `<div class="currency-note">لا توجد فاتورة تفصيلية أو توزيع مرتبات محفوظ لهذا البند. البيانات الأساسية: ${escapeHtmlV62(line?.description||'')}</div>`;
+   }
+   box.innerHTML=html;
+   row.dataset.loaded='1';
+ }catch(e){ box.innerHTML='تعذر تحميل التفاصيل: '+escapeHtmlV62(e.message||e); }
+}
+async function loadCostPurchaseInvoices(){
+ const area=document.getElementById('costControlActiveArea'); if(!area) return;
+ await loadCostOrders(false); await loadSalesInvoices(false);
+ const {data:lines,error}=await client.from('settlement_lines').select('*').eq('main_direction','مصروفات').neq('status','deleted').order('id',{ascending:false}).limit(5000);
+ if(error){area.innerHTML='خطأ تحميل المصروفات';return;}
+ const lineIds=(lines||[]).map(l=>l.id);
+ const {data:links}=lineIds.length? await client.from('purchase_cost_links').select('*').in('line_id',lineIds):{data:[]};
+ const linkMap={}; (links||[]).forEach(l=>linkMap[l.line_id]=l);
+ const orderMap={}; ccOrdersCache.forEach(o=>orderMap[o.id]=o);
+ const itemMap={}; ccOrderItemsCache.forEach(i=>itemMap[i.id]=i);
+ const salesMap={}; ccSalesCache.forEach(s=>salesMap[s.id]=s);
+ let rows=(lines||[]).map(l=>({line:l,link:linkMap[l.id]||null}));
+ const q=(document.getElementById('ccPurchaseSearch')?.value||'').toLowerCase().trim();
+ const of=(document.getElementById('ccPurchaseOrderFilter')?.value||''); const sf=(document.getElementById('ccPurchaseSalesFilter')?.value||'');
+ if(q) rows=rows.filter(r=>[r.line.description,r.line.site,r.line.payment_ref,r.line.sub_direction,r.line.added_to].some(v=>String(v||'').toLowerCase().includes(q)));
+ if(of) rows=rows.filter(r=>String(r.link?.order_id||'')===of);
+ if(sf) rows=rows.filter(r=>String(r.link?.sales_invoice_id||'')===sf);
+ const total=rows.reduce((s,r)=>s+Number(r.line.amount||0),0);
+ const directed=rows.filter(r=>r.link).length;
+ const body=rows.map(r=>{
+   const l=r.line,link=r.link||{};const o=orderMap[link.order_id]||{};const it=itemMap[link.order_item_id]||{};const si=salesMap[link.sales_invoice_id]||{};
+   const alloc=Number(link.sales_amount ?? link.allocated_amount ?? link.amount ?? 0);
+   return `<tr><td><button class="small gray" onclick="toggleCostLineDetails(${l.id},this)">تفاصيل</button> <button class="small orange" onclick="openPurchaseLinkModal(${l.id})">تعديل</button></td><td>${l.line_date||''}</td><td>${l.settlement_no||''}</td><td style="font-weight:bold;text-align:right">${escapeHtmlV62(l.description||'')}</td><td>${escapeHtmlV62(l.payment_ref||'')}</td><td>${escapeHtmlV62(l.sub_direction||'')}</td><td>${escapeHtmlV62(l.site||'')}</td><td>${Number(l.amount||0).toLocaleString()}</td><td>${escapeHtmlV62(o.order_no||'-')}</td><td>${escapeHtmlV62(it.description||'-')}</td><td>${escapeHtmlV62(si.invoice_no||'-')}</td><td>${alloc?alloc.toLocaleString():'-'}</td><td>${escapeHtmlV62(link.notes||'')}</td></tr><tr id="ccDetailsRow_${l.id}" class="hidden"><td colspan="13"><div id="ccDetailsBox_${l.id}" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px;text-align:right"></div></td></tr>`;
+ }).join('');
+ area.innerHTML=`<div class="summary" style="margin-bottom:12px"><div class="box"><h3>عدد بنود التسويات</h3><h2>${rows.length}</h2></div><div class="box"><h3>إجمالي البنود</h3><h2>${total.toLocaleString()}</h2></div><div class="box"><h3>بنود موجهة</h3><h2>${directed}</h2></div></div>
+ <table class="table"><thead><tr><th>إجراء</th><th>التاريخ</th><th>رقم التسوية</th><th>البيان</th><th>مستند الدفع</th><th>التوجيه العام</th><th>التوجيه الفرعي</th><th>الموقع</th><th>المبلغ</th><th>أمر الإسناد</th><th>بند الأمر</th><th>فاتورة المبيعات</th><th>المبلغ المحمل للفاتورة</th><th>ملاحظات</th></tr></thead><tbody>${body}</tbody></table>`;
+}
+async function openPurchaseLinkModal(lineId){
+ await loadCostOrders(false); await loadSalesInvoices(false);
+ const {data:l}=await client.from('settlement_lines').select('*').eq('id',lineId).maybeSingle(); if(!l){alert('البند غير موجود');return;}
+ const {data:link}=await client.from('purchase_cost_links').select('*').eq('line_id',lineId).maybeSingle();
+ purchaseLinkModal.style.display='flex'; ccLinkLineId.value=lineId; ccLinkDesc.textContent=l.description||''; ccLinkAmount.textContent=Number(l.amount||0).toLocaleString(); ccLinkSite.textContent=l.site||'';
+ ccLinkOrder.value=link?.order_id||''; await loadOrderItemsForLink(link?.order_item_id||''); ccLinkSalesInvoice.value=link?.sales_invoice_id||''; if(document.getElementById('ccLinkSalesAmount')) ccLinkSalesAmount.value=(link?.sales_amount ?? link?.allocated_amount ?? link?.amount ?? l.amount ?? ''); ccLinkNotes.value=link?.notes||'';
+}
+async function savePurchaseLink(){
+ const lineId=Number(ccLinkLineId.value||0); if(!lineId){alert('لا يوجد بند');return;}
+ const salesAmountEl=document.getElementById('ccLinkSalesAmount');
+ const payload={line_id:lineId,order_id:ccLinkOrder.value?Number(ccLinkOrder.value):null,order_item_id:ccLinkOrderItem.value?Number(ccLinkOrderItem.value):null,sales_invoice_id:ccLinkSalesInvoice.value?Number(ccLinkSalesInvoice.value):null,sales_amount:salesAmountEl?Number(salesAmountEl.value||0):null,notes:ccLinkNotes.value.trim(),updated_by:currentUser.username,updated_at:new Date().toISOString()};
+ const {data:existing}=await client.from('purchase_cost_links').select('id').eq('line_id',lineId).maybeSingle();
+ let error;
+ if(existing) ({error}=await client.from('purchase_cost_links').update(payload).eq('id',existing.id));
+ else ({error}=await client.from('purchase_cost_links').insert({...payload,created_by:currentUser.username}));
+ if(error){alert('خطأ حفظ التوجيه: تأكد من تشغيل SQL الخاص بعمود sales_amount');return;}
+ closePurchaseLinkModal(); loadCostPurchaseInvoices();
+}
+
+
+
+/* ===== V63 Cost Control Detailed Routing + Order Items Calc Override ===== */
+function ccEscape(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+function ccNum(v){return Number(v||0)||0;}
+function ccOrderOptionHtml(selected=''){
+  return '<option value="">اختر أمر الإسناد</option>'+(ccOrdersCache||[]).map(o=>`<option value="${o.id}" ${String(selected)===String(o.id)?'selected':''}>${ccEscape(o.order_no||'')} - ${ccEscape(o.client_name||'')} - ${ccEscape(o.site||'')}</option>`).join('');
+}
+function ccSalesOptionHtml(selected=''){
+  return '<option value="">اختر فاتورة مبيعات</option>'+(ccSalesCache||[]).map(s=>`<option value="${s.id}" ${String(selected)===String(s.id)?'selected':''}>${ccEscape(s.invoice_no||'')} - ${ccEscape(s.client_name||'')} - ${ccNum(s.total_amount).toLocaleString()}</option>`).join('');
+}
+function ccOrderItemsOptionHtml(orderId, selected=''){
+  const items=(ccOrderItemsCache||[]).filter(i=>String(i.order_id)===String(orderId));
+  return '<option value="">اختر بند أمر الإسناد</option>'+items.map(i=>`<option value="${i.id}" ${String(selected)===String(i.id)?'selected':''}>${ccEscape(i.item_code||'')} - ${ccEscape(i.description||'')} - ${ccNum(i.amount).toLocaleString()}</option>`).join('');
+}
+function calcCcOrderItemRow(tr){
+  const qty=ccNum(tr.querySelector('.ccOrderItemQty')?.value);
+  const price=ccNum(tr.querySelector('.ccOrderItemUnitPrice')?.value);
+  const total=qty*price;
+  const val=tr.querySelector('.ccOrderItemValue');
+  if(val) val.value=total.toFixed(2);
+  calcCostOrderTotalFromRows();
+}
+function calcCostOrderTotalFromRows(){
+  let total=0;
+  document.querySelectorAll('#ccOrderItemsBody tr').forEach(tr=>{total+=ccNum(tr.querySelector('.ccOrderItemValue')?.value)});
+  if(document.getElementById('ccOrderValue')) ccOrderValue.value=total.toFixed(2);
+}
+function addCostOrderItemRow(item={}){
+ const body=document.getElementById('ccOrderItemsBody'); if(!body) return;
+ const idx=body.children.length+1;
+ const qty=ccNum(item.qty);
+ const amount=ccNum(item.amount);
+ const price=ccNum(item.unit_price || (qty? amount/qty : 0));
+ const currency=item.currency || 'EGP';
+ const tr=document.createElement('tr');
+ tr.innerHTML=`<td>${idx}</td>
+ <td><input class="ccOrderItemCode" value="${ccEscape(item.item_code||'')}" placeholder="كود"></td>
+ <td><input class="ccOrderItemDesc cc-order-desc-input" value="${ccEscape(item.description||'')}" placeholder="وصف البند بالتفصيل"></td>
+ <td><input class="ccOrderItemUnit" value="${ccEscape(item.unit||'')}" placeholder="وحدة"></td>
+ <td><input class="ccOrderItemQty" type="number" step="0.0001" value="${qty}" oninput="calcCcOrderItemRow(this.closest('tr'))"></td>
+ <td><input class="ccOrderItemUnitPrice" type="number" step="0.0001" value="${price}" oninput="calcCcOrderItemRow(this.closest('tr'))"></td>
+ <td><select class="ccOrderItemCurrency"><option ${currency==='EGP'?'selected':''}>EGP</option><option ${currency==='USD'?'selected':''}>USD</option><option ${currency==='EUR'?'selected':''}>EUR</option><option ${currency==='SAR'?'selected':''}>SAR</option><option ${currency==='AED'?'selected':''}>AED</option></select></td>
+ <td><input class="ccOrderItemValue" type="number" step="0.01" value="${amount || (qty*price)}" readonly></td>`;
+ body.appendChild(tr);
+ calcCcOrderItemRow(tr);
+}
+async function openCostOrderModal(orderId=null){
+ costOrderModal.style.display='flex';
+ ccOrderNo.value=''; ccOrderDate.value=new Date().toISOString().slice(0,10); ccOrderClient.value=''; ccOrderSite.value=''; ccOrderValue.value=''; ccOrderNotes.value='';
+ ccOrderItemsBody.innerHTML='';
+ addCostOrderItemRow();
+}
+async function saveCostOrder(){
+ const no=ccOrderNo.value.trim(); if(!no){alert('اكتب رقم الأمر');return;}
+ calcCostOrderTotalFromRows();
+ const payload={order_no:no,order_date:ccOrderDate.value||null,client_name:ccOrderClient.value.trim(),site:ccOrderSite.value.trim(),total_value:ccNum(ccOrderValue.value),notes:ccOrderNotes.value.trim(),created_by:currentUser.username};
+ const {data:ord,error}=await client.from('cost_orders').insert(payload).select().single();
+ if(error){alert('خطأ حفظ الأمر: تأكد من SQL أو رقم الأمر غير مكرر');return;}
+ const items=[];
+ document.querySelectorAll('#ccOrderItemsBody tr').forEach((tr,i)=>{
+  const code=tr.querySelector('.ccOrderItemCode')?.value.trim()||'';
+  const desc=tr.querySelector('.ccOrderItemDesc')?.value.trim()||'';
+  const qty=ccNum(tr.querySelector('.ccOrderItemQty')?.value);
+  const unitPrice=ccNum(tr.querySelector('.ccOrderItemUnitPrice')?.value);
+  const amount=ccNum(tr.querySelector('.ccOrderItemValue')?.value || qty*unitPrice);
+  if(desc||code) items.push({order_id:ord.id,serial_no:i+1,item_code:code,description:desc,unit:tr.querySelector('.ccOrderItemUnit')?.value.trim()||'',qty,unit_price:unitPrice,currency:tr.querySelector('.ccOrderItemCurrency')?.value||'EGP',amount});
+ });
+ if(items.length) await client.from('cost_order_items').insert(items);
+ closeCostOrderModal(); loadCostOrders(); loadCostPurchaseInvoices();
+}
+async function loadCostOrders(render=true){
+ const {data:orders,error}=await client.from('cost_orders').select('*').order('id',{ascending:false}).limit(1000);
+ if(error){ if(render) costOrdersArea.innerHTML='شغّل SQL الخاص بـ Cost Control أولاً'; return; }
+ ccOrdersCache=orders||[];
+ const {data:items}=await client.from('cost_order_items').select('*').order('serial_no');
+ ccOrderItemsCache=items||[];
+ refreshCostControlSelects();
+ if(!render||!document.getElementById('costOrdersArea')) return;
+ costOrdersArea.innerHTML=`<table class="table"><thead><tr><th>رقم الأمر</th><th>التاريخ</th><th>العميل</th><th>الموقع</th><th>القيمة</th><th>عدد البنود</th><th>العملة/تفاصيل</th><th>ملاحظات</th></tr></thead><tbody>${ccOrdersCache.map(o=>{const its=ccOrderItemsCache.filter(i=>i.order_id===o.id);return `<tr><td>${ccEscape(o.order_no||'')}</td><td>${o.order_date||''}</td><td>${ccEscape(o.client_name||'')}</td><td>${ccEscape(o.site||'')}</td><td>${ccNum(o.total_value).toLocaleString()}</td><td>${its.length}</td><td>${[...new Set(its.map(i=>i.currency||'EGP'))].join(' / ')}</td><td>${ccEscape(o.notes||'')}</td></tr>`}).join('')}</tbody></table>`;
+}
+async function getCostDetailLinks(sourceType, ids){
+ if(!ids.length) return {};
+ try{
+  const {data}=await client.from('cost_detail_links').select('*').eq('source_type',sourceType).in('source_id',ids);
+  const m={}; (data||[]).forEach(x=>m[x.source_id]=x); return m;
+ }catch(e){return {};}
+}
+function costDetailRoutingHtml(sourceType, sourceId, link={}, defaultAmount=0){
+ const rowId=`${sourceType}_${sourceId}`.replace(/[^a-zA-Z0-9_]/g,'_');
+ const orderId=link.order_id||'';
+ return `<div class="cc-detail-routing"><b>توجيه هذا التفصيل:</b><div class="grid">
+ <div class="form-field"><label>أمر الإسناد</label><select id="ccDetOrder_${rowId}" onchange="updateCostDetailOrderItems('${rowId}')">${ccOrderOptionHtml(orderId)}</select></div>
+ <div class="form-field"><label>بند أمر الإسناد</label><select id="ccDetItem_${rowId}">${ccOrderItemsOptionHtml(orderId, link.order_item_id||'')}</select></div>
+ <div class="form-field"><label>فاتورة المبيعات</label><select id="ccDetSales_${rowId}">${ccSalesOptionHtml(link.sales_invoice_id||'')}</select></div>
+ <div class="form-field"><label>المبلغ المحمل على فاتورة المبيعات</label><input id="ccDetAmount_${rowId}" type="number" step="0.01" value="${ccNum(link.sales_amount || defaultAmount)}"></div>
+ <div class="form-field"><label>ملاحظات</label><input id="ccDetNotes_${rowId}" value="${ccEscape(link.notes||'')}" placeholder="ملاحظات"></div>
+ <div class="form-field"><label>&nbsp;</label><button class="green small" onclick="saveCostDetailLink('${sourceType}',${Number(sourceId)},'${rowId}')">حفظ التوجيه</button></div>
+ </div></div>`;
+}
+function updateCostDetailOrderItems(rowId){
+ const orderId=document.getElementById('ccDetOrder_'+rowId)?.value||'';
+ const el=document.getElementById('ccDetItem_'+rowId);
+ if(el) el.innerHTML=ccOrderItemsOptionHtml(orderId,'');
+}
+async function saveCostDetailLink(sourceType, sourceId, rowId){
+ const orderId=document.getElementById('ccDetOrder_'+rowId)?.value||'';
+ const orderItemId=document.getElementById('ccDetItem_'+rowId)?.value||'';
+ const salesId=document.getElementById('ccDetSales_'+rowId)?.value||'';
+ const amt=ccNum(document.getElementById('ccDetAmount_'+rowId)?.value);
+ const notes=document.getElementById('ccDetNotes_'+rowId)?.value?.trim()||'';
+ const payload={source_type:sourceType,source_id:Number(sourceId),order_id:orderId?Number(orderId):null,order_item_id:orderItemId?Number(orderItemId):null,sales_invoice_id:salesId?Number(salesId):null,sales_amount:amt,notes,updated_by:currentUser.username,updated_at:new Date().toISOString()};
+ const {data:existing}=await client.from('cost_detail_links').select('id').eq('source_type',sourceType).eq('source_id',Number(sourceId)).maybeSingle();
+ let error;
+ if(existing) ({error}=await client.from('cost_detail_links').update(payload).eq('id',existing.id));
+ else ({error}=await client.from('cost_detail_links').insert({...payload,created_by:currentUser.username}));
+ if(error){alert('خطأ حفظ توجيه التفصيل: تأكد من تشغيل SQL الخاص بـ cost_detail_links'); return;}
+ alert('تم حفظ توجيه التفصيل');
+ loadCostPurchaseInvoices();
+}
+async function toggleCostLineDetails(lineId, btn){
+ const row=document.getElementById('ccDetailsRow_'+lineId); if(!row) return;
+ if(row.dataset.loaded==='1'){
+   row.classList.toggle('hidden'); if(btn) btn.textContent=row.classList.contains('hidden')?'تفاصيل':'إخفاء'; return;
+ }
+ row.classList.remove('hidden'); if(btn) btn.textContent='إخفاء';
+ const box=document.getElementById('ccDetailsBox_'+lineId); box.innerHTML='جارى تحميل التفاصيل...';
+ try{
+   await loadCostOrders(false); await loadSalesInvoices(false);
+   const {data:line}=await client.from('settlement_lines').select('*').eq('id',lineId).maybeSingle();
+   let html='';
+   const {data:invs}=await client.from('material_invoices').select('*').eq('line_id',lineId).order('id',{ascending:false});
+   const invoiceIds=(invs||[]).map(x=>x.id);
+   let allItems=[];
+   if(invoiceIds.length){
+     const {data:items}=await client.from('material_invoice_items').select('*').in('invoice_id',invoiceIds).order('serial_no');
+     allItems=items||[];
+   }
+   const itemLinks=await getCostDetailLinks('material_invoice_item', allItems.map(x=>x.id));
+   if(invs && invs.length){
+     for(const inv of invs){
+       const items=allItems.filter(x=>x.invoice_id===inv.id);
+       html += `<h3>تفاصيل فاتورة خامات رقم ${ccEscape(inv.invoice_no||'')}</h3>`;
+       html += `<table class="table"><thead><tr><th>م</th><th>تصنيف</th><th>البيان</th><th>الوحدة</th><th>الكمية</th><th>سعر الوحدة</th><th>الإجمالي</th><th>توجيه البند التفصيلي</th></tr></thead><tbody>${items.map(it=>`<tr><td>${it.serial_no||''}</td><td>${ccEscape(it.item_category||'')}</td><td style="font-weight:bold;text-align:right">${ccEscape(it.description||'')}</td><td>${ccEscape(it.unit||'')}</td><td>${ccNum(it.quantity).toLocaleString()}</td><td>${ccNum(it.unit_price).toLocaleString()}</td><td>${ccNum(it.total).toLocaleString()}</td><td>${costDetailRoutingHtml('material_invoice_item',it.id,itemLinks[it.id]||{},ccNum(it.total))}</td></tr>`).join('')}</tbody></table>`;
+     }
+   }
+   if(line && String(line.sub_direction||'').includes('مرتبات')){
+     const {data:sal}=await client.from('salary_allocations').select('*').eq('line_id',lineId).order('site');
+     const salLinks=await getCostDetailLinks('salary_allocation', (sal||[]).map(x=>x.id));
+     if(sal && sal.length){
+       html += `<h3>تفاصيل تحميل المرتب على المواقع</h3>`;
+       html += `<table class="table"><thead><tr><th>الموظف</th><th>الشهر</th><th>الموقع</th><th>الأيام</th><th>الساعات</th><th>المبلغ المحمل</th><th>توجيه بند المرتب</th></tr></thead><tbody>${sal.map(a=>`<tr><td>${ccEscape(a.employee_name||'')}</td><td>${ccEscape(a.salary_month||'')}</td><td>${ccEscape(a.site||'')}</td><td>${ccNum(a.days).toLocaleString()}</td><td>${ccNum(a.hours).toLocaleString()}</td><td>${ccNum(a.amount).toLocaleString()}</td><td>${costDetailRoutingHtml('salary_allocation',a.id,salLinks[a.id]||{},ccNum(a.amount))}</td></tr>`).join('')}</tbody></table>`;
+     }
+   }
+   if(!html) html = `<div class="currency-note">لا توجد فاتورة تفصيلية أو توزيع مرتبات محفوظ لهذا البند. البيانات الأساسية: ${ccEscape(line?.description||'')}</div>`;
+   box.innerHTML=html; row.dataset.loaded='1';
+ }catch(e){box.innerHTML='تعذر تحميل التفاصيل: '+ccEscape(e.message||e);}
+}
+
+
+/* ===== V64 Final Override: Cost Control Purchases as invoice-item routing sheet ===== */
+async function ccTrySelect(table, selectText){
+ try{
+  const {data,error}=await client.from(table).select(selectText);
+  if(error) return [];
+  return data||[];
+ }catch(e){return [];}
+}
+async function loadCostPurchaseInvoices(){
+ const area=document.getElementById('costControlActiveArea'); if(!area) return;
+ await loadCostOrders(false); await loadSalesInvoices(false);
+ // V65: عرض كل بنود التسويات ما عدا جارى العهدة فقط
+ const {data:lines,error}=await client.from('settlement_lines').select('*').neq('main_direction','جارى العهدة').neq('status','deleted').order('id',{ascending:false}).limit(5000);
+ if(error){area.innerHTML='خطأ تحميل المصروفات';return;}
+ const lineIds=(lines||[]).map(l=>l.id);
+ const links=await ccTrySelect('purchase_cost_links','*');
+ const linkMap={}; (links||[]).filter(x=>lineIds.includes(x.line_id)).forEach(l=>linkMap[l.line_id]=l);
+ const invsAll=await ccTrySelect('material_invoices','*');
+ const invs=(invsAll||[]).filter(inv=>lineIds.includes(inv.line_id));
+ const invoiceIds=invs.map(x=>x.id);
+ let items=[];
+ if(invoiceIds.length){
+  const allItems=await ccTrySelect('material_invoice_items','*');
+  items=(allItems||[]).filter(it=>invoiceIds.includes(it.invoice_id)).sort((a,b)=>ccNum(a.serial_no)-ccNum(b.serial_no));
+ }
+ const detailLinksAll=await ccTrySelect('cost_detail_links','*');
+ const detailLinkMap={}; (detailLinksAll||[]).forEach(x=>{detailLinkMap[(x.source_type||'')+'_'+x.source_id]=x;});
+ const orderMap={}; (ccOrdersCache||[]).forEach(o=>orderMap[o.id]=o);
+ const itemMap={}; (ccOrderItemsCache||[]).forEach(i=>itemMap[i.id]=i);
+ const salesMap={}; (ccSalesCache||[]).forEach(s=>salesMap[s.id]=s);
+ const invByLine={}; invs.forEach(inv=>{(invByLine[inv.line_id]=invByLine[inv.line_id]||[]).push(inv);});
+ const itemsByInvoice={}; items.forEach(it=>{(itemsByInvoice[it.invoice_id]=itemsByInvoice[it.invoice_id]||[]).push(it);});
+ let rows=(lines||[]).filter(l=>String(l.main_direction||'')!=='جارى العهدة');
+ const q=(document.getElementById('ccPurchaseSearch')?.value||'').toLowerCase().trim();
+ const of=(document.getElementById('ccPurchaseOrderFilter')?.value||'');
+ const sf=(document.getElementById('ccPurchaseSalesFilter')?.value||'');
+ if(q) rows=rows.filter(l=>[l.description,l.site,l.payment_ref,l.sub_direction,l.added_to,l.settlement_no].some(v=>String(v||'').toLowerCase().includes(q)));
+ if(of) rows=rows.filter(l=>String((linkMap[l.id]||{}).order_id||'')===of || Object.values(detailLinkMap).some(dl=>String(dl.order_id||'')===of));
+ if(sf) rows=rows.filter(l=>String((linkMap[l.id]||{}).sales_invoice_id||'')===sf || Object.values(detailLinkMap).some(dl=>String(dl.sales_invoice_id||'')===sf));
+ const total=rows.reduce((s,l)=>s+ccNum(l.amount),0);
+ const directedLineCount=rows.filter(l=>linkMap[l.id]).length;
+ let body='';
+ rows.forEach((l,idx)=>{
+   const lineLink=linkMap[l.id]||{};
+   const lineInvoices=invByLine[l.id]||[];
+   let flatItems=[];
+   lineInvoices.forEach(inv=>{
+    const its=itemsByInvoice[inv.id]||[];
+    if(its.length) its.forEach(it=>flatItems.push({inv,it}));
+   });
+   if(!flatItems.length) flatItems=[{inv:lineInvoices[0]||null,it:null}];
+   flatItems.forEach((x,i)=>{
+     const sourceType=x.it?'material_invoice_item':'settlement_line';
+     const sourceId=x.it?x.it.id:l.id;
+     const dlink=x.it?(detailLinkMap[sourceType+'_'+sourceId]||{}):lineLink;
+     const orderId=dlink.order_id||'';
+     const orderItemId=dlink.order_item_id||'';
+     const salesId=dlink.sales_invoice_id||'';
+     const loadedAmount=ccNum(dlink.sales_amount || dlink.allocated_amount || dlink.amount || (x.it?x.it.total:l.amount));
+     const rid=('v64_'+sourceType+'_'+sourceId).replace(/[^a-zA-Z0-9_]/g,'_');
+     const sep=(i===0?' cc-line-separator':'');
+     body+=`<tr class="${sep}">`;
+     if(i===0){
+       body+=`<td class="cc-main-cell" rowspan="${flatItems.length}"><button class="small orange" onclick="openPurchaseLinkModal(${l.id})">تعديل</button></td>
+       <td class="cc-main-cell" rowspan="${flatItems.length}">${ccEscape(l.line_date||'')}</td>
+       <td class="cc-main-cell" rowspan="${flatItems.length}">${ccEscape(l.settlement_no||'')}</td>
+       <td class="cc-main-cell cc-text" rowspan="${flatItems.length}">${ccEscape(l.description||'')}</td>
+       <td class="cc-main-cell" rowspan="${flatItems.length}">${ccEscape(l.payment_ref||'')}</td>
+       <td class="cc-main-cell" rowspan="${flatItems.length}">${ccEscape(l.main_direction||'')}</td>
+       <td class="cc-main-cell" rowspan="${flatItems.length}">${ccEscape(l.sub_direction||'')}</td>
+       <td class="cc-main-cell" rowspan="${flatItems.length}">${ccEscape(l.site||'')}</td>
+       <td class="cc-main-cell" rowspan="${flatItems.length}">${ccNum(l.amount).toLocaleString()}</td>`;
+     }
+     body+=`<td class="cc-item-cell">${x.it?ccEscape(x.it.serial_no||''):'-'}</td>
+       <td class="cc-item-cell cc-text">${x.it?ccEscape(x.it.description||''):'<span class="cc-muted">لا توجد بنود فاتورة محفوظة</span>'}</td>
+       <td class="cc-item-cell">${x.it?ccEscape(x.it.unit||''):'-'}</td>
+       <td class="cc-item-cell">${x.it?ccNum(x.it.quantity).toLocaleString():'-'}</td>
+       <td class="cc-item-cell">${x.it?ccNum(x.it.unit_price).toLocaleString():'-'}</td>
+       <td class="cc-item-cell">${x.it?ccNum(x.it.total).toLocaleString():ccNum(l.amount).toLocaleString()}</td>
+       <td class="cc-item-cell"><select class="cc-wide-select" id="ccDetOrder_${rid}" onchange="updateCostDetailOrderItems('${rid}')">${ccOrderOptionHtml(orderId)}</select></td>
+       <td class="cc-item-cell"><select class="cc-wide-select" id="ccDetItem_${rid}">${ccOrderItemsOptionHtml(orderId,orderItemId)}</select></td>
+       <td class="cc-item-cell"><select class="cc-wide-select" id="ccDetSales_${rid}">${ccSalesOptionHtml(salesId)}</select></td>
+       <td class="cc-item-cell"><input class="cc-small-input" id="ccDetAmount_${rid}" type="number" step="0.01" value="${loadedAmount}"></td>
+       <td class="cc-item-cell"><input id="ccDetNotes_${rid}" value="${ccEscape(dlink.notes||'')}" placeholder="ملاحظات"></td>
+       <td class="cc-item-cell"><button class="green small" onclick="saveCostDetailLink('${sourceType}',${Number(sourceId)},'${rid}')">حفظ</button></td>`;
+     body+='</tr>';
+   });
+ });
+ area.innerHTML=`<div class="summary" style="margin-bottom:12px"><div class="box"><h3>عدد بنود التسويات</h3><h2>${rows.length}</h2></div><div class="box"><h3>إجمالي البنود</h3><h2>${total.toLocaleString()}</h2></div><div class="box"><h3>بنود موجهة</h3><h2>${directedLineCount}</h2></div></div>
+ <div class="cc-purchases-note">كل بنود التسويات ظاهرة هنا ما عدا جارى العهدة فقط، وكل بند قصاده بنود الفاتورة التفصيلية والتوجيه في نفس الصفحة.</div>
+ <div class="cc-purchases-wrap"><table class="cc-purchases-table"><thead><tr>
+ <th>إجراء</th><th>التاريخ</th><th>رقم التسوية</th><th>البيان</th><th>مستند الدفع</th><th>التوجيه الفرعي</th><th>الموقع</th><th>المبلغ</th>
+ <th>م</th><th>وصف بند الفاتورة</th><th>الوحدة</th><th>الكمية</th><th>سعر الوحدة</th><th>الإجمالي</th>
+ <th>أمر الإسناد</th><th>بند الأمر</th><th>فاتورة المبيعات</th><th>المبلغ المحمل للفاتورة</th><th>ملاحظات</th><th>حفظ</th>
+ </tr></thead><tbody>${body || '<tr><td colspan="21">لا توجد بيانات مطابقة</td></tr>'}</tbody></table></div>`;
+}
+
+
+/* ===== V66: Open Cost Order, show order items, loaded purchases, sales and balance ===== */
+async function ccBuildAllocationData(){
+ await loadCostOrders(false); await loadSalesInvoices(false);
+ const linesAll = await ccTrySelect('settlement_lines','*');
+ const lines=(linesAll||[]).filter(l=>String(l.main_direction||'')!=='جارى العهدة' && String(l.status||'')!=='deleted');
+ const lineMap={}; lines.forEach(l=>lineMap[l.id]=l);
+ const invsAll=await ccTrySelect('material_invoices','*');
+ const invLineIds=new Set(lines.map(l=>l.id));
+ const invs=(invsAll||[]).filter(inv=>invLineIds.has(inv.line_id));
+ const invMap={}; invs.forEach(inv=>invMap[inv.id]=inv);
+ const invIds=new Set(invs.map(inv=>inv.id));
+ const matItemsAll=await ccTrySelect('material_invoice_items','*');
+ const matItems=(matItemsAll||[]).filter(it=>invIds.has(it.invoice_id));
+ const matMap={}; matItems.forEach(it=>matMap[it.id]=it);
+ const salaryAll=await ccTrySelect('salary_allocations','*');
+ const sal=(salaryAll||[]).filter(a=>invLineIds.has(a.line_id));
+ const salMap={}; sal.forEach(a=>salMap[a.id]=a);
+ const detailLinks=(await ccTrySelect('cost_detail_links','*'))||[];
+ const purchaseLinks=(await ccTrySelect('purchase_cost_links','*'))||[];
+ const allocs=[];
+ detailLinks.forEach(dl=>{
+   if(!dl.order_item_id) return;
+   let amount=0, desc='', ref='', line=null;
+   if(dl.source_type==='material_invoice_item'){
+     const it=matMap[dl.source_id]; if(!it) return;
+     const inv=invMap[it.invoice_id]||{}; line=lineMap[inv.line_id]||{};
+     amount=ccNum(it.total); desc=it.description||line.description||''; ref=inv.invoice_no||line.payment_ref||'';
+   }else if(dl.source_type==='salary_allocation'){
+     const a=salMap[dl.source_id]; if(!a) return;
+     line=lineMap[a.line_id]||{}; amount=ccNum(a.amount); desc=(a.employee_name||'مرتبات')+' - '+(a.site||''); ref=a.salary_month||line.payment_ref||'';
+   }else if(dl.source_type==='settlement_line'){
+     line=lineMap[dl.source_id]; if(!line) return;
+     amount=ccNum(line.amount); desc=line.description||''; ref=line.payment_ref||'';
+   }else{return;}
+   allocs.push({kind:'detail', order_id:dl.order_id, order_item_id:dl.order_item_id, sales_invoice_id:dl.sales_invoice_id, sales_amount:ccNum(dl.sales_amount), purchase_amount:amount, description:desc, ref, line, notes:dl.notes||''});
+ });
+ purchaseLinks.forEach(pl=>{
+   if(!pl.order_item_id) return;
+   const line=lineMap[pl.line_id]; if(!line) return;
+   allocs.push({kind:'line', order_id:pl.order_id, order_item_id:pl.order_item_id, sales_invoice_id:pl.sales_invoice_id, sales_amount:ccNum(pl.sales_amount), purchase_amount:ccNum(line.amount), description:line.description||'', ref:line.payment_ref||'', line, notes:pl.notes||''});
+ });
+ return {allocs, salesMap:Object.fromEntries((ccSalesCache||[]).map(s=>[s.id,s]))};
+}
+
+async function openCostOrderDetails(orderId){
+ const box=document.getElementById('ccOrderDetailsArea'); if(!box) return;
+ const order=(ccOrdersCache||[]).find(o=>String(o.id)===String(orderId));
+ box.innerHTML='جارى تحميل بنود أمر الإسناد...';
+ const {allocs,salesMap}=await ccBuildAllocationData();
+ const items=(ccOrderItemsCache||[]).filter(i=>String(i.order_id)===String(orderId));
+ let totalPurch=0,totalSales=0;
+ const rows=items.map((it,idx)=>{
+   const a=allocs.filter(x=>String(x.order_item_id)===String(it.id));
+   const purch=a.reduce((s,x)=>s+ccNum(x.purchase_amount),0);
+   const sales=a.reduce((s,x)=>s+ccNum(x.sales_amount),0);
+   totalPurch+=purch; totalSales+=sales;
+   const bal=sales-purch;
+   return `<tr onclick="showCostOrderItemLoads(${it.id},${orderId})" style="cursor:pointer">
+    <td>${idx+1}</td><td>${ccEscape(it.item_code||'')}</td><td class="cc-text">${ccEscape(it.description||'')}</td><td>${ccEscape(it.unit||'')}</td><td>${ccNum(it.qty).toLocaleString()}</td><td>${ccNum(it.amount).toLocaleString()}</td><td>${purch.toLocaleString()}</td><td>${sales.toLocaleString()}</td><td class="${bal<0?'cc-negative':'cc-positive'}">${bal.toLocaleString()}</td><td><button class="small gray" onclick="event.stopPropagation();showCostOrderItemLoads(${it.id},${orderId})">فتح التحميلات</button></td>
+   </tr>`;
+ }).join('');
+ const balance=totalSales-totalPurch;
+ box.innerHTML=`<div class="cc-order-open-card">
+  <h3>أمر الإسناد: ${ccEscape(order?.order_no||'')} - ${ccEscape(order?.client_name||'')} - ${ccEscape(order?.site||'')}</h3>
+  <div class="summary" style="margin-bottom:10px"><div class="box"><h3>إجمالي المشتريات المحملة</h3><h2>${totalPurch.toLocaleString()}</h2></div><div class="box"><h3>إجمالي المبيعات الموجهة</h3><h2>${totalSales.toLocaleString()}</h2></div><div class="box"><h3>الرصيد</h3><h2 class="${balance<0?'cc-negative':'cc-positive'}">${balance.toLocaleString()}</h2></div></div>
+  <div class="cc-purchases-note">اضغط على أي بند لعرض كل بنود فواتير المشتريات المحملة عليه. الرصيد = المبيعات - المشتريات، لذلك يظهر بالسالب إذا لم توجد فاتورة مبيعات.</div>
+  <table class="cc-purchases-table"><thead><tr><th>م</th><th>كود</th><th>بند أمر الإسناد</th><th>الوحدة</th><th>كمية الأمر</th><th>قيمة الأمر</th><th>مشتريات محملة</th><th>مبيعات</th><th>الرصيد</th><th>فتح</th></tr></thead><tbody>${rows || '<tr><td colspan="10">لا توجد بنود محفوظة لهذا الأمر</td></tr>'}</tbody></table>
+  <div id="ccOrderItemLoadsArea" style="margin-top:12px"></div>
+ </div>`;
+ window.__ccOrderAllocs=allocs; window.__ccOrderSalesMap=salesMap;
+}
+
+function showCostOrderItemLoads(orderItemId, orderId){
+ const box=document.getElementById('ccOrderItemLoadsArea'); if(!box) return;
+ const allocs=(window.__ccOrderAllocs||[]).filter(x=>String(x.order_item_id)===String(orderItemId));
+ const salesMap=window.__ccOrderSalesMap||{};
+ const item=(ccOrderItemsCache||[]).find(i=>String(i.id)===String(orderItemId))||{};
+ const purch=allocs.reduce((s,x)=>s+ccNum(x.purchase_amount),0);
+ const sales=allocs.reduce((s,x)=>s+ccNum(x.sales_amount),0);
+ const bal=sales-purch;
+ const rows=allocs.map((x,i)=>{
+   const si=salesMap[x.sales_invoice_id]||{};
+   const line=x.line||{};
+   return `<tr><td>${i+1}</td><td>${ccEscape(line.line_date||'')}</td><td>${ccEscape(line.settlement_no||'')}</td><td class="cc-text">${ccEscape(x.description||'')}</td><td>${ccEscape(x.ref||'')}</td><td>${ccEscape(line.site||'')}</td><td>${ccNum(x.purchase_amount).toLocaleString()}</td><td>${ccEscape(si.invoice_no||'-')}</td><td>${ccNum(x.sales_amount).toLocaleString()}</td><td>${ccEscape(x.notes||'')}</td></tr>`;
+ }).join('');
+ box.innerHTML=`<h3>تحميلات بند: ${ccEscape(item.description||'')}</h3>
+ <div class="summary" style="margin-bottom:10px"><div class="box"><h3>مشتريات البند</h3><h2>${purch.toLocaleString()}</h2></div><div class="box"><h3>مبيعات البند</h3><h2>${sales.toLocaleString()}</h2></div><div class="box"><h3>رصيد البند</h3><h2 class="${bal<0?'cc-negative':'cc-positive'}">${bal.toLocaleString()}</h2></div></div>
+ <table class="cc-purchases-table"><thead><tr><th>م</th><th>التاريخ</th><th>رقم التسوية</th><th>بند فاتورة المشتريات / البيان</th><th>مستند/فاتورة</th><th>الموقع</th><th>مشتريات محملة</th><th>فاتورة المبيعات</th><th>مبيعات</th><th>ملاحظات</th></tr></thead><tbody>${rows || '<tr><td colspan="10">لا توجد مشتريات محملة على هذا البند حتى الآن</td></tr>'}</tbody></table>`;
+}
+
+async function loadCostOrders(render=true){
+ const {data:orders,error}=await client.from('cost_orders').select('*').order('id',{ascending:false}).limit(1000);
+ if(error){ if(render) costOrdersArea.innerHTML='شغّل SQL الخاص بـ Cost Control أولاً'; return; }
+ ccOrdersCache=orders||[];
+ const {data:items}=await client.from('cost_order_items').select('*').order('serial_no');
+ ccOrderItemsCache=items||[];
+ refreshCostControlSelects();
+ if(!render||!document.getElementById('costOrdersArea')) return;
+ costOrdersArea.innerHTML=`<table class="table"><thead><tr><th>فتح</th><th>رقم الأمر</th><th>التاريخ</th><th>العميل</th><th>الموقع</th><th>القيمة</th><th>عدد البنود</th><th>العملة/تفاصيل</th><th>ملاحظات</th></tr></thead><tbody>${ccOrdersCache.map(o=>{const its=ccOrderItemsCache.filter(i=>i.order_id===o.id);return `<tr><td><button class="small green" onclick="openCostOrderDetails(${o.id})">فتح</button></td><td>${ccEscape(o.order_no||'')}</td><td>${o.order_date||''}</td><td>${ccEscape(o.client_name||'')}</td><td>${ccEscape(o.site||'')}</td><td>${ccNum(o.total_value).toLocaleString()}</td><td>${its.length}</td><td>${[...new Set(its.map(i=>i.currency||'EGP'))].join(' / ')}</td><td>${ccEscape(o.notes||'')}</td></tr>`}).join('')}</tbody></table><div id="ccOrderDetailsArea" style="margin-top:14px"></div>`;
 }
 
 </script>
