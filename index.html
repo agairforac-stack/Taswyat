@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<title>Taswyat System - UPGRADED V86</title>
+<title>Taswyat System - UPGRADED V89</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
 
 /* ================= COST CONTROL V60 ================= */
@@ -10,6 +10,9 @@ let ccOrdersCache = [];
 let ccOrderItemsCache = [];
 let ccSalesCache = [];
 let ccPurchaseRowsCache = [];
+
+function ccCleanManualNotes(v){ return String(v||'').trim(); }
+
 
 function showCostTab(id){
  if(!currentUser || currentUser.role !== "super_admin"){ alert("Cost Control للسوبر أدمن فقط"); return; }
@@ -89,7 +92,7 @@ async function saveSalesInvoice(){
  const no=salesInvNo.value.trim(); if(!no){alert('اكتب رقم فاتورة المبيعات');return;}
  let f=null; // تم إلغاء رفع ملف الفاتورة والاكتفاء برقم الفاتورة
  calcSalesInvoiceTotals();
- const payload={invoice_no:no,invoice_date:salesInvDate.value||null,client_name:salesInvClient.value.trim(),site:salesInvSite.value.trim(),order_id:salesInvOrderId.value?Number(salesInvOrderId.value):null,subtotal:Number(salesInvSubtotal.value||0),vat_amount:Number(salesInvVat.value||0),total_amount:Number(salesInvTotal.value||0),client_invoice_file:f,notes:salesInvNotes.value.trim(),created_by:currentUser.username};
+ const payload={invoice_no:no,invoice_date:salesInvDate.value||null,client_name:salesInvClient.value.trim(),site:salesInvSite.value.trim(),order_id:salesInvOrderId.value?Number(salesInvOrderId.value):null,subtotal:Number(salesInvSubtotal.value||0),vat_amount:Number(salesInvVat.value||0),total_amount:Number(salesInvTotal.value||0),client_invoice_file:f,notes:ccCleanManualNotes(salesInvNotes.value),created_by:currentUser.username};
  const {error}=await client.from('sales_invoices').insert(payload);
  if(error){alert('خطأ حفظ فاتورة المبيعات: تأكد من SQL أو رقم الفاتورة غير مكرر');return;}
  closeSalesInvoiceModal(); loadSalesInvoices(); loadCostPurchaseInvoices();
@@ -241,7 +244,7 @@ async function saveSalesInvoice(){
  const no=salesInvNo.value.trim(); if(!no){alert('اكتب رقم فاتورة المبيعات');return;}
  let f=null; // تم إلغاء رفع ملف الفاتورة والاكتفاء برقم الفاتورة
  calcSalesInvoiceTotals();
- const payload={invoice_no:no,invoice_date:salesInvDate.value||null,client_name:salesInvClient.value.trim(),site:salesInvSite.value.trim(),order_id:salesInvOrderId.value?Number(salesInvOrderId.value):null,subtotal:Number(salesInvSubtotal.value||0),vat_amount:Number(salesInvVat.value||0),total_amount:Number(salesInvTotal.value||0),client_invoice_file:f,notes:salesInvNotes.value.trim(),created_by:currentUser.username};
+ const payload={invoice_no:no,invoice_date:salesInvDate.value||null,client_name:salesInvClient.value.trim(),site:salesInvSite.value.trim(),order_id:salesInvOrderId.value?Number(salesInvOrderId.value):null,subtotal:Number(salesInvSubtotal.value||0),vat_amount:Number(salesInvVat.value||0),total_amount:Number(salesInvTotal.value||0),client_invoice_file:f,notes:ccCleanManualNotes(salesInvNotes.value),created_by:currentUser.username};
  const {error}=await client.from('sales_invoices').insert(payload);
  if(error){alert('خطأ حفظ فاتورة المبيعات: تأكد من SQL أو رقم الفاتورة غير مكرر');return;}
  closeSalesInvoiceModal(); loadSalesInvoices(); loadCostPurchaseInvoices();
@@ -541,7 +544,7 @@ button.small{padding:6px 10px;font-size:12px}
 <div id="app" class="app">
 
 <div class="sidebar">
-<h2>Taswyat V86</h2>
+<h2>Taswyat V89</h2>
 <p id="currentUserText"></p>
 
 <button onclick="showPage('homePage')">الرئيسية</button>
@@ -4236,8 +4239,11 @@ const {error:updateError} = await client
 .eq("id",currentInvoiceId);
 
 if(updateError){
-alert("حدث خطأ أثناء تعديل الفاتورة");
-return;
+if(String(updateError.message||'').includes('commercial_tax_percent')){
+ delete inv.commercial_tax_percent; delete inv.commercial_tax_value;
+ const retry=await client.from("material_invoices").update(inv).eq("id",currentInvoiceId);
+ if(retry.error){alert("حدث خطأ أثناء تعديل الفاتورة");return;}
+}else{alert("حدث خطأ أثناء تعديل الفاتورة");return;}
 }
 
 await client
@@ -4254,12 +4260,17 @@ const {data,error} = await client
 .single();
 
 if(error){
-alert("حدث خطأ أثناء حفظ الفاتورة");
-return;
-}
+if(String(error.message||'').includes('commercial_tax_percent')){
+ delete inv.commercial_tax_percent; delete inv.commercial_tax_value;
+ const retry=await client.from("material_invoices").insert(inv).select().single();
+ if(retry.error){alert("حدث خطأ أثناء حفظ الفاتورة");return;}
+ invoiceId=retry.data.id; currentInvoiceId=retry.data.id;
+}else{alert("حدث خطأ أثناء حفظ الفاتورة");return;}
+} else {
 
 invoiceId = data.id;
 currentInvoiceId = data.id;
+}
 }
 
 let items = [];
@@ -5741,7 +5752,7 @@ async function saveSalesInvoice(){
  const no=salesInvNo.value.trim(); if(!no){alert('اكتب رقم فاتورة المبيعات');return;}
  let f=null; // تم إلغاء رفع ملف الفاتورة والاكتفاء برقم الفاتورة
  calcSalesInvoiceTotals();
- const payload={invoice_no:no,invoice_date:salesInvDate.value||null,client_name:salesInvClient.value.trim(),site:salesInvSite.value.trim(),order_id:salesInvOrderId.value?Number(salesInvOrderId.value):null,subtotal:Number(salesInvSubtotal.value||0),vat_amount:Number(salesInvVat.value||0),total_amount:Number(salesInvTotal.value||0),client_invoice_file:f,notes:salesInvNotes.value.trim(),created_by:currentUser.username};
+ const payload={invoice_no:no,invoice_date:salesInvDate.value||null,client_name:salesInvClient.value.trim(),site:salesInvSite.value.trim(),order_id:salesInvOrderId.value?Number(salesInvOrderId.value):null,subtotal:Number(salesInvSubtotal.value||0),vat_amount:Number(salesInvVat.value||0),total_amount:Number(salesInvTotal.value||0),client_invoice_file:f,notes:ccCleanManualNotes(salesInvNotes.value),created_by:currentUser.username};
  const {error}=await client.from('sales_invoices').insert(payload);
  if(error){alert('خطأ حفظ فاتورة المبيعات: تأكد من SQL أو رقم الفاتورة غير مكرر');return;}
  closeSalesInvoiceModal(); loadSalesInvoices(); loadCostPurchaseInvoices();
@@ -6348,7 +6359,7 @@ async function openSalesInvoiceModal(invoiceId=null){
   if(error||!inv){alert('تعذر فتح الفاتورة');return;}
   salesInvNo.value=inv.invoice_no||''; salesInvDate.value=inv.invoice_date||''; salesInvClient.value=inv.client_name||''; salesInvSite.value=inv.site||''; salesInvOrderId.value=inv.order_id||''; salesInvOrderNoView.value=ccSalesGetOrder(inv.order_id)?.order_no||''; salesInvNotes.value=ccStripSalesItemsFromNotes(inv.notes||'');
   if(salesInvVatPercent) salesInvVatPercent.value=ccNum(inv.vat_percent||14);
-  if(salesInvCommercialPercent) salesInvCommercialPercent.value=ccNum(inv.commercial_tax_percent||0);
+  if(salesInvCommercialPercent) salesInvCommercialPercent.value=ccNum((inv.commercial_tax_percent||0));
   let items=[];
   try{ const res=await client.from('sales_invoice_items').select('*').eq('invoice_id',invoiceId).order('serial_no'); items=res.error?[]:(res.data||[]); }catch(e){ items=[]; }
   if(!items.length) items=ccParseSalesItemsFromNotes(inv);
@@ -7086,6 +7097,1533 @@ window.saveV81RoutingModal=async function(){
   document.addEventListener('DOMContentLoaded', function(){
     cleanNodeText(document.body);
     obs.observe(document.body,{childList:true,subtree:true});
+  });
+})();
+</script>
+
+<script>
+/* ===== V89 FIX: currency/order totals/sales FX - clean single patch ===== */
+(function(){
+  const CURRENCIES=['EGP','USD','EUR','SAR','AED','GBP'];
+  const n=v=>{const x=Number(String(v??'').replace(/,/g,''));return isNaN(x)?0:x};
+  const fmt=v=>n(v).toLocaleString(undefined,{maximumFractionDigits:2});
+  const esc=v=>(typeof window.ccEscape==='function'?window.ccEscape(v):String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])));
+  const META_ORDER='CC_ORDER_META', META_FX='FX_META';
+  function readMeta(objOrText,key){
+    const txt=typeof objOrText==='string'?objOrText:(objOrText?.notes||'');
+    const re=new RegExp('\\['+key+'\\]([\\s\\S]*?)\\[\\/'+key+'\\]');
+    const m=String(txt||'').match(re);
+    if(!m) return {};
+    try{return JSON.parse(m[1])||{};}catch(e){return {};}
+  }
+  function packMeta(text,key,data){
+    let base=String(text||'').replace(new RegExp('\\n?\\['+key+'\\][\\s\\S]*?\\[\\/'+key+'\\]','g'),'').trim();
+    return (base?base+'\n':'')+'['+key+']'+JSON.stringify(data)+'[/'+key+']';
+  }
+  window.ccV89ReadSalesMeta=function(s){
+    const m=readMeta(s,META_FX);
+    return {currency:s?.currency||s?.invoice_currency||m.currency||'EGP', exchange_rate:n(s?.exchange_rate||s?.fx_rate||m.exchange_rate||1)||1, egp_total:n(s?.egp_total||s?.total_amount_egp||m.egp_total||0), order_currency:s?.order_currency||m.order_currency||''};
+  };
+  window.ccV89OrderCurrency=function(o){return o?.currency||readMeta(o,META_ORDER).currency||'EGP';};
+  function cleanNotes(txt){
+    let s=String(txt||'');
+    s=s.replace(/\n?\[FX_META\][\s\S]*?\[\/FX_META\]/g,'');
+    s=s.replace(/\n?\[CC_ORDER_META\][\s\S]*?\[\/CC_ORDER_META\]/g,'');
+    if(typeof window.ccStripSalesItemsFromNotes==='function') s=window.ccStripSalesItemsFromNotes(s);
+    if(typeof window.ccCleanNotesOnly==='function') s=window.ccCleanNotesOnly(s);
+    return s.trim();
+  }
+  async function fx(from,to){
+    from=from||'EGP'; to=to||'EGP';
+    if(from===to) return 1;
+    const key='taswyat_fx_'+from+'_'+to;
+    const cached=JSON.parse(localStorage.getItem(key)||'null');
+    if(cached && Date.now()-cached.t<12*60*60*1000 && cached.r) return n(cached.r)||1;
+    try{
+      const res=await fetch('https://api.exchangerate-api.com/v4/latest/'+encodeURIComponent(from));
+      const js=await res.json();
+      const r=n(js?.rates?.[to]);
+      if(r){localStorage.setItem(key,JSON.stringify({r,t:Date.now()})); return r;}
+    }catch(e){}
+    return 1;
+  }
+  async function valueToCurrency(amount, from, to, egpKnown){
+    amount=n(amount); from=from||'EGP'; to=to||'EGP';
+    if(from===to) return amount;
+    if(to==='EGP') return egpKnown?n(egpKnown):amount*await fx(from,'EGP');
+    const egp=egpKnown?n(egpKnown):(from==='EGP'?amount:amount*await fx(from,'EGP'));
+    return egp*await fx('EGP',to);
+  }
+  function ensureCostOrderCurrencyField(){
+    const val=document.getElementById('ccOrderValue');
+    if(val && !document.getElementById('ccOrderCurrency')){
+      val.closest('.form-field,div')?.insertAdjacentHTML('afterend',`<div class="form-field"><label>عملة أمر الإسناد</label><select id="ccOrderCurrency">${CURRENCIES.map(c=>`<option>${c}</option>`).join('')}</select></div>`);
+    }
+  }
+  function ensureSalesFxFields(){
+    const notes=document.getElementById('salesInvNotes');
+    if(notes && !document.getElementById('salesInvCurrency')){
+      notes.closest('.form-field,div')?.insertAdjacentHTML('afterend',`
+      <div class="form-field"><label>عملة الفاتورة</label><select id="salesInvCurrency" onchange="ccV89SalesCurrencyChanged()">${CURRENCIES.map(c=>`<option>${c}</option>`).join('')}</select></div>
+      <div class="form-field"><label>سعر الصرف مقابل الجنيه</label><input id="salesInvExchangeRate" type="number" step="0.0001" value="1" oninput="ccV89UpdateSalesEgp()"></div>
+      <div class="form-field"><label>قيمة الفاتورة المعادلة بالجنيه المصري</label><input id="salesInvEgpTotal" readonly></div>`);
+    }
+  }
+  window.ccV89SalesCurrencyChanged=async function(){
+    const cur=document.getElementById('salesInvCurrency')?.value||'EGP';
+    const rateEl=document.getElementById('salesInvExchangeRate');
+    if(rateEl){ rateEl.value = cur==='EGP' ? 1 : (await fx(cur,'EGP')).toFixed(4); }
+    window.ccV89UpdateSalesEgp();
+  };
+  window.ccV89UpdateSalesEgp=function(){
+    const cur=document.getElementById('salesInvCurrency')?.value||'EGP';
+    const rate=cur==='EGP'?1:n(document.getElementById('salesInvExchangeRate')?.value||1);
+    const total=n(document.getElementById('salesInvTotal')?.value);
+    const egp=cur==='EGP'?total:total*rate;
+    if(document.getElementById('salesInvEgpTotal')) salesInvEgpTotal.value=egp.toFixed(2);
+  };
+
+  const oldOpenOrder=window.openCostOrderModal;
+  window.openCostOrderModal=async function(orderId=null){
+    if(oldOpenOrder) await oldOpenOrder.apply(this,arguments);
+    ensureCostOrderCurrencyField();
+    if(document.getElementById('ccOrderCurrency')) ccOrderCurrency.value='EGP';
+  };
+  const oldCalcSales=window.calcSalesInvoiceTotals;
+  window.calcSalesInvoiceTotals=function(){
+    if(oldCalcSales) oldCalcSales.apply(this,arguments);
+    ensureSalesFxFields(); window.ccV89UpdateSalesEgp();
+  };
+  const oldOpenSales=window.openSalesInvoiceModal;
+  window.openSalesInvoiceModal=async function(invoiceId=null){
+    if(oldOpenSales) await oldOpenSales.apply(this,arguments);
+    ensureSalesFxFields();
+    let cur='EGP', rate=1, egp=0;
+    if(invoiceId){
+      try{const {data:inv}=await client.from('sales_invoices').select('*').eq('id',invoiceId).maybeSingle(); const m=window.ccV89ReadSalesMeta(inv||{}); cur=m.currency||'EGP'; rate=m.exchange_rate||1; egp=m.egp_total||0;}catch(e){}
+    }
+    if(document.getElementById('salesInvCurrency')) salesInvCurrency.value=cur;
+    if(document.getElementById('salesInvExchangeRate')) salesInvExchangeRate.value=rate;
+    window.ccV89UpdateSalesEgp();
+    if(egp && document.getElementById('salesInvEgpTotal')) salesInvEgpTotal.value=n(egp).toFixed(2);
+  };
+
+  window.saveCostOrder=async function(){
+    const no=ccOrderNo.value.trim(); if(!no){alert('اكتب رقم الأمر');return;}
+    if(typeof calcCostOrderTotalFromRows==='function') calcCostOrderTotalFromRows();
+    const currency=document.getElementById('ccOrderCurrency')?.value||'EGP';
+    const notes=packMeta(ccOrderNotes.value.trim(),META_ORDER,{currency,updated_at:new Date().toISOString()});
+    const payload={order_no:no,order_date:ccOrderDate.value||null,client_name:ccOrderClient.value.trim(),site:ccOrderSite.value.trim(),total_value:n(ccOrderValue.value),notes,created_by:currentUser.username};
+    const {data:ord,error}=await client.from('cost_orders').insert(payload).select().single();
+    if(error){alert('خطأ حفظ الأمر: تأكد من SQL أو رقم الأمر غير مكرر');return;}
+    const items=[];
+    document.querySelectorAll('#ccOrderItemsBody tr').forEach((tr,i)=>{
+      const code=tr.querySelector('.ccOrderItemCode')?.value.trim()||'';
+      const desc=tr.querySelector('.ccOrderItemDesc')?.value.trim()||'';
+      const qty=n(tr.querySelector('.ccOrderItemQty')?.value);
+      const unitPrice=n(tr.querySelector('.ccOrderItemUnitPrice')?.value);
+      const amount=n(tr.querySelector('.ccOrderItemValue')?.value || qty*unitPrice);
+      if(desc||code) items.push({order_id:ord.id,serial_no:i+1,item_code:code,description:desc,unit:tr.querySelector('.ccOrderItemUnit')?.value.trim()||'',qty,unit_price:unitPrice,currency:tr.querySelector('.ccOrderItemCurrency')?.value||currency,amount});
+    });
+    if(items.length) await client.from('cost_order_items').insert(items);
+    closeCostOrderModal(); await loadCostOrders(); if(typeof loadCostPurchaseInvoices==='function') loadCostPurchaseInvoices();
+  };
+
+  window.saveSalesInvoice=async function(){
+    const no=salesInvNo.value.trim(); if(!no){alert('اكتب رقم فاتورة المبيعات');return;}
+    const orderId=salesInvOrderId.value?Number(salesInvOrderId.value):null; if(!orderId){alert('اختار أمر الإسناد');return;}
+    const rows=[...document.querySelectorAll('#salesInvItemsBody tr')].map((tr,i)=>{ const orderItemId=Number(tr.querySelector('.salesItemSelect')?.value||0); const it=(ccOrderItemsCache||[]).find(x=>String(x.id)===String(orderItemId))||{}; return {serial_no:i+1,order_id:orderId,order_item_id:orderItemId,item_description:it.description||'',unit:it.unit||'',order_qty:n(tr.querySelector('.salesOrderQty')?.value),unit_price:n(tr.querySelector('.salesUnitPrice')?.value),previous_qty:n(tr.querySelector('.salesPrevQty')?.value),current_qty:n(tr.querySelector('.salesCurQty')?.value),previous_amount:n(tr.querySelector('.salesPrevAmount')?.value),current_amount:n(tr.querySelector('.salesCurAmount')?.value),total_amount:n(tr.querySelector('.salesLineTotal')?.value)}; }).filter(r=>r.order_item_id && r.current_qty);
+    if(!rows.length){alert('أدخل بند واحد على الأقل وكمية حالية');return;}
+    if(typeof calcSalesInvoiceTotals==='function') calcSalesInvoiceTotals();
+    const invCur=document.getElementById('salesInvCurrency')?.value||'EGP';
+    const rate=invCur==='EGP'?1:n(document.getElementById('salesInvExchangeRate')?.value||1);
+    const total=n(salesInvTotal.value);
+    const egpTotal=invCur==='EGP'?total:total*rate;
+    const orderCurrency=window.ccV89OrderCurrency((ccOrdersCache||[]).find(o=>String(o.id)===String(orderId))||{});
+    const baseNotes=cleanNotes(salesInvNotes.value.trim());
+    let notes=typeof ccPackSalesItemsInNotes==='function'?ccPackSalesItemsInNotes(baseNotes,rows):baseNotes;
+    notes=packMeta(notes,META_FX,{currency:invCur,exchange_rate:rate,egp_total:egpTotal,order_currency:orderCurrency,updated_at:new Date().toISOString()});
+    const payload={invoice_no:no,invoice_date:salesInvDate.value||null,client_name:salesInvClient.value.trim(),site:salesInvSite.value.trim(),order_id:orderId,subtotal:n(salesInvSubtotal.value),vat_amount:n(salesInvVat.value),total_amount:total,client_invoice_file:null,notes,updated_by:currentUser.username,updated_at:new Date().toISOString()};
+    if(document.getElementById('salesInvVatPercent')) payload.vat_percent=n(salesInvVatPercent.value);
+    if(document.getElementById('salesInvCommercialPercent')) payload.commercial_tax_percent=n(salesInvCommercialPercent.value);
+    if(document.getElementById('salesInvCommercialValue')) payload.commercial_tax_value=n(salesInvCommercialValue.value);
+    let invoiceId=Number(salesInvEditId.value||0), error;
+    if(invoiceId){({error}=await client.from('sales_invoices').update(payload).eq('id',invoiceId));}
+    else{const res=await client.from('sales_invoices').insert({...payload,created_by:currentUser.username}).select().single(); error=res.error; invoiceId=res.data?.id;}
+    if(error){alert('خطأ حفظ فاتورة المبيعات: '+error.message);return;}
+    try{await client.from('sales_invoice_items').delete().eq('invoice_id',invoiceId); await client.from('sales_invoice_items').insert(rows.map(r=>({...r,invoice_id:invoiceId,created_by:currentUser.username})));}catch(e){}
+    closeSalesInvoiceModal(); await loadSalesInvoices(); if(document.getElementById('ccOrderDetailsArea')?.innerHTML && typeof openCostOrderDetails==='function') openCostOrderDetails(orderId);
+    alert('تم حفظ الفاتورة وتحديث مبيعات أمر الإسناد');
+  };
+
+  window.loadCostOrders=async function(render=true){
+    const {data:orders,error}=await client.from('cost_orders').select('*').order('id',{ascending:false}).limit(1000);
+    if(error){ if(render) costOrdersArea.innerHTML='شغّل SQL الخاص بـ Cost Control أولاً'; return; }
+    ccOrdersCache=orders||[];
+    const {data:items}=await client.from('cost_order_items').select('*').order('serial_no'); ccOrderItemsCache=items||[];
+    const {data:sales}=await client.from('sales_invoices').select('*').order('id',{ascending:false}).limit(1000); ccSalesCache=sales||[];
+    if(typeof refreshCostControlSelects==='function') refreshCostControlSelects();
+    if(!render||!document.getElementById('costOrdersArea')) return;
+    let body='';
+    for(const o of ccOrdersCache){
+      const its=ccOrderItemsCache.filter(i=>String(i.order_id)===String(o.id));
+      const orderCur=window.ccV89OrderCurrency(o);
+      const related=ccSalesCache.filter(s=>String(s.order_id)===String(o.id));
+      let salesOrderCur=0,collected=0,under=0;
+      for(const s of related){
+        const m=window.ccV89ReadSalesMeta(s); const val=await valueToCurrency(n(s.total_amount),m.currency,orderCur,m.egp_total);
+        salesOrderCur+=val; const st=(typeof ccSalesCollectionMeta==='function'?ccSalesCollectionMeta(s).status:'تحت التحصيل'); if(st==='محصلة') collected+=val; else under+=val;
+      }
+      body+=`<tr><td><button class="small green" onclick="openCostOrderDetails(${o.id})">فتح</button></td><td>${esc(o.order_no||'')}</td><td>${o.order_date||''}</td><td>${esc(o.client_name||'')}</td><td>${esc(o.site||'')}</td><td>${fmt(o.total_value)}</td><td><b>${esc(orderCur)}</b></td><td>${fmt(salesOrderCur)}</td><td class="cc-positive">${fmt(collected)}</td><td class="cc-negative">${fmt(under)}</td><td>${its.length}</td><td>${esc(cleanNotes(o.notes||''))}</td></tr>`;
+    }
+    costOrdersArea.innerHTML=`<table class="table"><thead><tr><th>فتح</th><th>رقم الأمر</th><th>التاريخ</th><th>العميل</th><th>الموقع</th><th>قيمة أمر الإسناد</th><th>العملة</th><th>قيمة الفواتير/المستخلصات بعملة الأمر</th><th>إجمالي المحصل</th><th>إجمالي تحت التحصيل</th><th>عدد البنود</th><th>ملاحظات</th></tr></thead><tbody>${body||'<tr><td colspan="12">لا توجد أوامر إسناد</td></tr>'}</tbody></table><div id="ccOrderDetailsArea" style="margin-top:14px"></div>`;
+  };
+
+  window.loadSalesInvoices=async function(render=true){
+    if((!ccOrdersCache||!ccOrdersCache.length) && typeof loadCostOrders==='function'){try{await loadCostOrders(false);}catch(e){}}
+    const {data,error}=await client.from('sales_invoices').select('*').order('id',{ascending:false}).limit(1000);
+    if(error){ if(render) salesInvoicesArea.innerHTML='شغّل SQL الخاص بفواتير المبيعات أولاً'; return; }
+    ccSalesCache=data||[]; if(typeof refreshCostControlSelects==='function') refreshCostControlSelects();
+    if(!render||!document.getElementById('salesInvoicesArea')) return;
+    const q=(document.getElementById('ccSalesSearch')?.value||'').toLowerCase().trim();
+    const statusF=document.getElementById('ccSalesStatusFilter')?.value||'';
+    let rows=ccSalesCache.filter(s=>{const o=ccSalesGetOrder?.(s.order_id)||{}; const meta=typeof ccSalesCollectionMeta==='function'?ccSalesCollectionMeta(s):{status:'تحت التحصيل',doc_no:''}; const txt=[s.invoice_no,s.client_name,s.site,o.order_no,meta.doc_no].join(' ').toLowerCase(); return (!q||txt.includes(q)) && (!statusF||meta.status===statusF);});
+    const egpTotal=rows.reduce((sum,s)=>{const m=window.ccV89ReadSalesMeta(s);return sum+(m.egp_total||n(s.total_amount)*(m.currency==='EGP'?1:m.exchange_rate));},0);
+    const selected=rows.reduce((sum,s)=>sum+n(s.total_amount),0);
+    let body='';
+    for(const s of rows){
+      const o=ccSalesGetOrder?.(s.order_id)||{}; const m=window.ccV89ReadSalesMeta(s); const meta=typeof ccSalesCollectionMeta==='function'?ccSalesCollectionMeta(s):{status:'تحت التحصيل',doc_no:''}; const egp=m.egp_total||n(s.total_amount)*(m.currency==='EGP'?1:m.exchange_rate);
+      body+=`<tr><td><button class="small green" onclick="openSalesInvoiceModal(${s.id})">فتح/تعديل</button> <button class="small red" onclick="deleteSalesInvoice(${s.id})">حذف</button></td><td><select onchange="ccUpdateSalesCollectionStatus&&ccUpdateSalesCollectionStatus(${s.id},this.value)"><option ${meta.status==='تحت التحصيل'?'selected':''}>تحت التحصيل</option><option ${meta.status==='محصلة'?'selected':''}>محصلة</option></select></td><td>${esc(meta.doc_no||'-')}</td><td>${esc(s.invoice_no||'')}</td><td>${s.invoice_date||''}</td><td>${esc(o.order_no||'')}</td><td>${esc(s.client_name||'')}</td><td>${esc(s.site||'')}</td><td>${fmt(s.total_amount)}</td><td><b>${esc(m.currency||'EGP')}</b></td><td>${fmt(m.exchange_rate||1)}</td><td>${fmt(egp)}</td><td>${esc(cleanNotes(s.notes||''))}</td></tr>`;
+    }
+    salesInvoicesArea.innerHTML=`<div class="grid" style="background:#f8fafc;border:1px solid #e2e8f0;padding:12px;border-radius:12px;margin-bottom:12px"><div class="form-field"><label>بحث بالموقع / رقم الفاتورة / العميل</label><input id="ccSalesSearch" oninput="loadSalesInvoices()" placeholder="اكتب للبحث" value="${esc(q)}"></div><div class="form-field"><label>حالة الفواتير</label><select id="ccSalesStatusFilter" onchange="loadSalesInvoices()"><option value="" ${!statusF?'selected':''}>كل الحالات</option><option ${statusF==='تحت التحصيل'?'selected':''}>تحت التحصيل</option><option ${statusF==='محصلة'?'selected':''}>محصلة</option></select></div><div class="summary"><div class="box"><h3>إجمالي الاختيار</h3><h2>${fmt(selected)}</h2></div><div class="box"><h3>الإجمالي المعادل بالجنيه</h3><h2>${fmt(egpTotal)}</h2></div></div></div><table class="table"><thead><tr><th>إجراء</th><th>حالة التحصيل</th><th>رقم مستند الدفع / الحركة</th><th>رقم الفاتورة</th><th>تاريخ عمل الفاتورة</th><th>رقم أمر الإسناد</th><th>العميل</th><th>الموقع</th><th>قيمة الفاتورة</th><th>عملة الفاتورة</th><th>سعر الصرف</th><th>المعادلة بالجنيه المصري</th><th>ملاحظات</th></tr></thead><tbody>${body||'<tr><td colspan="13">لا توجد فواتير</td></tr>'}</tbody></table>`;
+  };
+
+  document.addEventListener('DOMContentLoaded',function(){
+    ensureCostOrderCurrencyField(); ensureSalesFxFields();
+    const h=document.querySelector('.sidebar h2'); if(h) h.textContent='Taswyat V89';
+    document.title='Taswyat System - UPGRADED V89';
+  });
+})();
+</script>
+
+
+<script>
+/* ===== V90 FIX: edit cost orders + order currency/EGP equivalent + force sales currency from order ===== */
+(function(){
+  const CURRENCIES=['EGP','USD','EUR','SAR','AED','GBP'];
+  const n=v=>{const x=Number(String(v??'').replace(/,/g,''));return isNaN(x)?0:x};
+  const fmt=v=>n(v).toLocaleString(undefined,{maximumFractionDigits:2});
+  const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const META_ORDER='CC_ORDER_META', META_FX='FX_META';
+  function readMeta(objOrText,key){
+    const txt=typeof objOrText==='string'?objOrText:(objOrText?.notes||'');
+    const m=String(txt||'').match(new RegExp('\\['+key+'\\]([\\s\\S]*?)\\[\\/'+key+'\\]'));
+    if(!m) return {};
+    try{return JSON.parse(m[1])||{};}catch(e){return {};}
+  }
+  function packMeta(text,key,data){
+    const re=new RegExp('\\n?\\['+key+'\\][\\s\\S]*?\\[\\/'+key+'\\]','g');
+    let base=String(text||'').replace(re,'').trim();
+    return (base?base+'\n':'')+'['+key+']'+JSON.stringify(data)+'[/'+key+']';
+  }
+  function cleanNotes(txt){
+    let s=String(txt||'').replace(/\n?\[CC_ORDER_META\][\s\S]*?\[\/CC_ORDER_META\]/g,'').replace(/\n?\[FX_META\][\s\S]*?\[\/FX_META\]/g,'');
+    if(typeof window.ccStripSalesItemsFromNotes==='function') s=window.ccStripSalesItemsFromNotes(s);
+    if(typeof window.ccCleanNotesOnly==='function') s=window.ccCleanNotesOnly(s);
+    return s.trim();
+  }
+  async function fx(from,to){
+    from=from||'EGP'; to=to||'EGP'; if(from===to) return 1;
+    const key='taswyat_fx_'+from+'_'+to;
+    try{const c=JSON.parse(localStorage.getItem(key)||'null'); if(c&&Date.now()-c.t<12*60*60*1000&&c.r) return n(c.r)||1;}catch(e){}
+    try{const res=await fetch('https://api.exchangerate-api.com/v4/latest/'+encodeURIComponent(from)); const js=await res.json(); const r=n(js?.rates?.[to]); if(r){localStorage.setItem(key,JSON.stringify({r,t:Date.now()})); return r;}}catch(e){}
+    return 1;
+  }
+  window.ccV90OrderMeta=function(o){
+    const m=readMeta(o,META_ORDER);
+    const cur=o?.currency||m.currency||'EGP';
+    const rate=n(o?.exchange_rate||o?.fx_rate||m.exchange_rate||(cur==='EGP'?1:0)) || (cur==='EGP'?1:0);
+    const total=n(o?.total_value||0);
+    return {currency:cur, exchange_rate:rate||1, egp_total:n(o?.egp_total||o?.total_value_egp||m.egp_total||(cur==='EGP'?total:total*(rate||1)))};
+  };
+  window.ccV89OrderCurrency=function(o){ return window.ccV90OrderMeta(o).currency; };
+  window.ccV89ReadSalesMeta=function(s){
+    const m=readMeta(s,META_FX);
+    return {currency:s?.currency||s?.invoice_currency||m.currency||'EGP', exchange_rate:n(s?.exchange_rate||s?.fx_rate||m.exchange_rate||1)||1, egp_total:n(s?.egp_total||s?.total_amount_egp||m.egp_total||0), order_currency:s?.order_currency||m.order_currency||''};
+  };
+  async function valueToCurrency(amount, from, to, egpKnown){
+    amount=n(amount); from=from||'EGP'; to=to||'EGP'; if(from===to) return amount;
+    const egp=egpKnown?n(egpKnown):(from==='EGP'?amount:amount*await fx(from,'EGP'));
+    return to==='EGP'?egp:egp*await fx('EGP',to);
+  }
+  function ensureOrderEditFields(){
+    const val=document.getElementById('ccOrderValue'); if(!val) return;
+    if(!document.getElementById('ccOrderEditId')) val.insertAdjacentHTML('beforebegin','<input type="hidden" id="ccOrderEditId" value="">');
+    if(!document.getElementById('ccOrderCurrency')) val.closest('.form-field,div')?.insertAdjacentHTML('afterend',`<div class="form-field"><label>عملة أمر الإسناد / التوريد</label><select id="ccOrderCurrency" onchange="ccV90OrderCurrencyChanged()">${CURRENCIES.map(c=>`<option>${c}</option>`).join('')}</select></div>`);
+    if(!document.getElementById('ccOrderExchangeRate')) document.getElementById('ccOrderCurrency')?.closest('.form-field,div')?.insertAdjacentHTML('afterend','<div class="form-field"><label>سعر الصرف مقابل الجنيه</label><input id="ccOrderExchangeRate" type="number" step="0.0001" value="1" oninput="ccV90UpdateOrderEgp()"></div><div class="form-field"><label>قيمة أمر الإسناد المعادلة بالجنيه المصري</label><input id="ccOrderEgpTotal" readonly></div>');
+    if(val && !val.dataset.v90fx){ val.dataset.v90fx='1'; val.addEventListener('input',window.ccV90UpdateOrderEgp); }
+  }
+  window.ccV90UpdateOrderEgp=function(){
+    const cur=document.getElementById('ccOrderCurrency')?.value||'EGP';
+    const rate=cur==='EGP'?1:n(document.getElementById('ccOrderExchangeRate')?.value||1);
+    if(document.getElementById('ccOrderExchangeRate') && cur==='EGP') ccOrderExchangeRate.value=1;
+    if(document.getElementById('ccOrderEgpTotal')) ccOrderEgpTotal.value=(cur==='EGP'?n(ccOrderValue?.value):n(ccOrderValue?.value)*rate).toFixed(2);
+  };
+  window.ccV90OrderCurrencyChanged=async function(){
+    const cur=document.getElementById('ccOrderCurrency')?.value||'EGP';
+    if(document.getElementById('ccOrderExchangeRate')) ccOrderExchangeRate.value=cur==='EGP'?1:(await fx(cur,'EGP')).toFixed(4);
+    window.ccV90UpdateOrderEgp();
+  };
+  function ensureSalesFields(){
+    const notes=document.getElementById('salesInvNotes'); if(!notes) return;
+    if(!document.getElementById('salesInvCurrency')) notes.closest('.form-field,div')?.insertAdjacentHTML('afterend',`<div class="form-field"><label>عملة الفاتورة / المستخلص</label><select id="salesInvCurrency" onchange="ccV90SalesCurrencyChanged()">${CURRENCIES.map(c=>`<option>${c}</option>`).join('')}</select></div><div class="form-field"><label>سعر الصرف مقابل الجنيه</label><input id="salesInvExchangeRate" type="number" step="0.0001" value="1" oninput="ccV90UpdateSalesEgp()"></div><div class="form-field"><label>قيمة الفاتورة المعادلة بالجنيه المصري</label><input id="salesInvEgpTotal" readonly></div>`);
+    const orderSel=document.getElementById('salesInvOrderId');
+    if(orderSel && !orderSel.dataset.v90fx){ orderSel.dataset.v90fx='1'; orderSel.addEventListener('change',window.ccV90ApplyOrderCurrencyToSales); }
+  }
+  window.ccV90UpdateSalesEgp=function(){
+    const cur=document.getElementById('salesInvCurrency')?.value||'EGP';
+    const rate=cur==='EGP'?1:n(document.getElementById('salesInvExchangeRate')?.value||1);
+    if(document.getElementById('salesInvEgpTotal')) salesInvEgpTotal.value=(cur==='EGP'?n(salesInvTotal?.value):n(salesInvTotal?.value)*rate).toFixed(2);
+  };
+  window.ccV90SalesCurrencyChanged=async function(){
+    const cur=document.getElementById('salesInvCurrency')?.value||'EGP';
+    if(document.getElementById('salesInvExchangeRate')) salesInvExchangeRate.value=cur==='EGP'?1:(await fx(cur,'EGP')).toFixed(4);
+    window.ccV90UpdateSalesEgp();
+  };
+  window.ccV90ApplyOrderCurrencyToSales=async function(){
+    ensureSalesFields();
+    const orderId=document.getElementById('salesInvOrderId')?.value||'';
+    const o=(window.ccOrdersCache||ccOrdersCache||[]).find(x=>String(x.id)===String(orderId)) || (typeof ccSalesGetOrder==='function'?ccSalesGetOrder(orderId):{});
+    const m=window.ccV90OrderMeta(o||{});
+    if(document.getElementById('salesInvCurrency')) salesInvCurrency.value=m.currency||'EGP';
+    if(document.getElementById('salesInvExchangeRate')) salesInvExchangeRate.value=m.currency==='EGP'?1:(m.exchange_rate||await fx(m.currency,'EGP')).toFixed? (m.exchange_rate||await fx(m.currency,'EGP')).toFixed(4):(m.exchange_rate||1);
+    window.ccV90UpdateSalesEgp();
+  };
+
+  const prevCalcSales=window.calcSalesInvoiceTotals;
+  window.calcSalesInvoiceTotals=function(){ if(prevCalcSales) prevCalcSales.apply(this,arguments); ensureSalesFields(); window.ccV90UpdateSalesEgp(); };
+
+  window.openCostOrderModal=async function(orderId=null){
+    costOrderModal.style.display='flex'; ensureOrderEditFields();
+    if(document.getElementById('ccOrderEditId')) ccOrderEditId.value=orderId||'';
+    ccOrderNo.value=''; ccOrderDate.value=new Date().toISOString().slice(0,10); ccOrderClient.value=''; ccOrderSite.value=''; ccOrderValue.value=''; ccOrderNotes.value='';
+    ccOrderItemsBody.innerHTML='';
+    if(!orderId){ if(document.getElementById('ccOrderCurrency')) ccOrderCurrency.value='EGP'; if(document.getElementById('ccOrderExchangeRate')) ccOrderExchangeRate.value=1; if(typeof addCostOrderItemRow==='function') addCostOrderItemRow(); window.ccV90UpdateOrderEgp(); return; }
+    let order=(ccOrdersCache||[]).find(o=>String(o.id)===String(orderId));
+    if(!order){ const {data}=await client.from('cost_orders').select('*').eq('id',orderId).maybeSingle(); order=data; }
+    if(!order){alert('أمر الإسناد غير موجود'); return;}
+    const om=window.ccV90OrderMeta(order);
+    ccOrderNo.value=order.order_no||''; ccOrderDate.value=order.order_date||''; ccOrderClient.value=order.client_name||''; ccOrderSite.value=order.site||''; ccOrderValue.value=n(order.total_value||0); ccOrderNotes.value=cleanNotes(order.notes||'');
+    if(document.getElementById('ccOrderCurrency')) ccOrderCurrency.value=om.currency||'EGP';
+    if(document.getElementById('ccOrderExchangeRate')) ccOrderExchangeRate.value=om.currency==='EGP'?1:(om.exchange_rate||1);
+    const items=(ccOrderItemsCache||[]).filter(i=>String(i.order_id)===String(orderId));
+    if(items.length && typeof addCostOrderItemRow==='function') items.forEach(it=>addCostOrderItemRow(it)); else if(typeof addCostOrderItemRow==='function') addCostOrderItemRow();
+    window.ccV90UpdateOrderEgp();
+  };
+
+  window.saveCostOrder=async function(){
+    const no=ccOrderNo.value.trim(); if(!no){alert('اكتب رقم أمر الإسناد');return;}
+    if(typeof calcCostOrderTotalFromRows==='function') calcCostOrderTotalFromRows();
+    ensureOrderEditFields();
+    const editId=Number(document.getElementById('ccOrderEditId')?.value||0);
+    const currency=document.getElementById('ccOrderCurrency')?.value||'EGP';
+    const rate=currency==='EGP'?1:n(document.getElementById('ccOrderExchangeRate')?.value||1);
+    const total=n(ccOrderValue.value); const egpTotal=currency==='EGP'?total:total*rate;
+    const notes=packMeta(cleanNotes(ccOrderNotes.value),META_ORDER,{currency,exchange_rate:rate,egp_total:egpTotal,updated_at:new Date().toISOString()});
+
+    // حفظ آمن: لا نرسل أعمدة غير مؤكدة إلى cost_orders حتى لا يظهر خطأ schema cache مثل updated_at
+    const corePayload={order_no:no,order_date:ccOrderDate.value||null,client_name:ccOrderClient.value.trim(),site:ccOrderSite.value.trim(),total_value:total,notes};
+    let orderId=editId, res, error;
+    if(editId){
+      res=await client.from('cost_orders').update(corePayload).eq('id',editId).select().maybeSingle();
+      error=res.error;
+    }else{
+      res=await client.from('cost_orders').insert({...corePayload,created_by:currentUser?.username||''}).select().single();
+      error=res.error; orderId=res.data?.id;
+      if(error && String(error.message||'').toLowerCase().includes('created_by')){
+        res=await client.from('cost_orders').insert(corePayload).select().single();
+        error=res.error; orderId=res.data?.id;
+      }
+    }
+    if(error){alert('خطأ حفظ أمر الإسناد: '+(error.message||'تأكد من SQL أو أن رقم الأمر غير مكرر'));return;}
+
+    const items=[];
+    document.querySelectorAll('#ccOrderItemsBody tr').forEach((tr,i)=>{
+      const code=tr.querySelector('.ccOrderItemCode')?.value.trim()||''; const desc=tr.querySelector('.ccOrderItemDesc')?.value.trim()||'';
+      const qty=n(tr.querySelector('.ccOrderItemQty')?.value); const unitPrice=n(tr.querySelector('.ccOrderItemUnitPrice')?.value); const amount=n(tr.querySelector('.ccOrderItemValue')?.value || qty*unitPrice);
+      if(desc||code) items.push({order_id:orderId,serial_no:i+1,item_code:code,description:desc,unit:tr.querySelector('.ccOrderItemUnit')?.value.trim()||'',qty,unit_price:unitPrice,currency,amount});
+    });
+    if(orderId) await client.from('cost_order_items').delete().eq('order_id',orderId);
+    if(items.length){
+      let ir=await client.from('cost_order_items').insert(items);
+      if(ir.error){
+        const safe=items.map(({unit_price,currency,...x})=>x);
+        ir=await client.from('cost_order_items').insert(safe);
+        if(ir.error){alert('تم حفظ أمر الإسناد، لكن لم يتم حفظ البنود: '+ir.error.message);}
+      }
+    }
+    closeCostOrderModal(); await loadCostOrders(); if(typeof loadCostPurchaseInvoices==='function') loadCostPurchaseInvoices();
+    alert('تم حفظ أمر الإسناد بنجاح');
+  };
+
+  const prevOpenSales=window.openSalesInvoiceModal;
+  window.openSalesInvoiceModal=async function(invoiceId=null){
+    if(prevOpenSales) await prevOpenSales.apply(this,arguments);
+    ensureSalesFields();
+    if(invoiceId){
+      try{const {data:inv}=await client.from('sales_invoices').select('*').eq('id',invoiceId).maybeSingle(); const m=window.ccV89ReadSalesMeta(inv||{}); if(salesInvCurrency) salesInvCurrency.value=m.currency||'EGP'; if(salesInvExchangeRate) salesInvExchangeRate.value=m.exchange_rate||1; window.ccV90UpdateSalesEgp(); if(m.egp_total && salesInvEgpTotal) salesInvEgpTotal.value=n(m.egp_total).toFixed(2);}catch(e){}
+    }else{ await window.ccV90ApplyOrderCurrencyToSales(); }
+  };
+
+  const prevSaveSales=window.saveSalesInvoice;
+  window.saveSalesInvoice=async function(){
+    ensureSalesFields();
+    const orderId=salesInvOrderId.value?Number(salesInvOrderId.value):null;
+    if(orderId){
+      const o=(ccOrdersCache||[]).find(x=>String(x.id)===String(orderId)) || {};
+      const om=window.ccV90OrderMeta(o);
+      if(document.getElementById('salesInvCurrency')) salesInvCurrency.value=om.currency||'EGP';
+      if(document.getElementById('salesInvExchangeRate')) salesInvExchangeRate.value=om.currency==='EGP'?1:(om.exchange_rate||n(salesInvExchangeRate.value)||1);
+      window.ccV90UpdateSalesEgp();
+    }
+    if(prevSaveSales) return prevSaveSales.apply(this,arguments);
+  };
+
+  window.loadCostOrders=async function(render=true){
+    const {data:orders,error}=await client.from('cost_orders').select('*').order('id',{ascending:false}).limit(1000);
+    if(error){ if(render) costOrdersArea.innerHTML='شغّل SQL الخاص بـ Cost Control أولاً'; return; }
+    ccOrdersCache=orders||[]; window.ccOrdersCache=ccOrdersCache;
+    const {data:items}=await client.from('cost_order_items').select('*').order('serial_no'); ccOrderItemsCache=items||[];
+    const {data:sales}=await client.from('sales_invoices').select('*').order('id',{ascending:false}).limit(1000); ccSalesCache=sales||[];
+    if(typeof refreshCostControlSelects==='function') refreshCostControlSelects();
+    if(!render||!document.getElementById('costOrdersArea')) return;
+    let body='';
+    for(const o of ccOrdersCache){
+      const its=ccOrderItemsCache.filter(i=>String(i.order_id)===String(o.id));
+      const om=window.ccV90OrderMeta(o); const orderCur=om.currency;
+      const related=ccSalesCache.filter(s=>String(s.order_id)===String(o.id));
+      let salesOrderCur=0,collected=0,under=0;
+      for(const s of related){
+        const m=window.ccV89ReadSalesMeta(s); const val=await valueToCurrency(n(s.total_amount),m.currency,orderCur,m.egp_total);
+        salesOrderCur+=val; const st=(typeof ccSalesCollectionMeta==='function'?ccSalesCollectionMeta(s).status:'تحت التحصيل'); if(st==='محصلة') collected+=val; else under+=val;
+      }
+      body+=`<tr><td><button class="small green" onclick="openCostOrderDetails(${o.id})">فتح</button> <button class="small orange" onclick="openCostOrderModal(${o.id})">تعديل</button></td><td>${esc(o.order_no||'')}</td><td>${o.order_date||''}</td><td>${esc(o.client_name||'')}</td><td>${esc(o.site||'')}</td><td>${fmt(o.total_value)}</td><td><b>${esc(orderCur)}</b></td><td>${fmt(om.exchange_rate||1)}</td><td>${fmt(om.egp_total)}</td><td>${fmt(salesOrderCur)}</td><td class="cc-positive">${fmt(collected)}</td><td class="cc-negative">${fmt(under)}</td><td>${its.length}</td><td>${esc(cleanNotes(o.notes||''))}</td></tr>`;
+    }
+    costOrdersArea.innerHTML=`<table class="table"><thead><tr><th>فتح / تعديل</th><th>رقم الأمر</th><th>التاريخ</th><th>العميل</th><th>الموقع</th><th>قيمة أمر الإسناد</th><th>عملة الأمر</th><th>سعر الصرف</th><th>المعادلة بالجنيه المصري</th><th>قيمة الفواتير/المستخلصات بعملة الأمر</th><th>إجمالي المحصل</th><th>إجمالي تحت التحصيل</th><th>عدد البنود</th><th>ملاحظات</th></tr></thead><tbody>${body||'<tr><td colspan="14">لا توجد أوامر إسناد</td></tr>'}</tbody></table><div id="ccOrderDetailsArea" style="margin-top:14px"></div>`;
+  };
+
+  document.addEventListener('DOMContentLoaded',function(){
+    ensureOrderEditFields(); ensureSalesFields();
+    const h=document.querySelector('.sidebar h2'); if(h) h.textContent='Taswyat V93';
+    document.title='Taswyat System - UPGRADED V93';
+  });
+})();
+</script>
+
+
+<script>
+/* ===== V94 robust order currency + FX auto + professional modal ===== */
+(function(){
+  const CURRENCIES=['EGP','USD','EUR','SAR','AED','GBP'];
+  const n=v=>{const x=Number(String(v??'').replace(/,/g,''));return isNaN(x)?0:x};
+  const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const fmt=v=>n(v).toLocaleString(undefined,{maximumFractionDigits:2});
+  const META_ORDER='CC_ORDER_META';
+  function readMeta(obj,key){
+    const txt=typeof obj==='string'?obj:(obj?.notes||'');
+    const m=String(txt||'').match(new RegExp('\\['+key+'\\]([\\s\\S]*?)\\[\\/'+key+'\\]'));
+    if(!m) return {}; try{return JSON.parse(m[1])||{};}catch(e){return {};}
+  }
+  function cleanNotes(txt){
+    let s=String(txt||'');
+    s=s.replace(/\n?\[FX_META\][\s\S]*?\[\/FX_META\]/g,'');
+    s=s.replace(/\n?\[CC_ORDER_META\][\s\S]*?\[\/CC_ORDER_META\]/g,'');
+    if(typeof window.ccStripSalesItemsFromNotes==='function') s=window.ccStripSalesItemsFromNotes(s);
+    if(typeof window.ccCleanNotesOnly==='function') s=window.ccCleanNotesOnly(s);
+    return s.trim();
+  }
+  function packMeta(text,key,data){
+    const base=cleanNotes(text);
+    return (base?base+'\n':'')+'['+key+']'+JSON.stringify(data)+'[/'+key+']';
+  }
+  async function fx(from,to){
+    from=from||'EGP'; to=to||'EGP';
+    if(from===to) return 1;
+    const key='taswyat_fx_robust_'+from+'_'+to;
+    try{const c=JSON.parse(localStorage.getItem(key)||'null'); if(c&&Date.now()-c.t<6*60*60*1000&&n(c.r)>0) return n(c.r);}catch(e){}
+    const urls=[
+      'https://open.er-api.com/v6/latest/'+encodeURIComponent(from),
+      'https://api.exchangerate-api.com/v4/latest/'+encodeURIComponent(from),
+      'https://api.frankfurter.app/latest?from='+encodeURIComponent(from)+'&to='+encodeURIComponent(to)
+    ];
+    for(const url of urls){
+      try{
+        const res=await fetch(url,{cache:'no-store'}); if(!res.ok) continue;
+        const js=await res.json();
+        const r=n(js?.rates?.[to]);
+        if(r>0){localStorage.setItem(key,JSON.stringify({r,t:Date.now()})); return r;}
+      }catch(e){}
+    }
+    alert('لم يتم سحب سعر الصرف من الإنترنت. اكتب سعر الصرف يدويًا ثم احفظ.');
+    return 1;
+  }
+  window.ccV94FetchFx=fx;
+  function orderMeta(o){
+    const m=readMeta(o,META_ORDER);
+    const cur=o?.currency||m.currency||'EGP';
+    const total=n(o?.total_value||0);
+    const rate=n(o?.exchange_rate||o?.fx_rate||m.exchange_rate||(cur==='EGP'?1:0));
+    return {currency:cur,exchange_rate:(cur==='EGP'?1:(rate>1?rate:1)),egp_total:n(o?.egp_total||o?.total_value_egp||m.egp_total||(cur==='EGP'?total:total*(rate>1?rate:1)))};
+  }
+  window.ccV90OrderMeta=orderMeta;
+  window.ccV89OrderCurrency=o=>orderMeta(o).currency;
+  function ensureOrderFields(){
+    const val=document.getElementById('ccOrderValue'); if(!val) return;
+    if(!document.getElementById('ccOrderEditId')) val.insertAdjacentHTML('beforebegin','<input type="hidden" id="ccOrderEditId" value="">');
+    if(!document.getElementById('ccOrderCurrency')) val.closest('.form-field,div')?.insertAdjacentHTML('afterend',`<div class="form-field"><label>عملة أمر الإسناد / التوريد</label><select id="ccOrderCurrency" onchange="ccV94OrderCurrencyChanged()">${CURRENCIES.map(c=>`<option>${c}</option>`).join('')}</select></div>`);
+    if(!document.getElementById('ccOrderExchangeRate')) document.getElementById('ccOrderCurrency')?.closest('.form-field,div')?.insertAdjacentHTML('afterend','<div class="form-field"><label>سعر الصرف مقابل الجنيه المصري</label><input id="ccOrderExchangeRate" type="number" step="0.0001" value="1" oninput="ccV94UpdateOrderEgp()"></div><div class="form-field"><label>إجمالي أمر الإسناد بالجنيه المصري</label><input id="ccOrderEgpTotal" readonly></div>');
+  }
+  function setRowsCurrency(cur){document.querySelectorAll('#ccOrderItemsBody .ccOrderItemCurrency').forEach(s=>{s.value=cur;});}
+  window.ccV94UpdateOrderEgp=function(){
+    ensureOrderFields();
+    const cur=document.getElementById('ccOrderCurrency')?.value||'EGP';
+    const rate=cur==='EGP'?1:n(document.getElementById('ccOrderExchangeRate')?.value||1);
+    if(document.getElementById('ccOrderExchangeRate') && cur==='EGP') ccOrderExchangeRate.value=1;
+    setRowsCurrency(cur);
+    const total=n(document.getElementById('ccOrderValue')?.value);
+    if(document.getElementById('ccOrderEgpTotal')) ccOrderEgpTotal.value=(cur==='EGP'?total:total*rate).toFixed(2);
+  };
+  window.ccV94OrderCurrencyChanged=async function(){
+    ensureOrderFields();
+    const cur=document.getElementById('ccOrderCurrency')?.value||'EGP';
+    const r=cur==='EGP'?1:await fx(cur,'EGP');
+    if(document.getElementById('ccOrderExchangeRate')) ccOrderExchangeRate.value=Number(r).toFixed(4);
+    window.ccV94UpdateOrderEgp();
+  };
+  window.ccV90OrderCurrencyChanged=window.ccV94OrderCurrencyChanged;
+  window.ccV90UpdateOrderEgp=window.ccV94UpdateOrderEgp;
+  const oldCalcRow=window.calcCcOrderItemRow;
+  window.calcCcOrderItemRow=function(tr){
+    if(oldCalcRow) oldCalcRow(tr); else {
+      const qty=n(tr.querySelector('.ccOrderItemQty')?.value), price=n(tr.querySelector('.ccOrderItemUnitPrice')?.value);
+      const val=tr.querySelector('.ccOrderItemValue'); if(val) val.value=(qty*price).toFixed(2);
+    }
+    const cur=document.getElementById('ccOrderCurrency')?.value||'EGP';
+    const sel=tr?.querySelector('.ccOrderItemCurrency'); if(sel) sel.value=cur;
+    let total=0; document.querySelectorAll('#ccOrderItemsBody tr').forEach(r=>total+=n(r.querySelector('.ccOrderItemValue')?.value));
+    if(document.getElementById('ccOrderValue')) ccOrderValue.value=total.toFixed(2);
+    window.ccV94UpdateOrderEgp();
+  };
+  window.calcCostOrderTotalFromRows=function(){
+    let total=0; document.querySelectorAll('#ccOrderItemsBody tr').forEach(r=>total+=n(r.querySelector('.ccOrderItemValue')?.value));
+    if(document.getElementById('ccOrderValue')) ccOrderValue.value=total.toFixed(2);
+    window.ccV94UpdateOrderEgp();
+  };
+  const oldAdd=window.addCostOrderItemRow;
+  window.addCostOrderItemRow=function(item={}){
+    if(oldAdd) oldAdd(item);
+    const cur=document.getElementById('ccOrderCurrency')?.value || item.currency || 'EGP';
+    const last=document.querySelector('#ccOrderItemsBody tr:last-child');
+    if(last){ const sel=last.querySelector('.ccOrderItemCurrency'); if(sel) sel.value=cur; }
+    window.ccV94UpdateOrderEgp();
+  };
+  const oldOpen=window.openCostOrderModal;
+  window.openCostOrderModal=async function(orderId=null){
+    if(oldOpen) await oldOpen.apply(this,arguments);
+    ensureOrderFields();
+    const cur=document.getElementById('ccOrderCurrency')?.value||'EGP';
+    const rate=n(document.getElementById('ccOrderExchangeRate')?.value||1);
+    if(cur!=='EGP' && rate<=1){ ccOrderExchangeRate.value=(await fx(cur,'EGP')).toFixed(4); }
+    setRowsCurrency(cur);
+    window.ccV94UpdateOrderEgp();
+  };
+  window.saveCostOrder=async function(){
+    ensureOrderFields();
+    const no=ccOrderNo.value.trim(); if(!no){alert('اكتب رقم أمر الإسناد');return;}
+    window.calcCostOrderTotalFromRows();
+    const editId=Number(document.getElementById('ccOrderEditId')?.value||0);
+    const currency=document.getElementById('ccOrderCurrency')?.value||'EGP';
+    let rate=currency==='EGP'?1:n(document.getElementById('ccOrderExchangeRate')?.value||1);
+    if(currency!=='EGP' && rate<=1){rate=await fx(currency,'EGP'); ccOrderExchangeRate.value=Number(rate).toFixed(4);}
+    const total=n(ccOrderValue.value), egpTotal=currency==='EGP'?total:total*rate;
+    const corePayload={order_no:no,order_date:ccOrderDate.value||null,client_name:ccOrderClient.value.trim(),site:ccOrderSite.value.trim(),total_value:total,notes:packMeta(ccOrderNotes.value,META_ORDER,{currency,exchange_rate:rate,egp_total:egpTotal,saved_at:new Date().toISOString()})};
+    let orderId=editId,res,error;
+    if(editId){res=await client.from('cost_orders').update(corePayload).eq('id',editId).select().maybeSingle(); error=res.error;}
+    else{res=await client.from('cost_orders').insert({...corePayload,created_by:currentUser?.username||''}).select().single(); error=res.error; orderId=res.data?.id; if(error && /created_by/i.test(error.message||'')){res=await client.from('cost_orders').insert(corePayload).select().single(); error=res.error; orderId=res.data?.id;}}
+    if(error){alert('خطأ حفظ أمر الإسناد: '+(error.message||''));return;}
+    const items=[];
+    document.querySelectorAll('#ccOrderItemsBody tr').forEach((tr,i)=>{
+      const code=tr.querySelector('.ccOrderItemCode')?.value.trim()||'', desc=tr.querySelector('.ccOrderItemDesc')?.value.trim()||'';
+      const qty=n(tr.querySelector('.ccOrderItemQty')?.value), unitPrice=n(tr.querySelector('.ccOrderItemUnitPrice')?.value), amount=n(tr.querySelector('.ccOrderItemValue')?.value||qty*unitPrice);
+      if(desc||code) items.push({order_id:orderId,serial_no:i+1,item_code:code,description:desc,unit:tr.querySelector('.ccOrderItemUnit')?.value.trim()||'',qty,unit_price:unitPrice,currency,amount});
+    });
+    if(orderId) await client.from('cost_order_items').delete().eq('order_id',orderId);
+    if(items.length){let ir=await client.from('cost_order_items').insert(items); if(ir.error){const safe=items.map(({unit_price,currency,...x})=>x); ir=await client.from('cost_order_items').insert(safe); if(ir.error){alert('تم حفظ الأمر لكن لم يتم حفظ البنود: '+ir.error.message);}}}
+    closeCostOrderModal(); await loadCostOrders(); if(typeof loadCostPurchaseInvoices==='function') loadCostPurchaseInvoices(); alert('تم حفظ أمر الإسناد بنجاح');
+  };
+  function injectStyle(){
+    if(document.getElementById('v94style')) return;
+    const st=document.createElement('style'); st.id='v94style'; st.textContent=`
+      #costOrderModal .modal{max-width:1180px;border-radius:18px;padding:22px;background:#ffffff;box-shadow:0 24px 60px rgba(15,23,42,.25)}
+      #costOrderModal .modal-header{border-bottom:1px solid #e5e7eb;margin-bottom:14px;padding-bottom:10px}
+      #costOrderModal h2{font-size:24px;color:#0f172a;margin:0}
+      #costOrderModal .grid{background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:12px;margin-bottom:12px}
+      #costOrderModal label{font-size:12px;color:#334155;font-weight:700;margin-bottom:4px;display:block}
+      #costOrderModal input,#costOrderModal select,#costOrderModal textarea{border:1px solid #cbd5e1;border-radius:9px;background:#fff;min-height:36px;font-weight:600}
+      #costOrderModal table{border-radius:12px;overflow:hidden;background:#fff}
+      #costOrderModal th{background:#eef2ff!important;color:#0f172a;font-weight:800;position:sticky;top:0;z-index:3}
+      #costOrderModal td{background:#fff}
+      #costOrderModal .ccOrderItemDesc{min-width:310px;text-align:right;font-weight:800}
+      #costOrderModal .ccOrderItemValue,#ccOrderValue,#ccOrderEgpTotal{background:#f8fafc!important;color:#0f766e;font-weight:900!important}
+      #costOrderModal .modal-actions,#costOrderModal .invoice-actions{position:sticky;bottom:0;background:white;padding-top:10px;border-top:1px solid #e5e7eb}`;
+    document.head.appendChild(st);
+  }
+  document.addEventListener('DOMContentLoaded',()=>{injectStyle(); const h=document.querySelector('.sidebar h2'); if(h) h.textContent='Taswyat V94'; document.title='Taswyat System - UPGRADED V94';});
+})();
+</script>
+
+
+<script>
+/* ===== V95 FINAL HOTFIX: حفظ فواتير المبيعات بدون أعمدة غير موجودة + الملاحظات يدوية فقط ===== */
+(function(){
+  function n(v){
+    if(typeof ccNum==='function') return ccNum(v);
+    const x=Number(String(v??'').replace(/,/g,''));
+    return isFinite(x)?x:0;
+  }
+  function manualNotesOnly(v){
+    let s=String(v||'');
+    // إزالة أي بلوكات كانت النسخ السابقة تضيفها داخل الملاحظات تلقائياً
+    s=s.replace(/\n?\[\[SALES_ITEMS:[\s\S]*?\]\]/g,'');
+    s=s.replace(/\n?\[\[COLLECTION_META:[\s\S]*?\]\]/g,'');
+    s=s.replace(/\n?\[\[SALES_META:[\s\S]*?\]\]/g,'');
+    return s.trim();
+  }
+  async function saveHeaderSafe(invoiceId, core){
+    // لا نرسل commercial_tax_percent أو commercial_tax_value أو vat_percent نهائياً لأنها غير موجودة في جدولك حالياً
+    let res;
+    if(invoiceId){
+      res=await client.from('sales_invoices').update(core).eq('id',invoiceId).select().maybeSingle();
+    }else{
+      res=await client.from('sales_invoices').insert({...core,created_by:currentUser?.username||''}).select().single();
+      if(res.error && /created_by|schema cache|column/i.test(String(res.error.message||''))){
+        res=await client.from('sales_invoices').insert(core).select().single();
+      }
+    }
+    // fallback أضيق لو جدولك لا يحتوي client_invoice_file أو أي عمود إضافي
+    if(res.error && /client_invoice_file|schema cache|column/i.test(String(res.error.message||''))){
+      const {client_invoice_file,...minimal}=core;
+      if(invoiceId) res=await client.from('sales_invoices').update(minimal).eq('id',invoiceId).select().maybeSingle();
+      else res=await client.from('sales_invoices').insert(minimal).select().single();
+    }
+    return res;
+  }
+  async function saveItemsSafe(invoiceId, rows){
+    if(!invoiceId || !rows.length) return;
+    try{
+      await client.from('sales_invoice_items').delete().eq('invoice_id',invoiceId);
+      let res=await client.from('sales_invoice_items').insert(rows.map(r=>({...r,invoice_id:invoiceId,created_by:currentUser?.username||''})));
+      if(res.error && /created_by|schema cache|column/i.test(String(res.error.message||''))){
+        res=await client.from('sales_invoice_items').insert(rows.map(r=>({...r,invoice_id:invoiceId})));
+      }
+      // لو جدول البنود غير موجود، لا نوقف حفظ الفاتورة الرئيسية
+    }catch(e){}
+  }
+  window.saveSalesInvoice=async function(){
+    const no=document.getElementById('salesInvNo')?.value?.trim()||'';
+    if(!no){alert('اكتب رقم فاتورة المبيعات');return;}
+    const orderId=document.getElementById('salesInvOrderId')?.value ? Number(document.getElementById('salesInvOrderId').value) : null;
+    if(!orderId){alert('اختار أمر الإسناد');return;}
+    const btn=[...document.querySelectorAll('#salesInvoiceModal button')].find(b=>String(b.textContent||'').includes('حفظ الفاتورة'));
+    const oldText=btn?btn.textContent:'';
+    if(btn){btn.disabled=true;btn.textContent='جارى الحفظ...';}
+    try{
+      const rows=[...document.querySelectorAll('#salesInvItemsBody tr')].map((tr,i)=>{
+        const orderItemId=Number(tr.querySelector('.salesItemSelect')?.value||0);
+        const it=(ccOrderItemsCache||[]).find(x=>String(x.id)===String(orderItemId))||{};
+        const curQty=n(tr.querySelector('.salesCurQty')?.value);
+        const unitPrice=n(tr.querySelector('.salesUnitPrice')?.value || it.unit_price || (n(it.amount)/Math.max(n(it.qty),1)) );
+        const curAmount=n(tr.querySelector('.salesCurAmount')?.value || (curQty*unitPrice));
+        const prevAmount=n(tr.querySelector('.salesPrevAmount')?.value);
+        return {
+          serial_no:i+1,
+          order_id:orderId,
+          order_item_id:orderItemId,
+          item_description:it.description||tr.querySelector('.salesItemSelect option:checked')?.textContent||'',
+          unit:it.unit||'',
+          order_qty:n(tr.querySelector('.salesOrderQty')?.value || it.qty),
+          unit_price:unitPrice,
+          previous_qty:n(tr.querySelector('.salesPrevQty')?.value),
+          current_qty:curQty,
+          previous_amount:prevAmount,
+          current_amount:curAmount,
+          total_amount:prevAmount+curAmount
+        };
+      }).filter(r=>r.order_item_id && (r.current_qty || r.current_amount));
+      if(!rows.length){alert('أدخل بند واحد على الأقل وكمية حالية');return;}
+
+      const sub=rows.reduce((s,r)=>s+n(r.current_amount),0);
+      const vatPct=n(document.getElementById('salesInvVatPercent')?.value ?? 0);
+      const commPct=n(document.getElementById('salesInvCommercialPercent')?.value ?? 0);
+      const vat=sub*vatPct/100;
+      const comm=sub*commPct/100;
+      const total=sub+vat-comm;
+      if(document.getElementById('salesInvSubtotal')) salesInvSubtotal.value=sub.toFixed(2);
+      if(document.getElementById('salesInvVat')) salesInvVat.value=vat.toFixed(2);
+      if(document.getElementById('salesInvCommercialValue')) salesInvCommercialValue.value=comm.toFixed(2);
+      if(document.getElementById('salesInvTotal')) salesInvTotal.value=total.toFixed(2);
+
+      // الملاحظات = المكتوب يدويًا فقط. لا يتم تخزين البنود أو حالة التحصيل أو العملة داخل الملاحظات.
+      const notes=manualNotesOnly(document.getElementById('salesInvNotes')?.value||'');
+      const core={
+        invoice_no:no,
+        invoice_date:document.getElementById('salesInvDate')?.value||null,
+        client_name:document.getElementById('salesInvClient')?.value?.trim()||'',
+        site:document.getElementById('salesInvSite')?.value?.trim()||'',
+        order_id:orderId,
+        subtotal:sub,
+        vat_amount:vat,
+        total_amount:total,
+        client_invoice_file:null,
+        notes:notes
+      };
+      const invoiceId0=Number(document.getElementById('salesInvEditId')?.value||0);
+      const res=await saveHeaderSafe(invoiceId0, core);
+      if(res.error){
+        alert('خطأ حفظ فاتورة المبيعات: '+res.error.message+'\nالسبب غالبًا: رقم الفاتورة مكرر أو جدول sales_invoices ناقص أعمدة أساسية.');
+        return;
+      }
+      const invoiceId=invoiceId0 || res.data?.id;
+      await saveItemsSafe(invoiceId, rows);
+      if(typeof closeSalesInvoiceModal==='function') closeSalesInvoiceModal();
+      if(typeof loadSalesInvoices==='function') await loadSalesInvoices();
+      if(typeof loadCostPurchaseInvoices==='function') await loadCostPurchaseInvoices();
+      if(document.getElementById('ccOrderDetailsArea')?.innerHTML && typeof openCostOrderDetails==='function') openCostOrderDetails(orderId);
+      alert('تم حفظ الفاتورة بنجاح');
+    }catch(err){
+      console.error('V95 saveSalesInvoice error',err);
+      alert('حدث خطأ أثناء الحفظ: '+(err?.message||err));
+    }finally{
+      if(btn){btn.disabled=false;btn.textContent=oldText||'حفظ الفاتورة وتحديث مبيعات أمر الإسناد';}
+    }
+  };
+})();
+</script>
+
+
+
+<script>
+/* ================= V96: عملة لكل بند في فاتورة المبيعات + حفظ آمن ================= */
+(function(){
+  const CURRENCIES=['EGP','USD','EUR','SAR','AED','GBP'];
+  function num(v){return Number(String(v??'').replace(/,/g,'').trim())||0;}
+  function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+  function invCurrency(){return document.getElementById('salesInvCurrency')?.value || document.getElementById('salesInvOrderCurrency')?.value || 'EGP';}
+  function invRate(){const c=invCurrency(); return c==='EGP'?1:(num(document.getElementById('salesInvExchangeRate')?.value)||1);}
+  function stripAutoNotes(txt){
+    let s=String(txt||'');
+    s=s.replace(/\n?\[CC_SALES_ITEMS\][\s\S]*?\[\/CC_SALES_ITEMS\]/g,'');
+    s=s.replace(/\n?\[SALES_ITEMS\][\s\S]*?\[\/SALES_ITEMS\]/g,'');
+    s=s.replace(/\n?\[FX_META\][\s\S]*?\[\/FX_META\]/g,'');
+    s=s.replace(/\n?\[COLLECTION_META\][\s\S]*?\[\/COLLECTION_META\]/g,'');
+    try{ if(typeof window.ccStripSalesItemsFromNotes==='function') s=window.ccStripSalesItemsFromNotes(s); }catch(e){}
+    try{ if(typeof window.ccCleanNotesOnly==='function') s=window.ccCleanNotesOnly(s); }catch(e){}
+    return s.trim();
+  }
+  function ensureSalesHeaderFx(){
+    const notes=document.getElementById('salesInvNotes');
+    if(!notes) return;
+    if(!document.getElementById('salesInvCurrency')){
+      notes.closest('.form-field,div')?.insertAdjacentHTML('afterend',`<div class="form-field"><label>عملة الفاتورة</label><select id="salesInvCurrency" onchange="ccV96InvoiceCurrencyChanged()">${CURRENCIES.map(c=>`<option value="${c}">${c}</option>`).join('')}</select></div><div class="form-field"><label>سعر الصرف للفاتورة مقابل الجنيه</label><input id="salesInvExchangeRate" type="number" step="0.0001" value="1" oninput="ccV96SyncAllLineCurrencies();ccV96CalcTotals()"></div><div class="form-field"><label>قيمة الفاتورة المعادلة بالجنيه المصري</label><input id="salesInvEgpTotal" readonly></div>`);
+    }
+  }
+  function ensureSalesItemHeaders(){
+    const tr=document.querySelector('#ccSalesItemsTable thead tr'); if(!tr || tr.dataset.v96fx) return;
+    const ths=[...tr.children];
+    const del=ths[ths.length-1];
+    del.insertAdjacentHTML('beforebegin','<th>عملة البند</th><th>سعر الصرف</th><th>القيمة المعادلة بالجنيه</th>');
+    tr.dataset.v96fx='1';
+  }
+  function currencyOptions(selected){return CURRENCIES.map(c=>`<option value="${c}" ${c===selected?'selected':''}>${c}</option>`).join('');}
+  function ensureRowFx(tr){
+    if(!tr || tr.dataset.v96fx) return;
+    const c=invCurrency(), r=invRate();
+    const del=tr.lastElementChild;
+    del.insertAdjacentHTML('beforebegin',`<td><select class="salesLineCurrency" onchange="ccV96LineCurrencyChanged(this.closest('tr'))">${currencyOptions(c)}</select></td><td><input class="salesLineExchangeRate" type="number" step="0.0001" value="${r}" oninput="ccV96CalcRow(this.closest('tr'))"></td><td><input class="salesLineEgp" readonly value="0.00"></td>`);
+    tr.dataset.v96fx='1';
+    ccV96CalcRow(tr);
+  }
+  function ensureAllRowsFx(){ensureSalesHeaderFx(); ensureSalesItemHeaders(); document.querySelectorAll('#salesInvItemsBody tr').forEach(ensureRowFx);}
+  window.ccV96LineCurrencyChanged=function(tr){
+    const rowCur=tr.querySelector('.salesLineCurrency')?.value||'EGP';
+    const invoiceCur=invCurrency();
+    if(rowCur!==invoiceCur){
+      alert('خطأ: عملة البند يجب أن تكون مطابقة لعملة الفاتورة. سيتم إرجاعها إلى '+invoiceCur);
+      tr.querySelector('.salesLineCurrency').value=invoiceCur;
+    }
+    if(tr.querySelector('.salesLineExchangeRate')) tr.querySelector('.salesLineExchangeRate').value=invRate();
+    ccV96CalcRow(tr);
+  };
+  window.ccV96CalcRow=function(tr){
+    if(!tr) return;
+    const price=num(tr.querySelector('.salesUnitPrice')?.value);
+    const curQty=num(tr.querySelector('.salesCurQty')?.value);
+    const prevAmount=num(tr.querySelector('.salesPrevAmount')?.value);
+    const curAmount=price*curQty;
+    if(tr.querySelector('.salesCurAmount')) tr.querySelector('.salesCurAmount').value=curAmount.toFixed(2);
+    if(tr.querySelector('.salesLineTotal')) tr.querySelector('.salesLineTotal').value=(prevAmount+curAmount).toFixed(2);
+    if(tr.querySelector('.salesLineCurrency') && tr.querySelector('.salesLineCurrency').value!==invCurrency()) tr.querySelector('.salesLineCurrency').value=invCurrency();
+    if(tr.querySelector('.salesLineExchangeRate')) tr.querySelector('.salesLineExchangeRate').value=invRate();
+    if(tr.querySelector('.salesLineEgp')) tr.querySelector('.salesLineEgp').value=(curAmount*invRate()).toFixed(2);
+    ccV96CalcTotals();
+  };
+  window.ccV96CalcTotals=function(){
+    ensureAllRowsFx();
+    const sub=[...document.querySelectorAll('#salesInvItemsBody tr')].reduce((s,tr)=>s+num(tr.querySelector('.salesCurAmount')?.value),0);
+    const vatPct=num(document.getElementById('salesInvVatPercent')?.value ?? 0);
+    const commPct=num(document.getElementById('salesInvCommercialPercent')?.value ?? 0);
+    const vat=sub*vatPct/100, comm=sub*commPct/100, total=sub+vat-comm;
+    if(document.getElementById('salesInvSubtotal')) salesInvSubtotal.value=sub.toFixed(2);
+    if(document.getElementById('salesInvVat')) salesInvVat.value=vat.toFixed(2);
+    if(document.getElementById('salesInvCommercialValue')) salesInvCommercialValue.value=comm.toFixed(2);
+    if(document.getElementById('salesInvTotal')) salesInvTotal.value=total.toFixed(2);
+    if(document.getElementById('salesInvEgpTotal')) salesInvEgpTotal.value=(total*invRate()).toFixed(2);
+  };
+  window.ccV96SyncAllLineCurrencies=function(){
+    ensureAllRowsFx();
+    document.querySelectorAll('#salesInvItemsBody tr').forEach(tr=>{
+      if(tr.querySelector('.salesLineCurrency')) tr.querySelector('.salesLineCurrency').value=invCurrency();
+      if(tr.querySelector('.salesLineExchangeRate')) tr.querySelector('.salesLineExchangeRate').value=invRate();
+      ccV96CalcRow(tr);
+    });
+  };
+  window.ccV96InvoiceCurrencyChanged=function(){
+    const c=invCurrency();
+    if(document.getElementById('salesInvExchangeRate') && c==='EGP') salesInvExchangeRate.value=1;
+    ccV96SyncAllLineCurrencies();
+  };
+
+  const oldAdd=window.addSalesInvoiceItemRow;
+  window.addSalesInvoiceItemRow=function(row={}){
+    if(oldAdd) oldAdd.call(this,row);
+    ensureAllRowsFx();
+    const tr=document.querySelector('#salesInvItemsBody tr:last-child');
+    if(tr){
+      const c=row.currency || row.line_currency || invCurrency();
+      const r=num(row.exchange_rate || row.fx_rate || invRate()) || 1;
+      if(tr.querySelector('.salesLineCurrency')) tr.querySelector('.salesLineCurrency').value=c===invCurrency()?c:invCurrency();
+      if(tr.querySelector('.salesLineExchangeRate')) tr.querySelector('.salesLineExchangeRate').value=r;
+      ccV96CalcRow(tr);
+    }
+  };
+  const oldFill=window.ccSalesFillPrevForRow;
+  window.ccSalesFillPrevForRow=function(tr){
+    if(oldFill) oldFill.apply(this,arguments);
+    ensureRowFx(tr); ccV96CalcRow(tr);
+  };
+  window.ccSalesCalcRow=function(tr){ ccV96CalcRow(tr); };
+  window.calcSalesInvoiceTotals=function(){ ccV96CalcTotals(); };
+  const oldOpen=window.openSalesInvoiceModal;
+  window.openSalesInvoiceModal=async function(invoiceId=null){
+    if(oldOpen) await oldOpen.apply(this,arguments);
+    ensureAllRowsFx();
+    if(document.getElementById('salesInvCurrency') && !salesInvCurrency.value) salesInvCurrency.value='EGP';
+    if(document.getElementById('salesInvExchangeRate') && !salesInvExchangeRate.value) salesInvExchangeRate.value=invCurrency()==='EGP'?1:1;
+    ccV96SyncAllLineCurrencies();
+    if(document.getElementById('salesInvNotes')) salesInvNotes.value=stripAutoNotes(salesInvNotes.value);
+  };
+
+  async function saveHeaderSafe(invoiceId, core){
+    let res;
+    if(invoiceId) res=await client.from('sales_invoices').update(core).eq('id',invoiceId).select().maybeSingle();
+    else res=await client.from('sales_invoices').insert({...core,created_by:currentUser?.username||''}).select().single();
+    if(res.error && /created_by|schema cache|column/i.test(String(res.error.message||''))){
+      const {client_invoice_file,...minimal}=core;
+      if(invoiceId) res=await client.from('sales_invoices').update(minimal).eq('id',invoiceId).select().maybeSingle();
+      else res=await client.from('sales_invoices').insert(minimal).select().single();
+    }
+    return res;
+  }
+  async function saveItemsSafe(invoiceId, rows){
+    if(!invoiceId || !rows.length) return;
+    const minimalRows=rows.map(r=>({
+      invoice_id:invoiceId, serial_no:r.serial_no, order_id:r.order_id, order_item_id:r.order_item_id,
+      item_description:r.item_description, unit:r.unit, order_qty:r.order_qty, unit_price:r.unit_price,
+      previous_qty:r.previous_qty, current_qty:r.current_qty, previous_amount:r.previous_amount,
+      current_amount:r.current_amount, total_amount:r.total_amount
+    }));
+    try{
+      await client.from('sales_invoice_items').delete().eq('invoice_id',invoiceId);
+      let res=await client.from('sales_invoice_items').insert(minimalRows.map(r=>({...r,created_by:currentUser?.username||''})));
+      if(res.error && /created_by|schema cache|column/i.test(String(res.error.message||''))) await client.from('sales_invoice_items').insert(minimalRows);
+    }catch(e){}
+  }
+  window.saveSalesInvoice=async function(){
+    ensureAllRowsFx();
+    const no=document.getElementById('salesInvNo')?.value?.trim()||'';
+    if(!no){alert('اكتب رقم فاتورة المبيعات');return;}
+    const orderId=document.getElementById('salesInvOrderId')?.value ? Number(document.getElementById('salesInvOrderId').value) : null;
+    if(!orderId){alert('اختار أمر الإسناد');return;}
+    const invoiceCur=invCurrency(), rate=invRate();
+    for(const tr of document.querySelectorAll('#salesInvItemsBody tr')){
+      const c=tr.querySelector('.salesLineCurrency')?.value||invoiceCur;
+      if(c!==invoiceCur){alert('خطأ: عملة كل بند لازم تكون نفس عملة الفاتورة. راجع البنود.'); return;}
+    }
+    const rows=[...document.querySelectorAll('#salesInvItemsBody tr')].map((tr,i)=>{
+      const orderItemId=Number(tr.querySelector('.salesItemSelect')?.value||0);
+      const it=(ccOrderItemsCache||[]).find(x=>String(x.id)===String(orderItemId))||{};
+      const curQty=num(tr.querySelector('.salesCurQty')?.value);
+      const unitPrice=num(tr.querySelector('.salesUnitPrice')?.value || it.unit_price || (num(it.amount)/Math.max(num(it.qty),1)) );
+      const curAmount=unitPrice*curQty;
+      const prevAmount=num(tr.querySelector('.salesPrevAmount')?.value);
+      return {serial_no:i+1,order_id:orderId,order_item_id:orderItemId,item_description:it.description||tr.querySelector('.salesItemSelect option:checked')?.textContent||'',unit:it.unit||'',order_qty:num(tr.querySelector('.salesOrderQty')?.value || it.qty),unit_price:unitPrice,previous_qty:num(tr.querySelector('.salesPrevQty')?.value),current_qty:curQty,previous_amount:prevAmount,current_amount:curAmount,total_amount:prevAmount+curAmount,currency:invoiceCur,exchange_rate:rate,egp_amount:curAmount*rate};
+    }).filter(r=>r.order_item_id && (r.current_qty || r.current_amount));
+    if(!rows.length){alert('أدخل بند واحد على الأقل وكمية حالية');return;}
+    const btn=[...document.querySelectorAll('#salesInvoiceModal button')].find(b=>String(b.textContent||'').includes('حفظ الفاتورة'));
+    const oldText=btn?btn.textContent:''; if(btn){btn.disabled=true;btn.textContent='جارى الحفظ...';}
+    try{
+      const sub=rows.reduce((s,r)=>s+num(r.current_amount),0);
+      const vatPct=num(document.getElementById('salesInvVatPercent')?.value ?? 0);
+      const commPct=num(document.getElementById('salesInvCommercialPercent')?.value ?? 0);
+      const vat=sub*vatPct/100, comm=sub*commPct/100, total=sub+vat-comm;
+      if(document.getElementById('salesInvSubtotal')) salesInvSubtotal.value=sub.toFixed(2);
+      if(document.getElementById('salesInvVat')) salesInvVat.value=vat.toFixed(2);
+      if(document.getElementById('salesInvCommercialValue')) salesInvCommercialValue.value=comm.toFixed(2);
+      if(document.getElementById('salesInvTotal')) salesInvTotal.value=total.toFixed(2);
+      if(document.getElementById('salesInvEgpTotal')) salesInvEgpTotal.value=(total*rate).toFixed(2);
+      const core={invoice_no:no,invoice_date:document.getElementById('salesInvDate')?.value||null,client_name:document.getElementById('salesInvClient')?.value?.trim()||'',site:document.getElementById('salesInvSite')?.value?.trim()||'',order_id:orderId,subtotal:sub,vat_amount:vat,total_amount:total,client_invoice_file:null,notes:stripAutoNotes(document.getElementById('salesInvNotes')?.value||'')};
+      const invoiceId0=Number(document.getElementById('salesInvEditId')?.value||0);
+      const res=await saveHeaderSafe(invoiceId0,core);
+      if(res.error){alert('خطأ حفظ فاتورة المبيعات: '+res.error.message);return;}
+      const invoiceId=invoiceId0 || res.data?.id;
+      await saveItemsSafe(invoiceId,rows);
+      if(typeof closeSalesInvoiceModal==='function') closeSalesInvoiceModal();
+      if(typeof loadSalesInvoices==='function') await loadSalesInvoices();
+      if(typeof loadCostPurchaseInvoices==='function') await loadCostPurchaseInvoices();
+      if(document.getElementById('ccOrderDetailsArea')?.innerHTML && typeof openCostOrderDetails==='function') openCostOrderDetails(orderId);
+      alert('تم حفظ الفاتورة بنجاح');
+    }catch(err){console.error('V96 saveSalesInvoice error',err); alert('حدث خطأ أثناء الحفظ: '+(err?.message||err));}
+    finally{if(btn){btn.disabled=false;btn.textContent=oldText||'حفظ الفاتورة وتحديث مبيعات أمر الإسناد';}}
+  };
+})();
+</script>
+
+
+
+<script>
+/* ================= V97: إصلاح حفظ وقراءة القيمة المعادلة بالجنيه لفواتير المبيعات =================
+   يحفظ عملة الفاتورة وسعر الصرف والقيمة المعادلة بالجنيه داخل notes كبيانات مخفية،
+   بدون الاعتماد على أعمدة جديدة في Supabase. لذلك ستظهر الفاتورة بالدولار وسعر الصرف الصحيح
+   والمعادل بالجنيه في جدول فواتير المبيعات. */
+(function(){
+  const META_FX='FX_META';
+  function num(v){ const x=Number(String(v??'').replace(/,/g,'').trim()); return isFinite(x)?x:0; }
+  function cleanNotes(txt){
+    let s=String(txt||'');
+    s=s.replace(/\n?\[FX_META\][\s\S]*?\[\/FX_META\]/g,'');
+    s=s.replace(/\n?\[CC_ORDER_META\][\s\S]*?\[\/CC_ORDER_META\]/g,'');
+    s=s.replace(/\n?\[CC_SALES_ITEMS\][\s\S]*?\[\/CC_SALES_ITEMS\]/g,'');
+    s=s.replace(/\n?\[SALES_ITEMS\][\s\S]*?\[\/SALES_ITEMS\]/g,'');
+    s=s.replace(/\n?\[\[CC_SALES_ITEMS\]\][\s\S]*?\[\[\/CC_SALES_ITEMS\]\]/g,'');
+    try{ if(typeof window.ccStripSalesItemsFromNotes==='function') s=window.ccStripSalesItemsFromNotes(s); }catch(e){}
+    try{ if(typeof window.ccCleanNotesOnly==='function') s=window.ccCleanNotesOnly(s); }catch(e){}
+    return s.trim();
+  }
+  function packFxMeta(notes, data){
+    const base=cleanNotes(notes);
+    return (base?base+'\n':'')+'['+META_FX+']'+JSON.stringify(data)+'[/'+META_FX+']';
+  }
+  function readFxMeta(inv){
+    const txt=String(inv?.notes||'');
+    const m=txt.match(/\[FX_META\]([\s\S]*?)\[\/FX_META\]/);
+    let meta={};
+    if(m){ try{ meta=JSON.parse(m[1])||{}; }catch(e){} }
+    const cur=inv?.currency||inv?.invoice_currency||meta.currency||'EGP';
+    const rate=num(inv?.exchange_rate||inv?.fx_rate||meta.exchange_rate||1)||1;
+    const total=num(inv?.total_amount||0);
+    return {
+      currency:cur,
+      exchange_rate:cur==='EGP'?1:rate,
+      egp_total:num(inv?.egp_total||inv?.total_amount_egp||meta.egp_total||meta.total_egp||(cur==='EGP'?total:total*rate)),
+      order_currency:inv?.order_currency||meta.order_currency||''
+    };
+  }
+  window.ccV89ReadSalesMeta=readFxMeta;
+
+  async function saveHeader(invoiceId, core){
+    let res;
+    if(invoiceId) res=await client.from('sales_invoices').update(core).eq('id',invoiceId).select().maybeSingle();
+    else res=await client.from('sales_invoices').insert({...core,created_by:currentUser?.username||''}).select().single();
+    if(res.error && /schema cache|column|created_by|updated_by|updated_at|client_invoice_file/i.test(String(res.error.message||''))){
+      const minimal={invoice_no:core.invoice_no,invoice_date:core.invoice_date,client_name:core.client_name,site:core.site,order_id:core.order_id,subtotal:core.subtotal,vat_amount:core.vat_amount,total_amount:core.total_amount,notes:core.notes};
+      if(invoiceId) res=await client.from('sales_invoices').update(minimal).eq('id',invoiceId).select().maybeSingle();
+      else res=await client.from('sales_invoices').insert(minimal).select().single();
+    }
+    return res;
+  }
+  async function saveItems(invoiceId, rows){
+    if(!invoiceId || !rows.length) return;
+    const minimal=rows.map(r=>({
+      invoice_id:invoiceId,serial_no:r.serial_no,order_id:r.order_id,order_item_id:r.order_item_id,
+      item_description:r.item_description,unit:r.unit,order_qty:r.order_qty,unit_price:r.unit_price,
+      previous_qty:r.previous_qty,current_qty:r.current_qty,previous_amount:r.previous_amount,
+      current_amount:r.current_amount,total_amount:r.total_amount
+    }));
+    try{
+      await client.from('sales_invoice_items').delete().eq('invoice_id',invoiceId);
+      let res=await client.from('sales_invoice_items').insert(minimal.map(r=>({...r,created_by:currentUser?.username||''})));
+      if(res.error && /schema cache|column|created_by/i.test(String(res.error.message||''))) await client.from('sales_invoice_items').insert(minimal);
+    }catch(e){ console.warn('sales_invoice_items save skipped',e); }
+  }
+
+  window.saveSalesInvoice=async function(){
+    const no=document.getElementById('salesInvNo')?.value?.trim()||'';
+    if(!no){alert('اكتب رقم فاتورة المبيعات');return;}
+    const orderId=document.getElementById('salesInvOrderId')?.value ? Number(document.getElementById('salesInvOrderId').value) : null;
+    if(!orderId){alert('اختار أمر الإسناد');return;}
+
+    const invoiceCur=document.getElementById('salesInvCurrency')?.value || 'EGP';
+    const rate=invoiceCur==='EGP' ? 1 : (num(document.getElementById('salesInvExchangeRate')?.value)||1);
+
+    for(const tr of document.querySelectorAll('#salesInvItemsBody tr')){
+      const lineCur=tr.querySelector('.salesLineCurrency')?.value || invoiceCur;
+      if(lineCur!==invoiceCur){ alert('خطأ: عملة كل بند لازم تكون نفس عملة الفاتورة.'); return; }
+      if(tr.querySelector('.salesLineExchangeRate')) tr.querySelector('.salesLineExchangeRate').value=rate;
+    }
+
+    const rows=[...document.querySelectorAll('#salesInvItemsBody tr')].map((tr,i)=>{
+      const orderItemId=Number(tr.querySelector('.salesItemSelect')?.value||0);
+      const it=(ccOrderItemsCache||[]).find(x=>String(x.id)===String(orderItemId))||{};
+      const qty=num(tr.querySelector('.salesCurQty')?.value);
+      const unitPrice=num(tr.querySelector('.salesUnitPrice')?.value || it.unit_price || (num(it.amount)/Math.max(num(it.qty),1)));
+      const currentAmount=unitPrice*qty;
+      const prevAmount=num(tr.querySelector('.salesPrevAmount')?.value);
+      if(tr.querySelector('.salesCurAmount')) tr.querySelector('.salesCurAmount').value=currentAmount.toFixed(2);
+      if(tr.querySelector('.salesLineEgp')) tr.querySelector('.salesLineEgp').value=(currentAmount*rate).toFixed(2);
+      return {serial_no:i+1,order_id:orderId,order_item_id:orderItemId,item_description:it.description||tr.querySelector('.salesItemSelect option:checked')?.textContent||'',unit:it.unit||'',order_qty:num(tr.querySelector('.salesOrderQty')?.value||it.qty),unit_price:unitPrice,previous_qty:num(tr.querySelector('.salesPrevQty')?.value),current_qty:qty,previous_amount:prevAmount,current_amount:currentAmount,total_amount:prevAmount+currentAmount,currency:invoiceCur,exchange_rate:rate,egp_amount:currentAmount*rate};
+    }).filter(r=>r.order_item_id && (r.current_qty || r.current_amount));
+    if(!rows.length){alert('أدخل بند واحد على الأقل وكمية حالية');return;}
+
+    const btn=[...document.querySelectorAll('#salesInvoiceModal button')].find(b=>String(b.textContent||'').includes('حفظ الفاتورة'));
+    const oldText=btn?btn.textContent:''; if(btn){btn.disabled=true;btn.textContent='جارى الحفظ...';}
+    try{
+      const subtotal=rows.reduce((s,r)=>s+num(r.current_amount),0);
+      const vatPct=num(document.getElementById('salesInvVatPercent')?.value ?? 0);
+      const commPct=num(document.getElementById('salesInvCommercialPercent')?.value ?? 0);
+      const vat=subtotal*vatPct/100;
+      const comm=subtotal*commPct/100;
+      const total=subtotal+vat-comm;
+      const egpTotal=total*rate;
+      if(document.getElementById('salesInvSubtotal')) salesInvSubtotal.value=subtotal.toFixed(2);
+      if(document.getElementById('salesInvVat')) salesInvVat.value=vat.toFixed(2);
+      if(document.getElementById('salesInvCommercialValue')) salesInvCommercialValue.value=comm.toFixed(2);
+      if(document.getElementById('salesInvTotal')) salesInvTotal.value=total.toFixed(2);
+      if(document.getElementById('salesInvEgpTotal')) salesInvEgpTotal.value=egpTotal.toFixed(2);
+
+      const order=(ccOrdersCache||[]).find(o=>String(o.id)===String(orderId))||{};
+      const orderCurrency=(typeof window.ccV89OrderCurrency==='function') ? window.ccV89OrderCurrency(order) : 'EGP';
+      const manualNotes=cleanNotes(document.getElementById('salesInvNotes')?.value||'');
+      const notes=packFxMeta(manualNotes,{currency:invoiceCur,exchange_rate:rate,total_foreign:total,egp_total:egpTotal,total_egp:egpTotal,order_currency:orderCurrency,updated_at:new Date().toISOString(),updated_by:currentUser?.username||''});
+      const core={invoice_no:no,invoice_date:document.getElementById('salesInvDate')?.value||null,client_name:document.getElementById('salesInvClient')?.value?.trim()||'',site:document.getElementById('salesInvSite')?.value?.trim()||'',order_id:orderId,subtotal,vat_amount:vat,total_amount:total,client_invoice_file:null,notes,updated_by:currentUser?.username||'',updated_at:new Date().toISOString()};
+      const invoiceId0=Number(document.getElementById('salesInvEditId')?.value||0);
+      const res=await saveHeader(invoiceId0,core);
+      if(res.error){alert('خطأ حفظ فاتورة المبيعات: '+res.error.message);return;}
+      const invoiceId=invoiceId0 || res.data?.id;
+      await saveItems(invoiceId,rows);
+      if(typeof closeSalesInvoiceModal==='function') closeSalesInvoiceModal();
+      if(typeof loadSalesInvoices==='function') await loadSalesInvoices();
+      if(typeof loadCostPurchaseInvoices==='function') await loadCostPurchaseInvoices();
+      if(document.getElementById('ccOrderDetailsArea')?.innerHTML && typeof openCostOrderDetails==='function') openCostOrderDetails(orderId);
+      alert('تم حفظ الفاتورة بنجاح - وتم تسجيل المعادل بالجنيه المصري بسعر الصرف الصحيح');
+    }catch(err){ console.error('V97 saveSalesInvoice error',err); alert('حدث خطأ أثناء الحفظ: '+(err?.message||err)); }
+    finally{ if(btn){btn.disabled=false;btn.textContent=oldText||'حفظ الفاتورة وتحديث مبيعات أمر الإسناد';} }
+  };
+})();
+</script>
+
+
+
+<script>
+/* ================= V98: تثبيت بيانات بنود فاتورة المبيعات عند التعديل =================
+   المشكلة السابقة: عند فتح الفاتورة للتعديل كانت البنود تختفي إذا لم يتم حفظها في جدول
+   sales_invoice_items أو إذا تم تنظيف الملاحظات من البيانات المخفية.
+   الحل: يتم حفظ نسخة مخفية من البنود داخل notes + محاولة حفظها في sales_invoice_items.
+   وعند فتح الفاتورة يتم إعادة تحميل كل البنود والعملات وسعر الصرف والمعادل بالجنيه. */
+(function(){
+  const ITEMS_TAG='V98_SALES_ITEMS';
+  const FX_TAG='FX_META';
+  const CURRENCIES=['EGP','USD','EUR','SAR','AED','GBP'];
+  function num(v){ const x=Number(String(v??'').replace(/,/g,'').trim()); return isFinite(x)?x:0; }
+  function cleanNotes(txt){
+    let s=String(txt||'');
+    s=s.replace(/\n?\[V98_SALES_ITEMS\][\s\S]*?\[\/V98_SALES_ITEMS\]/g,'');
+    s=s.replace(/\n?\[FX_META\][\s\S]*?\[\/FX_META\]/g,'');
+    s=s.replace(/\n?\[CC_SALES_ITEMS\][\s\S]*?\[\/CC_SALES_ITEMS\]/g,'');
+    s=s.replace(/\n?\[SALES_ITEMS\][\s\S]*?\[\/SALES_ITEMS\]/g,'');
+    s=s.replace(/\n?\[\[CC_SALES_ITEMS\]\][\s\S]*?\[\[\/CC_SALES_ITEMS\]\]/g,'');
+    try{ if(typeof window.ccStripSalesItemsFromNotes==='function') s=window.ccStripSalesItemsFromNotes(s); }catch(e){}
+    try{ if(typeof window.ccCleanNotesOnly==='function') s=window.ccCleanNotesOnly(s); }catch(e){}
+    return s.trim();
+  }
+  function readBlock(txt,tag){
+    const re=new RegExp('\\['+tag+'\\]([\\s\\S]*?)\\[\\/'+tag+'\\]');
+    const m=String(txt||'').match(re);
+    if(!m) return null;
+    try{return JSON.parse(m[1]);}catch(e){return null;}
+  }
+  function packNotes(manual,fx,items){
+    let out=cleanNotes(manual);
+    if(fx) out+=(out?'\n':'')+'['+FX_TAG+']'+JSON.stringify(fx)+'[/'+FX_TAG+']';
+    if(items) out+='\n['+ITEMS_TAG+']'+JSON.stringify(items)+'[/'+ITEMS_TAG+']';
+    return out;
+  }
+  function ensureFxHeader(){
+    const notes=document.getElementById('salesInvNotes');
+    if(!notes) return;
+    if(!document.getElementById('salesInvCurrency')){
+      notes.closest('.form-field,div')?.insertAdjacentHTML('afterend',`<div class="form-field"><label>عملة الفاتورة</label><select id="salesInvCurrency" onchange="ccV96InvoiceCurrencyChanged && ccV96InvoiceCurrencyChanged()">${CURRENCIES.map(c=>`<option value="${c}">${c}</option>`).join('')}</select></div><div class="form-field"><label>سعر الصرف للفاتورة مقابل الجنيه</label><input id="salesInvExchangeRate" type="number" step="0.0001" value="1" oninput="ccV96SyncAllLineCurrencies && ccV96SyncAllLineCurrencies(); ccV96CalcTotals && ccV96CalcTotals()"></div><div class="form-field"><label>قيمة الفاتورة المعادلة بالجنيه المصري</label><input id="salesInvEgpTotal" readonly></div>`);
+    }
+  }
+  function addRows(items){
+    const body=document.getElementById('salesInvItemsBody'); if(!body) return;
+    body.innerHTML='';
+    if(!items || !items.length){ if(typeof addSalesInvoiceItemRow==='function') addSalesInvoiceItemRow(); return; }
+    items.sort((a,b)=>num(a.serial_no)-num(b.serial_no)).forEach(r=>{
+      const row={
+        order_id:r.order_id,
+        order_item_id:r.order_item_id,
+        order_qty:r.order_qty,
+        unit_price:r.unit_price,
+        previous_qty:r.previous_qty,
+        current_qty:r.current_qty,
+        previous_amount:r.previous_amount,
+        current_amount:r.current_amount,
+        total_amount:r.total_amount,
+        currency:r.currency,
+        exchange_rate:r.exchange_rate,
+        egp_amount:r.egp_amount
+      };
+      if(typeof addSalesInvoiceItemRow==='function') addSalesInvoiceItemRow(row);
+      const tr=body.querySelector('tr:last-child');
+      if(tr){
+        if(tr.querySelector('.salesCurQty')) tr.querySelector('.salesCurQty').value=num(r.current_qty);
+        if(tr.querySelector('.salesUnitPrice')) tr.querySelector('.salesUnitPrice').value=num(r.unit_price);
+        if(tr.querySelector('.salesPrevQty')) tr.querySelector('.salesPrevQty').value=num(r.previous_qty);
+        if(tr.querySelector('.salesPrevAmount')) tr.querySelector('.salesPrevAmount').value=num(r.previous_amount);
+        if(tr.querySelector('.salesCurAmount')) tr.querySelector('.salesCurAmount').value=num(r.current_amount).toFixed(2);
+        if(tr.querySelector('.salesLineTotal')) tr.querySelector('.salesLineTotal').value=num(r.total_amount).toFixed(2);
+        if(tr.querySelector('.salesLineCurrency')) tr.querySelector('.salesLineCurrency').value=r.currency || document.getElementById('salesInvCurrency')?.value || 'EGP';
+        if(tr.querySelector('.salesLineExchangeRate')) tr.querySelector('.salesLineExchangeRate').value=num(r.exchange_rate)||num(document.getElementById('salesInvExchangeRate')?.value)||1;
+        if(tr.querySelector('.salesLineEgp')) tr.querySelector('.salesLineEgp').value=(num(r.egp_amount)||num(r.current_amount)*(num(r.exchange_rate)||1)).toFixed(2);
+      }
+    });
+    if(typeof renumberSalesRows==='function') renumberSalesRows();
+    if(typeof ccV96CalcTotals==='function') ccV96CalcTotals();
+  }
+  async function loadItems(invoiceId, inv){
+    let items=[];
+    try{
+      const res=await client.from('sales_invoice_items').select('*').eq('invoice_id',invoiceId).order('serial_no');
+      if(!res.error && Array.isArray(res.data) && res.data.length) items=res.data;
+    }catch(e){}
+    if(!items.length){
+      const packed=readBlock(inv?.notes,ITEMS_TAG);
+      if(Array.isArray(packed)) items=packed;
+    }
+    if(!items.length){
+      try{ if(typeof window.ccParseSalesItemsFromNotes==='function') items=window.ccParseSalesItemsFromNotes(inv)||[]; }catch(e){}
+    }
+    return items||[];
+  }
+  const oldOpen=window.openSalesInvoiceModal;
+  window.openSalesInvoiceModal=async function(invoiceId=null){
+    if(oldOpen) await oldOpen.apply(this,arguments);
+    ensureFxHeader();
+    if(!invoiceId) return;
+    try{
+      const res=await client.from('sales_invoices').select('*').eq('id',invoiceId).maybeSingle();
+      if(res.error || !res.data) return;
+      const inv=res.data;
+      const fx=readBlock(inv.notes,FX_TAG)||{};
+      if(document.getElementById('salesInvCurrency')) salesInvCurrency.value=fx.currency || inv.currency || inv.invoice_currency || 'EGP';
+      if(document.getElementById('salesInvExchangeRate')) salesInvExchangeRate.value=num(fx.exchange_rate || inv.exchange_rate || inv.fx_rate || 1) || 1;
+      if(document.getElementById('salesInvEgpTotal')) salesInvEgpTotal.value=num(fx.egp_total || fx.total_egp || (num(inv.total_amount)*(num(salesInvExchangeRate.value)||1))).toFixed(2);
+      if(document.getElementById('salesInvNotes')) salesInvNotes.value=cleanNotes(inv.notes||'');
+      const items=await loadItems(invoiceId,inv);
+      addRows(items);
+    }catch(e){ console.warn('V98 open invoice restore failed',e); }
+  };
+  async function saveHeader(invoiceId, core){
+    let res;
+    if(invoiceId) res=await client.from('sales_invoices').update(core).eq('id',invoiceId).select().maybeSingle();
+    else res=await client.from('sales_invoices').insert({...core,created_by:currentUser?.username||''}).select().single();
+    if(res.error && /schema cache|column|created_by|updated_by|updated_at|client_invoice_file/i.test(String(res.error.message||''))){
+      const minimal={invoice_no:core.invoice_no,invoice_date:core.invoice_date,client_name:core.client_name,site:core.site,order_id:core.order_id,subtotal:core.subtotal,vat_amount:core.vat_amount,total_amount:core.total_amount,notes:core.notes};
+      if(invoiceId) res=await client.from('sales_invoices').update(minimal).eq('id',invoiceId).select().maybeSingle();
+      else res=await client.from('sales_invoices').insert(minimal).select().single();
+    }
+    return res;
+  }
+  async function saveItems(invoiceId, rows){
+    if(!invoiceId) return;
+    const dbRows=rows.map(r=>({invoice_id:invoiceId,serial_no:r.serial_no,order_id:r.order_id,order_item_id:r.order_item_id,item_description:r.item_description,unit:r.unit,order_qty:r.order_qty,unit_price:r.unit_price,previous_qty:r.previous_qty,current_qty:r.current_qty,previous_amount:r.previous_amount,current_amount:r.current_amount,total_amount:r.total_amount}));
+    try{
+      await client.from('sales_invoice_items').delete().eq('invoice_id',invoiceId);
+      let res=await client.from('sales_invoice_items').insert(dbRows.map(r=>({...r,created_by:currentUser?.username||''})));
+      if(res.error && /schema cache|column|created_by/i.test(String(res.error.message||''))) await client.from('sales_invoice_items').insert(dbRows);
+    }catch(e){ console.warn('V98 items table skipped; items still saved inside invoice notes',e); }
+  }
+  window.saveSalesInvoice=async function(){
+    ensureFxHeader();
+    const no=document.getElementById('salesInvNo')?.value?.trim()||'';
+    if(!no){ alert('اكتب رقم فاتورة المبيعات'); return; }
+    const orderId=document.getElementById('salesInvOrderId')?.value ? Number(document.getElementById('salesInvOrderId').value) : null;
+    if(!orderId){ alert('اختار أمر الإسناد'); return; }
+    const cur=document.getElementById('salesInvCurrency')?.value || 'EGP';
+    const rate=cur==='EGP'?1:(num(document.getElementById('salesInvExchangeRate')?.value)||1);
+    const rows=[...document.querySelectorAll('#salesInvItemsBody tr')].map((tr,i)=>{
+      if(tr.querySelector('.salesLineCurrency') && tr.querySelector('.salesLineCurrency').value!==cur){ throw new Error('عملة كل بند لازم تكون نفس عملة الفاتورة.'); }
+      const orderItemId=Number(tr.querySelector('.salesItemSelect')?.value||0);
+      const it=(ccOrderItemsCache||[]).find(x=>String(x.id)===String(orderItemId))||{};
+      const qty=num(tr.querySelector('.salesCurQty')?.value);
+      const unitPrice=num(tr.querySelector('.salesUnitPrice')?.value || (num(it.amount)/Math.max(num(it.qty),1)));
+      const curAmount=unitPrice*qty;
+      const prevAmount=num(tr.querySelector('.salesPrevAmount')?.value);
+      const totalLine=prevAmount+curAmount;
+      if(tr.querySelector('.salesCurAmount')) tr.querySelector('.salesCurAmount').value=curAmount.toFixed(2);
+      if(tr.querySelector('.salesLineTotal')) tr.querySelector('.salesLineTotal').value=totalLine.toFixed(2);
+      if(tr.querySelector('.salesLineExchangeRate')) tr.querySelector('.salesLineExchangeRate').value=rate;
+      if(tr.querySelector('.salesLineEgp')) tr.querySelector('.salesLineEgp').value=(curAmount*rate).toFixed(2);
+      return {serial_no:i+1,order_id:orderId,order_item_id:orderItemId,item_description:it.description||tr.querySelector('.salesItemSelect option:checked')?.textContent||'',unit:it.unit||'',order_qty:num(tr.querySelector('.salesOrderQty')?.value||it.qty),unit_price:unitPrice,previous_qty:num(tr.querySelector('.salesPrevQty')?.value),current_qty:qty,previous_amount:prevAmount,current_amount:curAmount,total_amount:totalLine,currency:cur,exchange_rate:rate,egp_amount:curAmount*rate};
+    }).filter(r=>r.order_item_id && (r.current_qty || r.current_amount));
+    if(!rows.length){ alert('أدخل بند واحد على الأقل وكمية حالية'); return; }
+    const btn=[...document.querySelectorAll('#salesInvoiceModal button')].find(b=>String(b.textContent||'').includes('حفظ الفاتورة'));
+    const oldText=btn?btn.textContent:''; if(btn){btn.disabled=true;btn.textContent='جارى الحفظ...';}
+    try{
+      const subtotal=rows.reduce((s,r)=>s+num(r.current_amount),0);
+      const vatPct=num(document.getElementById('salesInvVatPercent')?.value ?? 0);
+      const commPct=num(document.getElementById('salesInvCommercialPercent')?.value ?? 0);
+      const vat=subtotal*vatPct/100, comm=subtotal*commPct/100, total=subtotal+vat-comm, egpTotal=total*rate;
+      if(document.getElementById('salesInvSubtotal')) salesInvSubtotal.value=subtotal.toFixed(2);
+      if(document.getElementById('salesInvVat')) salesInvVat.value=vat.toFixed(2);
+      if(document.getElementById('salesInvCommercialValue')) salesInvCommercialValue.value=comm.toFixed(2);
+      if(document.getElementById('salesInvTotal')) salesInvTotal.value=total.toFixed(2);
+      if(document.getElementById('salesInvEgpTotal')) salesInvEgpTotal.value=egpTotal.toFixed(2);
+      const manual=cleanNotes(document.getElementById('salesInvNotes')?.value||'');
+      const fx={currency:cur,exchange_rate:rate,total_foreign:total,egp_total:egpTotal,total_egp:egpTotal,updated_at:new Date().toISOString(),updated_by:currentUser?.username||''};
+      const core={invoice_no:no,invoice_date:document.getElementById('salesInvDate')?.value||null,client_name:document.getElementById('salesInvClient')?.value?.trim()||'',site:document.getElementById('salesInvSite')?.value?.trim()||'',order_id:orderId,subtotal,vat_amount:vat,total_amount:total,client_invoice_file:null,notes:packNotes(manual,fx,rows),updated_by:currentUser?.username||'',updated_at:new Date().toISOString()};
+      const invoiceId0=Number(document.getElementById('salesInvEditId')?.value||0);
+      const res=await saveHeader(invoiceId0,core);
+      if(res.error){ alert('خطأ حفظ فاتورة المبيعات: '+res.error.message); return; }
+      const invoiceId=invoiceId0 || res.data?.id;
+      await saveItems(invoiceId,rows);
+      if(typeof closeSalesInvoiceModal==='function') closeSalesInvoiceModal();
+      if(typeof loadSalesInvoices==='function') await loadSalesInvoices();
+      if(typeof loadCostPurchaseInvoices==='function') await loadCostPurchaseInvoices();
+      if(document.getElementById('ccOrderDetailsArea')?.innerHTML && typeof openCostOrderDetails==='function') openCostOrderDetails(orderId);
+      alert('تم حفظ الفاتورة بكل بنودها، وعند فتحها للتعديل ستظهر كل البيانات كما هي.');
+    }catch(err){ alert('حدث خطأ أثناء الحفظ: '+(err?.message||err)); console.error('V98 saveSalesInvoice error',err); }
+    finally{ if(btn){btn.disabled=false;btn.textContent=oldText||'حفظ الفاتورة وتحديث مبيعات أمر الإسناد';} }
+  };
+})();
+</script>
+
+
+<script>
+/* ================= V99: ملاحظات يدوية فقط + سعر صرف يدوي/أوتوماتيك + حفظ البنود بدون كتابة بيانات مخفية في الملاحظات ================= */
+(function(){
+  const CURRENCIES=['EGP','USD','EUR','SAR','AED','GBP'];
+  const FX_TAG='FX_META';
+  const ITEMS_TAG='V98_SALES_ITEMS';
+  function num(v){ const x=Number(String(v??'').replace(/,/g,'').trim()); return isFinite(x)?x:0; }
+  function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+  function fmt(v){return num(v).toLocaleString(undefined,{maximumFractionDigits:2});}
+  function manualNotesOnly(txt){
+    let s=String(txt||'');
+    s=s.replace(/\n?\[V98_SALES_ITEMS\][\s\S]*?\[\/V98_SALES_ITEMS\]/g,'');
+    s=s.replace(/\n?\[FX_META\][\s\S]*?\[\/FX_META\]/g,'');
+    s=s.replace(/\n?\[CC_ORDER_META\][\s\S]*?\[\/CC_ORDER_META\]/g,'');
+    s=s.replace(/\n?\[CC_SALES_ITEMS\][\s\S]*?\[\/CC_SALES_ITEMS\]/g,'');
+    s=s.replace(/\n?\[SALES_ITEMS\][\s\S]*?\[\/SALES_ITEMS\]/g,'');
+    s=s.replace(/\n?\[\[CC_SALES_ITEMS\]\][\s\S]*?\[\[\/CC_SALES_ITEMS\]\]/g,'');
+    s=s.replace(/\n?\[\[SALES_ITEMS:[\s\S]*?\]\]/g,'');
+    s=s.replace(/\n?\[\[COLLECTION_META:[\s\S]*?\]\]/g,'');
+    return s.split(/\n+/).map(x=>x.trim()).filter(Boolean).join('\n');
+  }
+  window.ccCleanNotesOnly=manualNotesOnly;
+  window.cleanSystemAutoNotes=manualNotesOnly;
+  window.ccStripSalesItemsFromNotes=manualNotesOnly;
+  function readBlock(txt,tag){
+    const m=String(txt||'').match(new RegExp('\\['+tag+'\\]([\\s\\S]*?)\\[\\/'+tag+'\\]'));
+    if(!m) return null; try{return JSON.parse(m[1]);}catch(e){return null;}
+  }
+  function storageKey(id,no,suffix){ return 'taswyat_v99_sales_'+suffix+'_'+(id?('id_'+id):('no_'+String(no||'').trim())); }
+  function saveLocal(invoiceId,no,fx,items){
+    try{
+      localStorage.setItem(storageKey(invoiceId,no,'fx'),JSON.stringify(fx||{}));
+      localStorage.setItem(storageKey(invoiceId,no,'items'),JSON.stringify(items||[]));
+      if(invoiceId){
+        localStorage.setItem(storageKey(null,no,'fx'),JSON.stringify(fx||{}));
+        localStorage.setItem(storageKey(null,no,'items'),JSON.stringify(items||[]));
+      }
+    }catch(e){}
+  }
+  function readLocal(invoiceId,no,suffix){
+    try{
+      return JSON.parse(localStorage.getItem(storageKey(invoiceId,no,suffix)) || localStorage.getItem(storageKey(null,no,suffix)) || 'null');
+    }catch(e){return null;}
+  }
+  async function fetchFx(from,to='EGP'){
+    from=from||'EGP'; if(from===to) return 1;
+    const key='taswyat_v99_fx_'+from+'_'+to;
+    try{ const c=JSON.parse(localStorage.getItem(key)||'null'); if(c && Date.now()-c.t<6*60*60*1000 && num(c.r)>1) return num(c.r); }catch(e){}
+    const urls=[
+      'https://open.er-api.com/v6/latest/'+encodeURIComponent(from),
+      'https://api.exchangerate-api.com/v4/latest/'+encodeURIComponent(from),
+      'https://api.frankfurter.app/latest?from='+encodeURIComponent(from)+'&to='+encodeURIComponent(to)
+    ];
+    for(const url of urls){
+      try{
+        const js=await (await fetch(url)).json();
+        const r=num((js.rates||{})[to]);
+        if(r>0){ localStorage.setItem(key,JSON.stringify({r,t:Date.now()})); return r; }
+      }catch(e){}
+    }
+    return 1;
+  }
+  function ensureFxHeader(){
+    const notes=document.getElementById('salesInvNotes'); if(!notes) return;
+    if(!document.getElementById('salesInvCurrency')){
+      notes.closest('.form-field,div')?.insertAdjacentHTML('afterend',`<div class="form-field"><label>عملة الفاتورة</label><select id="salesInvCurrency" onchange="ccV99InvoiceCurrencyChanged()">${CURRENCIES.map(c=>`<option value="${c}">${c}</option>`).join('')}</select></div><div class="form-field"><label>سعر الصرف مقابل الجنيه المصري</label><input id="salesInvExchangeRate" type="number" step="0.0001" placeholder="اتركه فارغ للسحب من الإنترنت" oninput="ccV99RateManual=true; ccV99SyncRowsAndTotals()"></div><div class="form-field"><label>قيمة الفاتورة المعادلة بالجنيه المصري</label><input id="salesInvEgpTotal" readonly></div>`);
+    }
+  }
+  function ensureRowFx(tr){
+    if(!tr || tr.dataset.v99fx==='1') return;
+    const cells=[...tr.children];
+    if(cells.length<2) return;
+    const cur=document.getElementById('salesInvCurrency')?.value||'EGP';
+    const rate=num(document.getElementById('salesInvExchangeRate')?.value)||(cur==='EGP'?1:0);
+    const removeCell=cells[cells.length-1];
+    removeCell.insertAdjacentHTML('beforebegin',`<td><select class="salesLineCurrency" onchange="ccV99ValidateLineCurrency(this)">${CURRENCIES.map(c=>`<option value="${c}">${c}</option>`).join('')}</select></td><td><input class="salesLineExchangeRate" type="number" step="0.0001" readonly></td><td><input class="salesLineEgp" type="number" readonly></td>`);
+    tr.dataset.v99fx='1';
+    const sel=tr.querySelector('.salesLineCurrency'); if(sel) sel.value=cur;
+    const rt=tr.querySelector('.salesLineExchangeRate'); if(rt) rt.value=rate||'';
+  }
+  function ensureItemHeaders(){
+    const head=document.querySelector('#ccSalesItemsTable thead tr') || document.querySelector('#salesInvItemsBody')?.closest('table')?.querySelector('thead tr');
+    if(head && !head.dataset.v99fx){
+      const ths=[...head.children]; const last=ths[ths.length-1];
+      last.insertAdjacentHTML('beforebegin','<th>عملة البند</th><th>سعر الصرف</th><th>المعادلة بالجنيه</th>');
+      head.dataset.v99fx='1';
+    }
+  }
+  function ensureAllRows(){ ensureFxHeader(); ensureItemHeaders(); document.querySelectorAll('#salesInvItemsBody tr').forEach(ensureRowFx); }
+  function calcLine(tr){
+    const cur=document.getElementById('salesInvCurrency')?.value||'EGP';
+    const rate=cur==='EGP'?1:(num(document.getElementById('salesInvExchangeRate')?.value)||1);
+    const qty=num(tr.querySelector('.salesCurQty')?.value);
+    const unitPrice=num(tr.querySelector('.salesUnitPrice')?.value);
+    const prev=num(tr.querySelector('.salesPrevAmount')?.value);
+    const current=qty*unitPrice;
+    if(tr.querySelector('.salesCurAmount')) tr.querySelector('.salesCurAmount').value=current.toFixed(2);
+    if(tr.querySelector('.salesLineTotal')) tr.querySelector('.salesLineTotal').value=(prev+current).toFixed(2);
+    if(tr.querySelector('.salesLineCurrency')) tr.querySelector('.salesLineCurrency').value=cur;
+    if(tr.querySelector('.salesLineExchangeRate')) tr.querySelector('.salesLineExchangeRate').value=rate;
+    if(tr.querySelector('.salesLineEgp')) tr.querySelector('.salesLineEgp').value=(current*rate).toFixed(2);
+    return current;
+  }
+  window.ccV99SyncRowsAndTotals=function(){
+    ensureAllRows();
+    const cur=document.getElementById('salesInvCurrency')?.value||'EGP';
+    const rate=cur==='EGP'?1:(num(document.getElementById('salesInvExchangeRate')?.value)||1);
+    let sub=0; document.querySelectorAll('#salesInvItemsBody tr').forEach(tr=>sub+=calcLine(tr));
+    const vatPct=num(document.getElementById('salesInvVatPercent')?.value ?? 0);
+    const commPct=num(document.getElementById('salesInvCommercialPercent')?.value ?? 0);
+    const vat=sub*vatPct/100, comm=sub*commPct/100, total=sub+vat-comm;
+    if(document.getElementById('salesInvSubtotal')) salesInvSubtotal.value=sub.toFixed(2);
+    if(document.getElementById('salesInvVat')) salesInvVat.value=vat.toFixed(2);
+    if(document.getElementById('salesInvCommercialValue')) salesInvCommercialValue.value=comm.toFixed(2);
+    if(document.getElementById('salesInvTotal')) salesInvTotal.value=total.toFixed(2);
+    if(document.getElementById('salesInvEgpTotal')) salesInvEgpTotal.value=(total*rate).toFixed(2);
+  };
+  window.ccV99InvoiceCurrencyChanged=async function(){
+    ensureAllRows();
+    const cur=document.getElementById('salesInvCurrency')?.value||'EGP';
+    window.ccV99RateManual=false;
+    if(document.getElementById('salesInvExchangeRate')){
+      salesInvExchangeRate.value=cur==='EGP'?1:(await fetchFx(cur,'EGP')).toFixed(4);
+    }
+    window.ccV99SyncRowsAndTotals();
+  };
+  window.ccV99ValidateLineCurrency=function(sel){
+    const invCur=document.getElementById('salesInvCurrency')?.value||'EGP';
+    if(sel.value!==invCur){ alert('خطأ: عملة البند لازم تكون نفس عملة الفاتورة. سيتم إرجاعها تلقائيًا.'); sel.value=invCur; }
+    window.ccV99SyncRowsAndTotals();
+  };
+  const oldAdd=window.addSalesInvoiceItemRow;
+  if(typeof oldAdd==='function'){
+    window.addSalesInvoiceItemRow=function(item={}){
+      const r=oldAdd.apply(this,arguments);
+      const tr=document.querySelector('#salesInvItemsBody tr:last-child');
+      ensureRowFx(tr);
+      if(tr){
+        if(tr.querySelector('.salesLineCurrency')) tr.querySelector('.salesLineCurrency').value=item.currency||document.getElementById('salesInvCurrency')?.value||'EGP';
+        if(tr.querySelector('.salesLineExchangeRate')) tr.querySelector('.salesLineExchangeRate').value=num(item.exchange_rate)||num(document.getElementById('salesInvExchangeRate')?.value)||1;
+        if(tr.querySelector('.salesLineEgp')) tr.querySelector('.salesLineEgp').value=num(item.egp_amount).toFixed(2);
+        ['.salesCurQty','.salesUnitPrice'].forEach(q=>{const el=tr.querySelector(q); if(el && !el.dataset.v99){el.dataset.v99='1'; el.addEventListener('input',window.ccV99SyncRowsAndTotals);}});
+      }
+      window.ccV99SyncRowsAndTotals();
+      return r;
+    };
+  }
+  async function saveHeaderSafe(invoiceId, core, rich){
+    let res;
+    const withPossible={...core,...rich};
+    if(invoiceId) res=await client.from('sales_invoices').update(withPossible).eq('id',invoiceId).select().maybeSingle();
+    else res=await client.from('sales_invoices').insert({...withPossible,created_by:currentUser?.username||''}).select().single();
+    if(res.error && /schema cache|column|created_by|updated_by|updated_at|client_invoice_file|currency|exchange_rate|egp/i.test(String(res.error.message||''))){
+      if(invoiceId) res=await client.from('sales_invoices').update(core).eq('id',invoiceId).select().maybeSingle();
+      else res=await client.from('sales_invoices').insert(core).select().single();
+    }
+    return res;
+  }
+  async function saveItemsSafe(invoiceId,rows){
+    if(!invoiceId || !rows.length) return false;
+    const minimal=rows.map(r=>({invoice_id:invoiceId,serial_no:r.serial_no,order_id:r.order_id,order_item_id:r.order_item_id,item_description:r.item_description,unit:r.unit,order_qty:r.order_qty,unit_price:r.unit_price,previous_qty:r.previous_qty,current_qty:r.current_qty,previous_amount:r.previous_amount,current_amount:r.current_amount,total_amount:r.total_amount}));
+    try{
+      await client.from('sales_invoice_items').delete().eq('invoice_id',invoiceId);
+      let res=await client.from('sales_invoice_items').insert(minimal.map(r=>({...r,created_by:currentUser?.username||''})));
+      if(res.error && /created_by|schema cache|column/i.test(String(res.error.message||''))) res=await client.from('sales_invoice_items').insert(minimal);
+      return !res.error;
+    }catch(e){return false;}
+  }
+  function getRows(orderId,cur,rate){
+    return [...document.querySelectorAll('#salesInvItemsBody tr')].map((tr,i)=>{
+      const orderItemId=Number(tr.querySelector('.salesItemSelect')?.value||0);
+      const it=(ccOrderItemsCache||[]).find(x=>String(x.id)===String(orderItemId))||{};
+      const qty=num(tr.querySelector('.salesCurQty')?.value);
+      const unitPrice=num(tr.querySelector('.salesUnitPrice')?.value || it.unit_price || (num(it.amount)/Math.max(num(it.qty),1)));
+      const current=qty*unitPrice, prev=num(tr.querySelector('.salesPrevAmount')?.value);
+      return {serial_no:i+1,order_id:orderId,order_item_id:orderItemId,item_description:it.description||tr.querySelector('.salesItemSelect option:checked')?.textContent||'',unit:it.unit||'',order_qty:num(tr.querySelector('.salesOrderQty')?.value||it.qty),unit_price:unitPrice,previous_qty:num(tr.querySelector('.salesPrevQty')?.value),current_qty:qty,previous_amount:prev,current_amount:current,total_amount:prev+current,currency:cur,exchange_rate:rate,egp_amount:current*rate};
+    }).filter(r=>r.order_item_id && (r.current_qty || r.current_amount));
+  }
+  async function loadItems(invoiceId,inv){
+    let items=[];
+    try{ const res=await client.from('sales_invoice_items').select('*').eq('invoice_id',invoiceId).order('serial_no'); if(!res.error && Array.isArray(res.data)&&res.data.length) items=res.data; }catch(e){}
+    if(!items.length) items=readLocal(invoiceId,inv?.invoice_no,'items')||[];
+    if(!items.length){ const old=readBlock(inv?.notes,ITEMS_TAG); if(Array.isArray(old)) items=old; }
+    return items||[];
+  }
+  function addRows(items){
+    const body=document.getElementById('salesInvItemsBody'); if(!body) return;
+    body.innerHTML='';
+    if(!items.length){ if(typeof addSalesInvoiceItemRow==='function') addSalesInvoiceItemRow(); return; }
+    items.sort((a,b)=>num(a.serial_no)-num(b.serial_no)).forEach(r=>{
+      if(typeof addSalesInvoiceItemRow==='function') addSalesInvoiceItemRow(r);
+      const tr=body.querySelector('tr:last-child');
+      if(!tr) return;
+      if(tr.querySelector('.salesItemSelect')) tr.querySelector('.salesItemSelect').value=r.order_item_id||'';
+      if(tr.querySelector('.salesCurQty')) tr.querySelector('.salesCurQty').value=num(r.current_qty);
+      if(tr.querySelector('.salesUnitPrice')) tr.querySelector('.salesUnitPrice').value=num(r.unit_price);
+      if(tr.querySelector('.salesPrevQty')) tr.querySelector('.salesPrevQty').value=num(r.previous_qty);
+      if(tr.querySelector('.salesPrevAmount')) tr.querySelector('.salesPrevAmount').value=num(r.previous_amount);
+      if(tr.querySelector('.salesCurAmount')) tr.querySelector('.salesCurAmount').value=num(r.current_amount).toFixed(2);
+      if(tr.querySelector('.salesLineTotal')) tr.querySelector('.salesLineTotal').value=num(r.total_amount).toFixed(2);
+      ensureRowFx(tr);
+      if(tr.querySelector('.salesLineCurrency')) tr.querySelector('.salesLineCurrency').value=document.getElementById('salesInvCurrency')?.value||r.currency||'EGP';
+      if(tr.querySelector('.salesLineExchangeRate')) tr.querySelector('.salesLineExchangeRate').value=num(document.getElementById('salesInvExchangeRate')?.value)||num(r.exchange_rate)||1;
+      if(tr.querySelector('.salesLineEgp')) tr.querySelector('.salesLineEgp').value=(num(r.egp_amount)||num(r.current_amount)*(num(r.exchange_rate)||1)).toFixed(2);
+    });
+    if(typeof renumberSalesRows==='function') renumberSalesRows();
+    window.ccV99SyncRowsAndTotals();
+  }
+  function readInvFx(inv){
+    const old=readBlock(inv?.notes,FX_TAG)||{};
+    const loc=readLocal(inv?.id,inv?.invoice_no,'fx')||{};
+    const cur=inv?.currency||inv?.invoice_currency||loc.currency||old.currency||'EGP';
+    const rate=cur==='EGP'?1:(num(inv?.exchange_rate||inv?.fx_rate||loc.exchange_rate||old.exchange_rate)||1);
+    const total=num(inv?.total_amount||0);
+    return {currency:cur,exchange_rate:rate,egp_total:num(inv?.egp_total||inv?.total_amount_egp||loc.egp_total||old.egp_total||old.total_egp||(cur==='EGP'?total:total*rate))};
+  }
+  window.ccV89ReadSalesMeta=readInvFx;
+  const oldOpen=window.openSalesInvoiceModal;
+  window.openSalesInvoiceModal=async function(invoiceId=null){
+    if(oldOpen) await oldOpen.apply(this,arguments);
+    ensureAllRows();
+    if(document.getElementById('salesInvNotes')) salesInvNotes.value=manualNotesOnly(salesInvNotes.value);
+    if(!invoiceId){
+      if(document.getElementById('salesInvCurrency') && !salesInvCurrency.value) salesInvCurrency.value='EGP';
+      await window.ccV99InvoiceCurrencyChanged();
+      return;
+    }
+    try{
+      const res=await client.from('sales_invoices').select('*').eq('id',invoiceId).maybeSingle(); if(res.error||!res.data) return;
+      const inv=res.data, fx=readInvFx(inv);
+      if(document.getElementById('salesInvCurrency')) salesInvCurrency.value=fx.currency||'EGP';
+      if(document.getElementById('salesInvExchangeRate')) salesInvExchangeRate.value=fx.exchange_rate||1;
+      if(document.getElementById('salesInvEgpTotal')) salesInvEgpTotal.value=num(fx.egp_total).toFixed(2);
+      if(document.getElementById('salesInvNotes')) salesInvNotes.value=manualNotesOnly(inv.notes||'');
+      const items=await loadItems(invoiceId,inv);
+      addRows(items);
+    }catch(e){console.warn('V99 open invoice failed',e);}
+  };
+  window.saveSalesInvoice=async function(){
+    ensureAllRows();
+    const no=document.getElementById('salesInvNo')?.value?.trim()||''; if(!no){alert('اكتب رقم فاتورة المبيعات');return;}
+    const orderId=document.getElementById('salesInvOrderId')?.value ? Number(document.getElementById('salesInvOrderId').value) : null; if(!orderId){alert('اختار أمر الإسناد');return;}
+    const cur=document.getElementById('salesInvCurrency')?.value||'EGP';
+    let rate=cur==='EGP'?1:num(document.getElementById('salesInvExchangeRate')?.value);
+    if(cur!=='EGP' && (!rate || rate<=1)){ rate=await fetchFx(cur,'EGP'); if(document.getElementById('salesInvExchangeRate')) salesInvExchangeRate.value=Number(rate).toFixed(4); }
+    for(const tr of document.querySelectorAll('#salesInvItemsBody tr')){ const lc=tr.querySelector('.salesLineCurrency')?.value||cur; if(lc!==cur){alert('خطأ: عملة البند لازم تكون نفس عملة الفاتورة.'); return;} }
+    window.ccV99SyncRowsAndTotals();
+    const rows=getRows(orderId,cur,rate);
+    if(!rows.length){alert('أدخل بند واحد على الأقل وكمية حالية');return;}
+    const sub=rows.reduce((s,r)=>s+num(r.current_amount),0), vatPct=num(document.getElementById('salesInvVatPercent')?.value??0), commPct=num(document.getElementById('salesInvCommercialPercent')?.value??0);
+    const vat=sub*vatPct/100, comm=sub*commPct/100, total=sub+vat-comm, egpTotal=total*rate;
+    if(document.getElementById('salesInvSubtotal')) salesInvSubtotal.value=sub.toFixed(2);
+    if(document.getElementById('salesInvVat')) salesInvVat.value=vat.toFixed(2);
+    if(document.getElementById('salesInvCommercialValue')) salesInvCommercialValue.value=comm.toFixed(2);
+    if(document.getElementById('salesInvTotal')) salesInvTotal.value=total.toFixed(2);
+    if(document.getElementById('salesInvEgpTotal')) salesInvEgpTotal.value=egpTotal.toFixed(2);
+    const btn=[...document.querySelectorAll('#salesInvoiceModal button')].find(b=>String(b.textContent||'').includes('حفظ الفاتورة'));
+    const oldText=btn?btn.textContent:''; if(btn){btn.disabled=true;btn.textContent='جارى الحفظ...';}
+    try{
+      const manual=manualNotesOnly(document.getElementById('salesInvNotes')?.value||'');
+      const invoiceId0=Number(document.getElementById('salesInvEditId')?.value||0);
+      const core={invoice_no:no,invoice_date:document.getElementById('salesInvDate')?.value||null,client_name:document.getElementById('salesInvClient')?.value?.trim()||'',site:document.getElementById('salesInvSite')?.value?.trim()||'',order_id:orderId,subtotal:sub,vat_amount:vat,total_amount:total,client_invoice_file:null,notes:manual};
+      const rich={currency:cur,invoice_currency:cur,exchange_rate:rate,fx_rate:rate,egp_total:egpTotal,total_amount_egp:egpTotal,updated_by:currentUser?.username||'',updated_at:new Date().toISOString()};
+      const res=await saveHeaderSafe(invoiceId0,core,rich);
+      if(res.error){ alert('خطأ حفظ فاتورة المبيعات: '+res.error.message); return; }
+      const invoiceId=invoiceId0 || res.data?.id;
+      await saveItemsSafe(invoiceId,rows);
+      saveLocal(invoiceId,no,{currency:cur,exchange_rate:rate,egp_total:egpTotal,total_foreign:total},rows);
+      if(typeof closeSalesInvoiceModal==='function') closeSalesInvoiceModal();
+      if(typeof loadSalesInvoices==='function') await loadSalesInvoices();
+      if(typeof loadCostPurchaseInvoices==='function') await loadCostPurchaseInvoices();
+      if(document.getElementById('ccOrderDetailsArea')?.innerHTML && typeof openCostOrderDetails==='function') openCostOrderDetails(orderId);
+      alert('تم حفظ الفاتورة بنجاح');
+    }catch(err){console.error('V99 saveSalesInvoice error',err); alert('حدث خطأ أثناء الحفظ: '+(err?.message||err));}
+    finally{ if(btn){btn.disabled=false;btn.textContent=oldText||'حفظ الفاتورة وتحديث مبيعات أمر الإسناد';} }
+  };
+  window.loadSalesInvoices=async function(render=true){
+    if((!ccOrdersCache || !ccOrdersCache.length) && typeof loadCostOrders==='function'){ try{await loadCostOrders(false);}catch(e){} }
+    const res=await client.from('sales_invoices').select('*').order('id',{ascending:false}).limit(1000);
+    if(res.error){ if(render && document.getElementById('salesInvoicesArea')) salesInvoicesArea.innerHTML='شغّل SQL الخاص بفواتير المبيعات أولاً'; return; }
+    ccSalesCache=res.data||[]; window.ccSalesCache=ccSalesCache;
+    if(typeof refreshCostControlSelects==='function') refreshCostControlSelects();
+    if(!render || !document.getElementById('salesInvoicesArea')) return;
+    const orderMap={}; (ccOrdersCache||[]).forEach(o=>orderMap[o.id]=o);
+    const q=(document.getElementById('ccSalesSearch')?.value||'').toLowerCase().trim();
+    const rows=ccSalesCache.filter(s=>!q || [s.invoice_no,s.client_name,s.site,orderMap[s.order_id]?.order_no].some(v=>String(v||'').toLowerCase().includes(q)));
+    const total=rows.reduce((sum,s)=>sum+num(s.total_amount),0);
+    const egpTotal=rows.reduce((sum,s)=>sum+num(readInvFx(s).egp_total),0);
+    salesInvoicesArea.innerHTML=`<div class="summary" style="margin-bottom:12px"><div class="box"><h3>إجمالي الاختيار</h3><h2>${fmt(total)}</h2></div><div class="box"><h3>الإجمالي المعادل بالجنيه</h3><h2>${fmt(egpTotal)}</h2></div></div><table class="table"><thead><tr><th>إجراء</th><th>حالة التحصيل</th><th>رقم مستند الدفع / الحركة</th><th>رقم الفاتورة</th><th>تاريخ عمل الفاتورة</th><th>رقم أمر الإسناد</th><th>العميل</th><th>الموقع</th><th>قيمة الفاتورة</th><th>عملة الفاتورة</th><th>سعر الصرف</th><th>المعادلة بالجنيه المصري</th><th>ملاحظات</th></tr></thead><tbody>${rows.map(s=>{const fx=readInvFx(s), meta=typeof ccSalesCollectionMeta==='function'?ccSalesCollectionMeta(s):{status:'تحت التحصيل',doc_no:'-'}; return `<tr><td><button class="small green" onclick="openSalesInvoiceModal(${s.id})">فتح/تعديل</button> <button class="small red" onclick="deleteSalesInvoice&&deleteSalesInvoice(${s.id})">حذف</button></td><td>${esc(meta.status||'تحت التحصيل')}</td><td>${esc(meta.doc_no||'-')}</td><td>${esc(s.invoice_no||'')}</td><td>${esc(s.invoice_date||'')}</td><td>${esc(orderMap[s.order_id]?.order_no||'')}</td><td>${esc(s.client_name||'')}</td><td>${esc(s.site||'')}</td><td>${fmt(s.total_amount)}</td><td><b>${esc(fx.currency||'EGP')}</b></td><td>${fmt(fx.exchange_rate||1)}</td><td>${fmt(fx.egp_total)}</td><td>${esc(manualNotesOnly(s.notes||''))}</td></tr>`}).join('')||'<tr><td colspan="13">لا توجد فواتير</td></tr>'}</tbody></table>`;
+  };
+  const obs=new MutationObserver(()=>{document.querySelectorAll('#salesInvItemsBody tr').forEach(ensureRowFx); document.querySelectorAll('td').forEach(td=>{const c=manualNotesOnly(td.textContent); if(c!==td.textContent && /FX_META|V98_SALES_ITEMS|CC_SALES_ITEMS/.test(td.textContent)) td.textContent=c;});});
+  document.addEventListener('DOMContentLoaded',function(){
+    const h=document.querySelector('.sidebar h2'); if(h) h.textContent='Taswyat V99'; document.title='Taswyat System - UPGRADED V99';
+    try{obs.observe(document.body,{childList:true,subtree:true});}catch(e){}
+    ensureAllRows();
   });
 })();
 </script>
