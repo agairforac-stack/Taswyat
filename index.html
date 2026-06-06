@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<title>Taswyat System - UPGRADED V64</title>
+<title>Taswyat System - UPGRADED V70</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
 
 /* ================= COST CONTROL V60 ================= */
@@ -87,7 +87,7 @@ function calcSalesInvoiceTotals(){
 }
 async function saveSalesInvoice(){
  const no=salesInvNo.value.trim(); if(!no){alert('اكتب رقم فاتورة المبيعات');return;}
- let f=null; if(salesInvFile.files && salesInvFile.files[0]) f=await readFileAsDataUrl(salesInvFile.files[0]);
+ let f=null; // تم إلغاء رفع ملف الفاتورة والاكتفاء برقم الفاتورة
  calcSalesInvoiceTotals();
  const payload={invoice_no:no,invoice_date:salesInvDate.value||null,client_name:salesInvClient.value.trim(),site:salesInvSite.value.trim(),order_id:salesInvOrderId.value?Number(salesInvOrderId.value):null,subtotal:Number(salesInvSubtotal.value||0),vat_amount:Number(salesInvVat.value||0),total_amount:Number(salesInvTotal.value||0),client_invoice_file:f,notes:salesInvNotes.value.trim(),created_by:currentUser.username};
  const {error}=await client.from('sales_invoices').insert(payload);
@@ -236,7 +236,7 @@ function calcSalesInvoiceTotals(){
 }
 async function saveSalesInvoice(){
  const no=salesInvNo.value.trim(); if(!no){alert('اكتب رقم فاتورة المبيعات');return;}
- let f=null; if(salesInvFile.files && salesInvFile.files[0]) f=await readFileAsDataUrl(salesInvFile.files[0]);
+ let f=null; // تم إلغاء رفع ملف الفاتورة والاكتفاء برقم الفاتورة
  calcSalesInvoiceTotals();
  const payload={invoice_no:no,invoice_date:salesInvDate.value||null,client_name:salesInvClient.value.trim(),site:salesInvSite.value.trim(),order_id:salesInvOrderId.value?Number(salesInvOrderId.value):null,subtotal:Number(salesInvSubtotal.value||0),vat_amount:Number(salesInvVat.value||0),total_amount:Number(salesInvTotal.value||0),client_invoice_file:f,notes:salesInvNotes.value.trim(),created_by:currentUser.username};
  const {error}=await client.from('sales_invoices').insert(payload);
@@ -488,6 +488,10 @@ button.small{padding:6px 10px;font-size:12px}
 .cc-negative{color:#dc2626!important;font-weight:bold}
 .cc-positive{color:#059669!important;font-weight:bold}
 
+
+.cc-sales-items-wrap{max-height:360px;overflow:auto;border:1px solid #e2e8f0;border-radius:10px;background:white}
+#ccSalesItemsTable input,#ccSalesItemsTable select{min-width:95px;padding:6px;font-size:12px}
+#ccSalesItemsTable .salesItemSelect{min-width:280px}
 </style>
 </head>
 
@@ -522,7 +526,7 @@ button.small{padding:6px 10px;font-size:12px}
 <div id="app" class="app">
 
 <div class="sidebar">
-<h2>Taswyat V69</h2>
+<h2>Taswyat V75</h2>
 <p id="currentUserText"></p>
 
 <button onclick="showPage('homePage')">الرئيسية</button>
@@ -1186,19 +1190,35 @@ button.small{padding:6px 10px;font-size:12px}
 <div id="salesInvoiceModal" class="modal-bg">
 <div class="modal">
 <div class="modal-header"><h2>فاتورة مبيعات ضريبية</h2><button class="red small" onclick="closeSalesInvoiceModal()">إغلاق</button></div>
+<input type="hidden" id="salesInvEditId">
 <div class="grid">
-<div class="form-field"><label>رقم الفاتورة</label><input id="salesInvNo" placeholder="رقم الفاتورة"></div>
+<div class="form-field"><label>أمر الإسناد المرتبط</label><select id="salesInvOrderId" onchange="ccSalesOrderChanged()"><option value="">اختر أمر الإسناد</option></select></div>
+<div class="form-field"><label>رقم أمر الإسناد</label><input id="salesInvOrderNoView" readonly placeholder="يظهر تلقائيًا"></div>
+<div class="form-field"><label>رقم الفاتورة</label><input id="salesInvNo" readonly placeholder="يظهر تلقائيًا بداية من 11000"></div>
 <div class="form-field"><label>تاريخ الفاتورة</label><input id="salesInvDate" type="date"></div>
-<div class="form-field"><label>العميل</label><input id="salesInvClient" placeholder="اسم العميل"></div>
-<div class="form-field"><label>الموقع / المشروع</label><input id="salesInvSite" list="siteList" placeholder="اختر أو اكتب الموقع"></div>
-<div class="form-field"><label>أمر الإسناد المرتبط</label><select id="salesInvOrderId"><option value="">بدون</option></select></div>
-<div class="form-field"><label>القيمة قبل الضريبة</label><input id="salesInvSubtotal" type="number" placeholder="0" oninput="calcSalesInvoiceTotals()"></div>
-<div class="form-field"><label>ضريبة القيمة المضافة 14%</label><input id="salesInvVat" readonly></div>
-<div class="form-field"><label>الإجمالي شامل الضريبة</label><input id="salesInvTotal" readonly></div>
-<div class="form-field"><label>رفع فاتورة العميل الحقيقية</label><input id="salesInvFile" type="file"></div>
+<div class="form-field"><label>العميل</label><input id="salesInvClient" placeholder="يظهر من أمر الإسناد"></div>
+<div class="form-field"><label>الموقع / المشروع</label><input id="salesInvSite" list="siteList" placeholder="يظهر من أمر الإسناد"></div>
+<input id="salesInvFile" type="file" style="display:none">
 <div class="form-field"><label>ملاحظات</label><input id="salesInvNotes" placeholder="ملاحظات"></div>
 </div>
-<br><button class="green" onclick="saveSalesInvoice()">حفظ فاتورة المبيعات</button>
+<h3 style="margin-top:15px">بنود فاتورة المبيعات من أمر الإسناد</h3>
+<div class="cc-sales-items-wrap">
+<table class="cc-purchases-table" id="ccSalesItemsTable"><thead><tr>
+<th>م</th><th style="min-width:280px">بند أمر الإسناد</th><th>كمية الأمر</th><th>سعر الوحدة</th><th>كمية سابقة</th><th>الكمية الحالية</th><th>مبلغ سابق</th><th>المبلغ الحالي</th><th>الإجمالي</th><th>مسح</th>
+</tr></thead><tbody id="salesInvItemsBody"></tbody></table>
+</div>
+<br><button class="gray" onclick="addSalesInvoiceItemRow()">+ إضافة بند</button>
+<div class="grid" style="margin-top:12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px">
+<div class="form-field"><label>إجمالي قبل الضريبة</label><input id="salesInvSubtotal" type="number" readonly></div>
+<div class="form-field"><label>نسبة ضريبة القيمة المضافة %</label><input id="salesInvVatPercent" type="number" value="14" oninput="calcSalesInvoiceTotals()"></div>
+<div class="form-field"><label>قيمة الضريبة</label><input id="salesInvVat" readonly></div>
+<div class="form-field"><label>نسبة الأرباح التجارية والصناعية %</label><input id="salesInvCommercialPercent" type="number" value="0" oninput="calcSalesInvoiceTotals()"></div>
+<div class="form-field"><label>قيمة أ.ت.ص</label><input id="salesInvCommercialValue" readonly></div>
+<div class="form-field"><label>الصافي للفاتورة</label><input id="salesInvTotal" readonly></div>
+</div>
+<br>
+<button class="green" onclick="saveSalesInvoice()">حفظ الفاتورة وتحديث مبيعات أمر الإسناد</button>
+<button id="deleteSalesInvoiceBtn" class="red hidden" onclick="deleteSalesInvoice()">حذف الفاتورة وتحديث المبيعات</button>
 </div>
 </div>
 
@@ -1495,6 +1515,10 @@ h1{text-align:center;margin:0 0 12px;font-size:20px}.summary{display:grid;grid-t
 .dist-split-row{border:1px solid #cbd5e1;border-radius:8px;margin:3px 0;padding:4px;background:#f8fafc;text-align:right}
 .dist-split-row b{color:#0f172a}
 .dist-doc-link{display:inline-block;margin-top:3px;color:#0a6cff;font-weight:bold}
+
+.cc-sales-items-wrap{max-height:360px;overflow:auto;border:1px solid #e2e8f0;border-radius:10px;background:white}
+#ccSalesItemsTable input,#ccSalesItemsTable select{min-width:95px;padding:6px;font-size:12px}
+#ccSalesItemsTable .salesItemSelect{min-width:280px}
 </style></head><body><h1>كشف حساب - ${owner}</h1>${preparePrintHtmlWithRepeatingHeaders(content)}</body></html>`);
 w.document.close();
 w.focus();
@@ -1686,6 +1710,10 @@ button{display:none}
 .dist-split-row{border:1px solid #cbd5e1;border-radius:8px;margin:3px 0;padding:4px;background:#f8fafc;text-align:right}
 .dist-split-row b{color:#0f172a}
 .dist-doc-link{display:inline-block;margin-top:3px;color:#0a6cff;font-weight:bold}
+
+.cc-sales-items-wrap{max-height:360px;overflow:auto;border:1px solid #e2e8f0;border-radius:10px;background:white}
+#ccSalesItemsTable input,#ccSalesItemsTable select{min-width:95px;padding:6px;font-size:12px}
+#ccSalesItemsTable .salesItemSelect{min-width:280px}
 </style></head><body>${title}${settlementRowsHtml(lines)}</body></html>`);
 w.document.close();
 w.focus();
@@ -3692,7 +3720,11 @@ function calculateProfit(){ renderSiteCostReport(); }
 function printSiteCostsReport(){
  const w = window.open('', '_blank');
  const content = document.getElementById('siteCostsSummary').innerHTML + '<hr>' + document.getElementById('siteCostsDetails').innerHTML;
- w.document.write(`<html dir="rtl"><head><title>تقرير تكاليف المواقع</title><style>body{font-family:Arial;padding:20px}table{width:100%;border-collapse:collapse;font-size:11px}th,td{border:1px solid #999;padding:5px;text-align:center}.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.box{border:1px solid #ddd;padding:10px;border-radius:8px}button{display:none}@media print{thead{display:table-header-group}}</style></head><body><h2>تقرير تكاليف المواقع</h2>${content}</body></html>`);
+ w.document.write(`<html dir="rtl"><head><title>تقرير تكاليف المواقع</title><style>body{font-family:Arial;padding:20px}table{width:100%;border-collapse:collapse;font-size:11px}th,td{border:1px solid #999;padding:5px;text-align:center}.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.box{border:1px solid #ddd;padding:10px;border-radius:8px}button{display:none}@media print{thead{display:table-header-group}}
+.cc-sales-items-wrap{max-height:360px;overflow:auto;border:1px solid #e2e8f0;border-radius:10px;background:white}
+#ccSalesItemsTable input,#ccSalesItemsTable select{min-width:95px;padding:6px;font-size:12px}
+#ccSalesItemsTable .salesItemSelect{min-width:280px}
+</style></head><body><h2>تقرير تكاليف المواقع</h2>${content}</body></html>`);
  w.document.close();
  w.print();
 }
@@ -4863,6 +4895,10 @@ function printLaborExtractA4(){
 .dist-split-row{border:1px solid #cbd5e1;border-radius:8px;margin:3px 0;padding:4px;background:#f8fafc;text-align:right}
 .dist-split-row b{color:#0f172a}
 .dist-doc-link{display:inline-block;margin-top:3px;color:#0a6cff;font-weight:bold}
+
+.cc-sales-items-wrap{max-height:360px;overflow:auto;border:1px solid #e2e8f0;border-radius:10px;background:white}
+#ccSalesItemsTable input,#ccSalesItemsTable select{min-width:95px;padding:6px;font-size:12px}
+#ccSalesItemsTable .salesItemSelect{min-width:280px}
 </style></head><body>${laborExtractBox.outerHTML}</body></html>`);
  w.document.close(); w.focus(); setTimeout(()=>w.print(),500);
 }
@@ -5569,7 +5605,7 @@ function calcSalesInvoiceTotals(){
 }
 async function saveSalesInvoice(){
  const no=salesInvNo.value.trim(); if(!no){alert('اكتب رقم فاتورة المبيعات');return;}
- let f=null; if(salesInvFile.files && salesInvFile.files[0]) f=await readFileAsDataUrl(salesInvFile.files[0]);
+ let f=null; // تم إلغاء رفع ملف الفاتورة والاكتفاء برقم الفاتورة
  calcSalesInvoiceTotals();
  const payload={invoice_no:no,invoice_date:salesInvDate.value||null,client_name:salesInvClient.value.trim(),site:salesInvSite.value.trim(),order_id:salesInvOrderId.value?Number(salesInvOrderId.value):null,subtotal:Number(salesInvSubtotal.value||0),vat_amount:Number(salesInvVat.value||0),total_amount:Number(salesInvTotal.value||0),client_invoice_file:f,notes:salesInvNotes.value.trim(),created_by:currentUser.username};
  const {error}=await client.from('sales_invoices').insert(payload);
@@ -5813,7 +5849,7 @@ function costDetailRoutingHtml(sourceType, sourceId, link={}, defaultAmount=0){
  <div class="form-field"><label>أمر الإسناد</label><select id="ccDetOrder_${rowId}" onchange="updateCostDetailOrderItems('${rowId}')">${ccOrderOptionHtml(orderId)}</select></div>
  <div class="form-field"><label>بند أمر الإسناد</label><select id="ccDetItem_${rowId}">${ccOrderItemsOptionHtml(orderId, link.order_item_id||'')}</select></div>
  <div class="form-field"><label>فاتورة المبيعات</label><select id="ccDetSales_${rowId}">${ccSalesOptionHtml(link.sales_invoice_id||'')}</select></div>
- <div class="form-field"><label>المبلغ المحمل على فاتورة المبيعات</label><input id="ccDetAmount_${rowId}" type="number" step="0.01" value="${ccNum(link.sales_amount || defaultAmount)}"></div>
+ <div class="form-field"><label>المبلغ المحمل على فاتورة المبيعات</label><input id="ccDetAmount_${rowId}" type="number" step="0.01" value="${link.sales_invoice_id ? ccNum(link.sales_amount || defaultAmount) : 0}"></div>
  <div class="form-field"><label>ملاحظات</label><input id="ccDetNotes_${rowId}" value="${ccEscape(link.notes||'')}" placeholder="ملاحظات"></div>
  <div class="form-field"><label>&nbsp;</label><button class="green small" onclick="saveCostDetailLink('${sourceType}',${Number(sourceId)},'${rowId}')">حفظ التوجيه</button></div>
  </div></div>`;
@@ -5936,7 +5972,7 @@ async function loadCostPurchaseInvoices(){
      const orderId=dlink.order_id||'';
      const orderItemId=dlink.order_item_id||'';
      const salesId=dlink.sales_invoice_id||'';
-     const loadedAmount=ccNum(dlink.sales_amount || dlink.allocated_amount || dlink.amount || (x.it?x.it.total:l.amount));
+     const loadedAmount=salesId ? ccNum(dlink.sales_amount || dlink.allocated_amount || dlink.amount || (x.it?x.it.total:l.amount)) : 0;
      const rid=('v64_'+sourceType+'_'+sourceId).replace(/[^a-zA-Z0-9_]/g,'_');
      const sep=(i===0?' cc-line-separator':'');
      body+=`<tr class="${sep}">`;
@@ -6010,12 +6046,12 @@ async function ccBuildAllocationData(){
      line=lineMap[dl.source_id]; if(!line) return;
      amount=ccNum(line.amount); desc=line.description||''; ref=line.payment_ref||'';
    }else{return;}
-   allocs.push({kind:'detail', order_id:dl.order_id, order_item_id:dl.order_item_id, sales_invoice_id:dl.sales_invoice_id, sales_amount:ccNum(dl.sales_amount), purchase_amount:amount, description:desc, ref, line, notes:dl.notes||''});
+   allocs.push({kind:'detail', order_id:dl.order_id, order_item_id:dl.order_item_id, sales_invoice_id:dl.sales_invoice_id, sales_amount:(dl.sales_invoice_id?ccNum(dl.sales_amount):0), purchase_amount:amount, description:desc, ref, line, notes:dl.notes||''});
  });
  purchaseLinks.forEach(pl=>{
    if(!pl.order_item_id) return;
    const line=lineMap[pl.line_id]; if(!line) return;
-   allocs.push({kind:'line', order_id:pl.order_id, order_item_id:pl.order_item_id, sales_invoice_id:pl.sales_invoice_id, sales_amount:ccNum(pl.sales_amount), purchase_amount:ccNum(line.amount), description:line.description||'', ref:line.payment_ref||'', line, notes:pl.notes||''});
+   allocs.push({kind:'line', order_id:pl.order_id, order_item_id:pl.order_item_id, sales_invoice_id:pl.sales_invoice_id, sales_amount:(pl.sales_invoice_id?ccNum(pl.sales_amount):0), purchase_amount:ccNum(line.amount), description:line.description||'', ref:line.payment_ref||'', line, notes:pl.notes||''});
  });
  return {allocs, salesMap:Object.fromEntries((ccSalesCache||[]).map(s=>[s.id,s]))};
 }
@@ -6041,7 +6077,7 @@ async function openCostOrderDetails(orderId){
  box.innerHTML=`<div class="cc-order-open-card">
   <h3>أمر الإسناد: ${ccEscape(order?.order_no||'')} - ${ccEscape(order?.client_name||'')} - ${ccEscape(order?.site||'')}</h3>
   <div class="summary" style="margin-bottom:10px"><div class="box"><h3>إجمالي المشتريات المحملة</h3><h2>${totalPurch.toLocaleString()}</h2></div><div class="box"><h3>إجمالي المبيعات الموجهة</h3><h2>${totalSales.toLocaleString()}</h2></div><div class="box"><h3>الرصيد</h3><h2 class="${balance<0?'cc-negative':'cc-positive'}">${balance.toLocaleString()}</h2></div></div>
-  <div class="cc-purchases-note">اضغط على أي بند لعرض كل بنود فواتير المشتريات المحملة عليه. الرصيد = المبيعات - المشتريات، لذلك يظهر بالسالب إذا لم توجد فاتورة مبيعات.</div>
+  <div class="cc-purchases-note">اضغط على أي بند لعرض كل بنود فواتير المشتريات المحملة عليه. الرصيد = المبيعات - المشتريات. المبيعات لا تُحسب إلا إذا تم اختيار فاتورة مبيعات على البند؛ بدون فاتورة مبيعات تظهر صفر والرصيد بالسالب.</div>
   <table class="cc-purchases-table"><thead><tr><th>م</th><th>كود</th><th>بند أمر الإسناد</th><th>الوحدة</th><th>كمية الأمر</th><th>قيمة الأمر</th><th>مشتريات محملة</th><th>مبيعات</th><th>الرصيد</th><th>فتح</th></tr></thead><tbody>${rows || '<tr><td colspan="10">لا توجد بنود محفوظة لهذا الأمر</td></tr>'}</tbody></table>
   <div id="ccOrderItemLoadsArea" style="margin-top:12px"></div>
  </div>`;
@@ -6063,7 +6099,7 @@ function showCostOrderItemLoads(orderItemId, orderId){
  }).join('');
  box.innerHTML=`<h3>تحميلات بند: ${ccEscape(item.description||'')}</h3>
  <div class="summary" style="margin-bottom:10px"><div class="box"><h3>مشتريات البند</h3><h2>${purch.toLocaleString()}</h2></div><div class="box"><h3>مبيعات البند</h3><h2>${sales.toLocaleString()}</h2></div><div class="box"><h3>رصيد البند</h3><h2 class="${bal<0?'cc-negative':'cc-positive'}">${bal.toLocaleString()}</h2></div></div>
- <table class="cc-purchases-table"><thead><tr><th>م</th><th>التاريخ</th><th>رقم التسوية</th><th>بند فاتورة المشتريات / البيان</th><th>مستند/فاتورة</th><th>الموقع</th><th>مشتريات محملة</th><th>فاتورة المبيعات</th><th>مبيعات</th><th>ملاحظات</th></tr></thead><tbody>${rows || '<tr><td colspan="10">لا توجد مشتريات محملة على هذا البند حتى الآن</td></tr>'}</tbody></table>`;
+ <table class="cc-purchases-table"><thead><tr><th>م</th><th>التاريخ</th><th>رقم التسوية</th><th>بند فاتورة المشتريات / البيان</th><th>مستند/فاتورة</th><th>الموقع</th><th>مشتريات محملة</th><th>فاتورة المبيعات</th><th>مبيعات من الفاتورة</th><th>ملاحظات</th></tr></thead><tbody>${rows || '<tr><td colspan="10">لا توجد مشتريات محملة على هذا البند حتى الآن</td></tr>'}</tbody></table>`;
 }
 
 async function loadCostOrders(render=true){
@@ -6075,6 +6111,507 @@ async function loadCostOrders(render=true){
  refreshCostControlSelects();
  if(!render||!document.getElementById('costOrdersArea')) return;
  costOrdersArea.innerHTML=`<table class="table"><thead><tr><th>فتح</th><th>رقم الأمر</th><th>التاريخ</th><th>العميل</th><th>الموقع</th><th>القيمة</th><th>عدد البنود</th><th>العملة/تفاصيل</th><th>ملاحظات</th></tr></thead><tbody>${ccOrdersCache.map(o=>{const its=ccOrderItemsCache.filter(i=>i.order_id===o.id);return `<tr><td><button class="small green" onclick="openCostOrderDetails(${o.id})">فتح</button></td><td>${ccEscape(o.order_no||'')}</td><td>${o.order_date||''}</td><td>${ccEscape(o.client_name||'')}</td><td>${ccEscape(o.site||'')}</td><td>${ccNum(o.total_value).toLocaleString()}</td><td>${its.length}</td><td>${[...new Set(its.map(i=>i.currency||'EGP'))].join(' / ')}</td><td>${ccEscape(o.notes||'')}</td></tr>`}).join('')}</tbody></table><div id="ccOrderDetailsArea" style="margin-top:14px"></div>`;
+}
+
+
+
+/* ===== V71 Sales invoice items linked to Cost Order Items ===== */
+let currentSalesInvoiceId = null;
+
+function ccSalesGetOrder(orderId){ return (ccOrdersCache||[]).find(o=>String(o.id)===String(orderId)) || null; }
+function ccSalesOrderItems(orderId){ return (ccOrderItemsCache||[]).filter(i=>String(i.order_id)===String(orderId)); }
+function ccOrderItemUnitPrice(it){
+ const q=ccNum(it.qty);
+ const a=ccNum(it.amount);
+ if(q && a) return a/q;
+ return ccNum(it.unit_price || it.price || 0);
+}
+function ccSalesItemOptions(orderId, selected){
+ return '<option value="">اختر بند أمر الإسناد</option>'+ccSalesOrderItems(orderId).map(it=>`<option value="${it.id}" ${String(selected)===String(it.id)?'selected':''}>${ccEscape(it.item_code||'')} - ${ccEscape(it.description||'')}</option>`).join('');
+}
+async function ccSalesPreviousByItem(orderItemId, excludeInvoiceId){
+ try{
+  const all=await ccGetSalesItems();
+  const rows=(all||[]).filter(r=>String(r.order_item_id)===String(orderItemId) && String(r.invoice_id)!==String(excludeInvoiceId||''));
+  return {qty:rows.reduce((s,r)=>s+ccNum(r.current_qty),0), amount:rows.reduce((s,r)=>s+ccNum(r.current_amount),0)};
+ }catch(e){ return {qty:0, amount:0}; }
+}
+async function ccSalesFillPrevForRow(tr){
+ const sel=tr.querySelector('.salesItemSelect');
+ const orderItemId=sel?.value;
+ const it=(ccOrderItemsCache||[]).find(x=>String(x.id)===String(orderItemId))||{};
+ tr.querySelector('.salesOrderQty').value=ccNum(it.qty)||'';
+ tr.querySelector('.salesUnitPrice').value=ccOrderItemUnitPrice(it)||'';
+ const prev=orderItemId ? await ccSalesPreviousByItem(orderItemId, currentSalesInvoiceId) : {qty:0,amount:0};
+ tr.querySelector('.salesPrevQty').value=prev.qty;
+ tr.querySelector('.salesPrevAmount').value=prev.amount;
+ ccSalesCalcRow(tr);
+}
+function ccSalesCalcRow(tr){
+ const price=ccNum(tr.querySelector('.salesUnitPrice')?.value);
+ const curQty=ccNum(tr.querySelector('.salesCurQty')?.value);
+ const prevAmount=ccNum(tr.querySelector('.salesPrevAmount')?.value);
+ const curAmount=price*curQty;
+ tr.querySelector('.salesCurAmount').value=curAmount.toFixed(2);
+ tr.querySelector('.salesLineTotal').value=(prevAmount+curAmount).toFixed(2);
+ calcSalesInvoiceTotals();
+}
+function renumberSalesRows(){
+ document.querySelectorAll('#salesInvItemsBody tr').forEach((tr,i)=>{ const td=tr.querySelector('td'); if(td) td.textContent=i+1; });
+}
+function addSalesInvoiceItemRow(row={}){
+ const body=document.getElementById('salesInvItemsBody'); if(!body) return;
+ const orderId=document.getElementById('salesInvOrderId')?.value || row.order_id || '';
+ const tr=document.createElement('tr');
+ tr.innerHTML=`<td></td>
+ <td><select class="salesItemSelect" onchange="ccSalesFillPrevForRow(this.closest('tr'))">${ccSalesItemOptions(orderId,row.order_item_id||'')}</select></td>
+ <td><input class="salesOrderQty" readonly value="${row.order_qty||''}"></td>
+ <td><input class="salesUnitPrice" readonly value="${row.unit_price||''}"></td>
+ <td><input class="salesPrevQty" readonly value="${row.previous_qty||0}"></td>
+ <td><input class="salesCurQty" type="number" step="0.01" value="${row.current_qty||0}" oninput="ccSalesCalcRow(this.closest('tr'))"></td>
+ <td><input class="salesPrevAmount" readonly value="${row.previous_amount||0}"></td>
+ <td><input class="salesCurAmount" readonly value="${row.current_amount||0}"></td>
+ <td><input class="salesLineTotal" readonly value="${row.total_amount||0}"></td>
+ <td><button class="red small" onclick="this.closest('tr').remove();renumberSalesRows();calcSalesInvoiceTotals()">مسح</button></td>`;
+ body.appendChild(tr); renumberSalesRows(); ccMakeReadonlyInputsClear();
+ if(row.order_item_id){ setTimeout(()=>ccSalesFillPrevForRow(tr),0); }
+}
+async function ccSalesOrderChanged(){
+ const orderId=document.getElementById('salesInvOrderId')?.value;
+ const o=ccSalesGetOrder(orderId);
+ if(document.getElementById('salesInvOrderNoView')) salesInvOrderNoView.value=o?.order_no||'';
+ if(o){ salesInvClient.value=o.client_name||''; salesInvSite.value=o.site||''; }
+ document.querySelectorAll('#salesInvItemsBody tr .salesItemSelect').forEach(sel=>{sel.innerHTML=ccSalesItemOptions(orderId,sel.value);});
+ if(orderId && !document.querySelector('#salesInvItemsBody tr')) addSalesInvoiceItemRow();
+}
+
+function ccNextSalesInvoiceNo(){
+ const nums=(ccSalesCache||[]).map(s=>parseInt(String(s.invoice_no||'').replace(/\D/g,''),10)).filter(n=>!isNaN(n));
+ const max=Math.max(10999,...nums);
+ return String(max+1);
+}
+async function openSalesInvoiceModal(invoiceId=null){
+ await loadCostOrders(false);
+ await loadSalesInvoices(false);
+ currentSalesInvoiceId=invoiceId;
+ salesInvoiceModal.style.display='flex';
+ salesInvEditId.value=invoiceId||'';
+ salesInvNo.value= invoiceId ? '' : ccNextSalesInvoiceNo();
+ salesInvDate.value=new Date().toISOString().slice(0,10);
+ salesInvClient.value=''; salesInvSite.value=''; salesInvSubtotal.value=''; salesInvVat.value=''; salesInvTotal.value=''; salesInvNotes.value='';
+ if(document.getElementById('salesInvFile')) salesInvFile.value='';
+ if(document.getElementById('salesInvVatPercent')) salesInvVatPercent.value=14;
+ if(document.getElementById('salesInvCommercialPercent')) salesInvCommercialPercent.value=0;
+ if(document.getElementById('salesInvCommercialValue')) salesInvCommercialValue.value='';
+ salesInvOrderId.innerHTML='<option value="">اختر أمر الإسناد</option>'+ccOrdersCache.map(o=>`<option value="${o.id}">${ccEscape(o.order_no||'')} - ${ccEscape(o.client_name||'')} - ${ccEscape(o.site||'')}</option>`).join('');
+ salesInvItemsBody.innerHTML='';
+ deleteSalesInvoiceBtn.classList.toggle('hidden', !invoiceId);
+ if(invoiceId){
+  const {data:inv,error}=await client.from('sales_invoices').select('*').eq('id',invoiceId).maybeSingle();
+  if(error||!inv){alert('تعذر فتح الفاتورة');return;}
+  salesInvNo.value=inv.invoice_no||''; salesInvDate.value=inv.invoice_date||''; salesInvClient.value=inv.client_name||''; salesInvSite.value=inv.site||''; salesInvOrderId.value=inv.order_id||''; salesInvOrderNoView.value=ccSalesGetOrder(inv.order_id)?.order_no||''; salesInvNotes.value=ccStripSalesItemsFromNotes(inv.notes||'');
+  if(salesInvVatPercent) salesInvVatPercent.value=ccNum(inv.vat_percent||14);
+  if(salesInvCommercialPercent) salesInvCommercialPercent.value=ccNum(inv.commercial_tax_percent||0);
+  let items=[];
+  try{ const res=await client.from('sales_invoice_items').select('*').eq('invoice_id',invoiceId).order('serial_no'); items=res.error?[]:(res.data||[]); }catch(e){ items=[]; }
+  if(!items.length) items=ccParseSalesItemsFromNotes(inv);
+  (items||[]).forEach(addSalesInvoiceItemRow);
+ }else{
+  addSalesInvoiceItemRow();
+ }
+ calcSalesInvoiceTotals();
+}
+function calcSalesInvoiceTotals(){
+ const sub=[...document.querySelectorAll('#salesInvItemsBody tr')].reduce((s,tr)=>s+ccNum(tr.querySelector('.salesCurAmount')?.value),0);
+ if(document.getElementById('salesInvSubtotal')) salesInvSubtotal.value=sub.toFixed(2);
+ const vatPct=ccNum(document.getElementById('salesInvVatPercent')?.value ?? 14);
+ const commPct=ccNum(document.getElementById('salesInvCommercialPercent')?.value ?? 0);
+ const vat=sub*vatPct/100;
+ const comm=sub*commPct/100;
+ if(document.getElementById('salesInvVat')) salesInvVat.value=vat.toFixed(2);
+ if(document.getElementById('salesInvCommercialValue')) salesInvCommercialValue.value=comm.toFixed(2);
+ if(document.getElementById('salesInvTotal')) salesInvTotal.value=(sub+vat-comm).toFixed(2);
+ ccMakeReadonlyInputsClear();
+}
+async function saveSalesInvoice(){
+ const no=salesInvNo.value.trim(); if(!no){alert('اكتب رقم فاتورة المبيعات');return;}
+ const orderId=salesInvOrderId.value?Number(salesInvOrderId.value):null; if(!orderId){alert('اختار أمر الإسناد');return;}
+ const rows=[...document.querySelectorAll('#salesInvItemsBody tr')].map((tr,i)=>{
+  const orderItemId=Number(tr.querySelector('.salesItemSelect')?.value||0);
+  const it=(ccOrderItemsCache||[]).find(x=>String(x.id)===String(orderItemId))||{};
+  return {serial_no:i+1, order_id:orderId, order_item_id:orderItemId, item_description:it.description||'', unit:it.unit||'', order_qty:ccNum(tr.querySelector('.salesOrderQty')?.value), unit_price:ccNum(tr.querySelector('.salesUnitPrice')?.value), previous_qty:ccNum(tr.querySelector('.salesPrevQty')?.value), current_qty:ccNum(tr.querySelector('.salesCurQty')?.value), previous_amount:ccNum(tr.querySelector('.salesPrevAmount')?.value), current_amount:ccNum(tr.querySelector('.salesCurAmount')?.value), total_amount:ccNum(tr.querySelector('.salesLineTotal')?.value)};
+ }).filter(r=>r.order_item_id && r.current_qty);
+ if(!rows.length){alert('أدخل بند واحد على الأقل وكمية حالية');return;}
+ let f=null; // تم إلغاء رفع ملف الفاتورة والاكتفاء برقم الفاتورة
+ calcSalesInvoiceTotals();
+ const payload={invoice_no:no,invoice_date:salesInvDate.value||null,client_name:salesInvClient.value.trim(),site:salesInvSite.value.trim(),order_id:orderId,subtotal:ccNum(salesInvSubtotal.value),vat_amount:ccNum(salesInvVat.value),total_amount:ccNum(salesInvTotal.value),notes:ccPackSalesItemsInNotes(salesInvNotes.value.trim(), rows),updated_by:currentUser.username,updated_at:new Date().toISOString()};
+ if(document.getElementById('salesInvVatPercent')) payload.vat_percent=ccNum(salesInvVatPercent.value);
+ if(document.getElementById('salesInvCommercialPercent')) payload.commercial_tax_percent=ccNum(salesInvCommercialPercent.value);
+ if(document.getElementById('salesInvCommercialValue')) payload.commercial_tax_value=ccNum(salesInvCommercialValue.value);
+
+ let invoiceId=Number(salesInvEditId.value||0), error;
+ if(invoiceId){ ({error}=await client.from('sales_invoices').update(payload).eq('id',invoiceId)); }
+ else { const res=await client.from('sales_invoices').insert({...payload,created_by:currentUser.username}).select().single(); error=res.error; invoiceId=res.data?.id; }
+ if(error){alert('خطأ حفظ فاتورة المبيعات. تأكد من أعمدة الفاتورة أو عدم تكرار رقم الفاتورة: '+error.message);return;}
+ try{
+  await client.from('sales_invoice_items').delete().eq('invoice_id',invoiceId);
+  await client.from('sales_invoice_items').insert(rows.map(r=>({...r,invoice_id:invoiceId,created_by:currentUser.username})));
+ }catch(e){ /* تم حفظ البنود داخل الفاتورة نفسها كبديل تلقائي */ }
+ closeSalesInvoiceModal(); await loadSalesInvoices(); if(document.getElementById('ccOrderDetailsArea')?.innerHTML) openCostOrderDetails(orderId);
+ alert('تم حفظ الفاتورة وتحديث مبيعات أمر الإسناد');
+}
+async function deleteSalesInvoice(id=null){
+ const invoiceId=Number(id || salesInvEditId.value || currentSalesInvoiceId || 0); if(!invoiceId){alert('لا توجد فاتورة للحذف');return;}
+ if(!confirm('تأكيد حذف فاتورة المبيعات؟ سيتم حذف تأثيرها من مبيعات أمر الإسناد.')) return;
+ await client.from('sales_invoice_items').delete().eq('invoice_id',invoiceId);
+ const {error}=await client.from('sales_invoices').delete().eq('id',invoiceId);
+ if(error){alert('تعذر حذف الفاتورة: '+error.message);return;}
+ closeSalesInvoiceModal(); await loadSalesInvoices();
+ if(document.getElementById('ccOrderDetailsArea')) document.getElementById('ccOrderDetailsArea').innerHTML='';
+ alert('تم حذف الفاتورة وتحديث المبيعات');
+}
+async function loadSalesInvoices(render=true){
+ const {data,error}=await client.from('sales_invoices').select('*').order('id',{ascending:false}).limit(1000);
+ if(error){ if(render) salesInvoicesArea.innerHTML='شغّل SQL الخاص بفواتير المبيعات أولاً'; return; }
+ ccSalesCache=data||[]; refreshCostControlSelects();
+ if(!render||!document.getElementById('salesInvoicesArea')) return;
+ salesInvoicesArea.innerHTML=`<table class="table"><thead><tr><th>إجراء</th><th>رقم الفاتورة</th><th>تاريخ عمل الفاتورة</th><th>رقم أمر الإسناد</th><th>العميل</th><th>الموقع</th><th>قيمة الفاتورة الإجمالية</th><th>ملاحظات</th></tr></thead><tbody>${ccSalesCache.map(s=>{const o=ccSalesGetOrder(s.order_id)||{};return `<tr><td><button class="small green" onclick="openSalesInvoiceModal(${s.id})">فتح/تعديل</button> <button class="small red" onclick="deleteSalesInvoice(${s.id})">حذف</button></td><td>${ccEscape(s.invoice_no||'')}</td><td>${s.invoice_date||''}</td><td>${ccEscape(o.order_no||'')}</td><td>${ccEscape(s.client_name||'')}</td><td>${ccEscape(s.site||'')}</td><td>${ccNum(s.total_amount).toLocaleString()}</td><td>${ccEscape(ccStripSalesItemsFromNotes(s.notes||''))}</td></tr>`}).join('')}</tbody></table>`;
+}
+async function ccGetSalesItems(){
+ const parsed=[]; (ccSalesCache||[]).forEach(inv=>parsed.push(...ccParseSalesItemsFromNotes(inv)));
+ try{
+  const {data,error}=await client.from('sales_invoice_items').select('*');
+  if(error || !(data||[]).length) return parsed;
+  return data||[];
+ }catch(e){ return parsed; }
+}
+async function ccBuildAllocationData(){
+ await loadCostOrders(false); await loadSalesInvoices(false);
+ const linesAll = await ccTrySelect('settlement_lines','*');
+ const lines=(linesAll||[]).filter(l=>String(l.main_direction||'')!=='جارى العهدة' && String(l.status||'')!=='deleted');
+ const lineMap={}; lines.forEach(l=>lineMap[l.id]=l);
+ const invsAll=await ccTrySelect('material_invoices','*');
+ const invLineIds=new Set(lines.map(l=>l.id));
+ const invs=(invsAll||[]).filter(inv=>invLineIds.has(inv.line_id));
+ const invMap={}; invs.forEach(inv=>invMap[inv.id]=inv);
+ const invIds=new Set(invs.map(inv=>inv.id));
+ const matItemsAll=await ccTrySelect('material_invoice_items','*');
+ const matItems=(matItemsAll||[]).filter(it=>invIds.has(it.invoice_id));
+ const matMap={}; matItems.forEach(it=>matMap[it.id]=it);
+ const salaryAll=await ccTrySelect('salary_allocations','*');
+ const sal=(salaryAll||[]).filter(a=>invLineIds.has(a.line_id));
+ const salMap={}; sal.forEach(a=>salMap[a.id]=a);
+ const detailLinks=(await ccTrySelect('cost_detail_links','*'))||[];
+ const purchaseLinks=(await ccTrySelect('purchase_cost_links','*'))||[];
+ const salesItems=(await ccGetSalesItems())||[];
+ const salesByItem={};
+ salesItems.forEach(si=>{ if(!si.order_item_id) return; (salesByItem[si.order_item_id] ||= []).push(si); });
+ const allocs=[];
+ detailLinks.forEach(dl=>{
+   if(!dl.order_item_id) return;
+   let amount=0, desc='', ref='', line=null;
+   if(dl.source_type==='material_invoice_item'){
+     const it=matMap[dl.source_id]; if(!it) return;
+     const inv=invMap[it.invoice_id]||{}; line=lineMap[inv.line_id]||{};
+     amount=ccNum(it.total); desc=it.description||line.description||''; ref=inv.invoice_no||line.payment_ref||'';
+   }else if(dl.source_type==='salary_allocation'){
+     const a=salMap[dl.source_id]; if(!a) return;
+     line=lineMap[a.line_id]||{}; amount=ccNum(a.amount); desc=(a.employee_name||'مرتبات')+' - '+(a.site||''); ref=a.salary_month||line.payment_ref||'';
+   }else if(dl.source_type==='settlement_line'){
+     line=lineMap[dl.source_id]; if(!line) return;
+     amount=ccNum(line.amount); desc=line.description||''; ref=line.payment_ref||'';
+   }else{return;}
+   allocs.push({kind:'purchase', order_id:dl.order_id, order_item_id:dl.order_item_id, sales_invoice_id:null, sales_amount:0, purchase_amount:amount, description:desc, ref, line, notes:dl.notes||''});
+ });
+ purchaseLinks.forEach(pl=>{
+   if(!pl.order_item_id) return;
+   const line=lineMap[pl.line_id]; if(!line) return;
+   allocs.push({kind:'purchase', order_id:pl.order_id, order_item_id:pl.order_item_id, sales_invoice_id:null, sales_amount:0, purchase_amount:ccNum(line.amount), description:line.description||'', ref:line.payment_ref||'', line, notes:pl.notes||''});
+ });
+ salesItems.forEach(si=>{
+   if(!si.order_item_id) return;
+   const inv=(ccSalesCache||[]).find(x=>String(x.id)===String(si.invoice_id))||{};
+   allocs.push({kind:'sales', order_id:si.order_id||inv.order_id, order_item_id:si.order_item_id, sales_invoice_id:si.invoice_id, sales_amount:ccNum(si.current_amount), purchase_amount:0, description:si.item_description||'', ref:inv.invoice_no||'', line:{line_date:inv.invoice_date,settlement_no:'فاتورة مبيعات',site:inv.site}, notes:inv.notes||'', qty:ccNum(si.current_qty)});
+ });
+ return {allocs, salesMap:Object.fromEntries((ccSalesCache||[]).map(s=>[s.id,s]))};
+}
+function showCostOrderItemLoads(orderItemId, orderId){
+ const box=document.getElementById('ccOrderItemLoadsArea'); if(!box) return;
+ const allocs=(window.__ccOrderAllocs||[]).filter(x=>String(x.order_item_id)===String(orderItemId));
+ const salesMap=window.__ccOrderSalesMap||{};
+ const item=(ccOrderItemsCache||[]).find(i=>String(i.id)===String(orderItemId))||{};
+ const purch=allocs.reduce((s,x)=>s+ccNum(x.purchase_amount),0);
+ const sales=allocs.reduce((s,x)=>s+ccNum(x.sales_amount),0);
+ const bal=sales-purch;
+ const rows=allocs.map((x,i)=>{
+   const si=salesMap[x.sales_invoice_id]||{}; const line=x.line||{};
+   return `<tr><td>${i+1}</td><td>${x.kind==='sales'?'مبيعات':'مشتريات'}</td><td>${ccEscape(line.line_date||'')}</td><td>${ccEscape(line.settlement_no||'')}</td><td class="cc-text">${ccEscape(x.description||'')}</td><td>${ccEscape(x.ref||'')}</td><td>${ccEscape(line.site||'')}</td><td>${ccNum(x.purchase_amount).toLocaleString()}</td><td>${ccEscape(si.invoice_no||'-')}</td><td>${ccNum(x.sales_amount).toLocaleString()}</td><td>${ccEscape(x.notes||'')}</td></tr>`;
+ }).join('');
+ box.innerHTML=`<h3>تحميلات بند: ${ccEscape(item.description||'')}</h3>
+ <div class="summary" style="margin-bottom:10px"><div class="box"><h3>مشتريات البند</h3><h2>${purch.toLocaleString()}</h2></div><div class="box"><h3>مبيعات البند</h3><h2>${sales.toLocaleString()}</h2></div><div class="box"><h3>رصيد البند</h3><h2 class="${bal<0?'cc-negative':'cc-positive'}">${bal.toLocaleString()}</h2></div></div>
+ <table class="cc-purchases-table"><thead><tr><th>م</th><th>نوع</th><th>التاريخ</th><th>رقم المستند</th><th>البيان</th><th>مستند/فاتورة</th><th>الموقع</th><th>مشتريات</th><th>فاتورة المبيعات</th><th>مبيعات</th><th>ملاحظات</th></tr></thead><tbody>${rows || '<tr><td colspan="11">لا توجد تحميلات على هذا البند حتى الآن</td></tr>'}</tbody></table>`;
+}
+
+
+/* ===== V76 FIX: Cost Control sales invoice saving / SQL compatibility ===== */
+function ccStripSalesItemsFromNotes(notes){
+  const txt=String(notes||'');
+  return txt.replace(/\n?\[\[CC_SALES_ITEMS\]\][\s\S]*?\[\[\/CC_SALES_ITEMS\]\]\n?/g,'').trim();
+}
+function ccPackSalesItemsInNotes(notes, rows){
+  const clean=ccStripSalesItemsFromNotes(notes);
+  const safeRows=(rows||[]).map(r=>({
+    serial_no:ccNum(r.serial_no), order_id:ccNum(r.order_id), order_item_id:ccNum(r.order_item_id),
+    item_description:String(r.item_description||''), unit:String(r.unit||''),
+    order_qty:ccNum(r.order_qty), unit_price:ccNum(r.unit_price), previous_qty:ccNum(r.previous_qty),
+    current_qty:ccNum(r.current_qty), previous_amount:ccNum(r.previous_amount),
+    current_amount:ccNum(r.current_amount), total_amount:ccNum(r.total_amount)
+  }));
+  const packed='[[CC_SALES_ITEMS]]'+JSON.stringify(safeRows)+'[[/CC_SALES_ITEMS]]';
+  return clean ? (clean+'\n'+packed) : packed;
+}
+function ccParseSalesItemsFromNotes(inv){
+  const notes=String(inv?.notes||'');
+  const m=notes.match(/\[\[CC_SALES_ITEMS\]\]([\s\S]*?)\[\[\/CC_SALES_ITEMS\]\]/);
+  if(!m) return [];
+  try{
+    const arr=JSON.parse(m[1]);
+    return (Array.isArray(arr)?arr:[]).map((r,i)=>({
+      ...r,
+      invoice_id: inv?.id || r.invoice_id || null,
+      order_id: r.order_id || inv?.order_id || null,
+      serial_no: r.serial_no || i+1
+    }));
+  }catch(e){ return []; }
+}
+function ccCoreSalesInvoicePayload(payload, forInsert=false){
+  const core={
+    invoice_no:payload.invoice_no,
+    invoice_date:payload.invoice_date,
+    client_name:payload.client_name,
+    site:payload.site,
+    order_id:payload.order_id,
+    subtotal:payload.subtotal,
+    vat_amount:payload.vat_amount,
+    total_amount:payload.total_amount,
+    notes:payload.notes
+  };
+  if('client_invoice_file' in payload) core.client_invoice_file=payload.client_invoice_file;
+  if(forInsert && currentUser?.username) core.created_by=currentUser.username;
+  return core;
+}
+async function ccSaveSalesInvoiceHeader(invoiceId, payload){
+  const forInsert=!invoiceId;
+  const attempts=[];
+  attempts.push(forInsert ? {...payload,created_by:currentUser?.username||''} : {...payload});
+  attempts.push(ccCoreSalesInvoicePayload(payload, forInsert));
+  let lastError=null;
+  for(const body of attempts){
+    let res;
+    if(invoiceId){ res=await client.from('sales_invoices').update(body).eq('id',invoiceId).select().maybeSingle(); }
+    else { res=await client.from('sales_invoices').insert(body).select().single(); }
+    if(!res.error) return {invoiceId: invoiceId || res.data?.id, data:res.data, error:null};
+    lastError=res.error;
+    const msg=String(res.error.message||'').toLowerCase();
+    if(!(msg.includes('column') || msg.includes('schema cache') || msg.includes('could not find') || msg.includes('updated_by') || msg.includes('vat_percent') || msg.includes('commercial'))){
+      break;
+    }
+  }
+  return {invoiceId, data:null, error:lastError};
+}
+async function ccTrySaveSalesInvoiceItems(invoiceId, rows){
+  try{
+    const del=await client.from('sales_invoice_items').delete().eq('invoice_id',invoiceId);
+    if(del.error) return false;
+    const ins=await client.from('sales_invoice_items').insert((rows||[]).map(r=>({...r,invoice_id:invoiceId,created_by:currentUser?.username||''})));
+    return !ins.error;
+  }catch(e){ return false; }
+}
+
+async function saveSalesInvoice(){
+ const no=salesInvNo.value.trim(); if(!no){alert('اكتب رقم فاتورة المبيعات');return;}
+ const orderId=salesInvOrderId.value?Number(salesInvOrderId.value):null; if(!orderId){alert('اختار أمر الإسناد');return;}
+ const btn=document.querySelector('#salesInvoiceModal button.green');
+ const oldText=btn?btn.textContent:'';
+ if(btn){btn.disabled=true;btn.textContent='جارى الحفظ...';}
+ try{
+   const rows=[...document.querySelectorAll('#salesInvItemsBody tr')].map((tr,i)=>{
+    const orderItemId=Number(tr.querySelector('.salesItemSelect')?.value||0);
+    const it=(ccOrderItemsCache||[]).find(x=>String(x.id)===String(orderItemId))||{};
+    const currentQty=ccNum(tr.querySelector('.salesCurQty')?.value);
+    const unitPrice=ccNum(tr.querySelector('.salesUnitPrice')?.value || ccOrderItemUnitPrice(it));
+    const currentAmount=unitPrice*currentQty;
+    return {serial_no:i+1, order_id:orderId, order_item_id:orderItemId, item_description:it.description||'', unit:it.unit||'', order_qty:ccNum(tr.querySelector('.salesOrderQty')?.value || it.qty), unit_price:unitPrice, previous_qty:ccNum(tr.querySelector('.salesPrevQty')?.value), current_qty:currentQty, previous_amount:ccNum(tr.querySelector('.salesPrevAmount')?.value), current_amount:currentAmount, total_amount:ccNum(tr.querySelector('.salesPrevAmount')?.value)+currentAmount};
+   }).filter(r=>r.order_item_id && (r.current_qty || r.current_amount));
+   if(!rows.length){alert('أدخل بند واحد على الأقل وكمية حالية');return;}
+   calcSalesInvoiceTotals();
+   const baseNotes=ccStripSalesItemsFromNotes(salesInvNotes.value.trim());
+   const payload={invoice_no:no,invoice_date:salesInvDate.value||null,client_name:salesInvClient.value.trim(),site:salesInvSite.value.trim(),order_id:orderId,subtotal:ccNum(salesInvSubtotal.value),vat_amount:ccNum(salesInvVat.value),total_amount:ccNum(salesInvTotal.value),client_invoice_file:null,notes:ccPackSalesItemsInNotes(baseNotes, rows),updated_by:currentUser?.username||'',updated_at:new Date().toISOString()};
+   if(document.getElementById('salesInvVatPercent')) payload.vat_percent=ccNum(salesInvVatPercent.value);
+   if(document.getElementById('salesInvCommercialPercent')) payload.commercial_tax_percent=ccNum(salesInvCommercialPercent.value);
+   if(document.getElementById('salesInvCommercialValue')) payload.commercial_tax_value=ccNum(salesInvCommercialValue.value);
+   let invoiceId=Number(salesInvEditId.value||0);
+   const saved=await ccSaveSalesInvoiceHeader(invoiceId, payload);
+   if(saved.error || !saved.invoiceId){alert('خطأ حفظ فاتورة المبيعات: '+(saved.error?.message||'تأكد من SQL أو رقم الفاتورة غير مكرر'));return;}
+   invoiceId=saved.invoiceId;
+   await ccTrySaveSalesInvoiceItems(invoiceId, rows);
+   closeSalesInvoiceModal();
+   await loadSalesInvoices();
+   await loadCostPurchaseInvoices();
+   if(document.getElementById('ccOrderDetailsArea')?.innerHTML) openCostOrderDetails(orderId);
+   alert('تم حفظ الفاتورة وتحديث مبيعات أمر الإسناد');
+ }finally{
+   if(btn){btn.disabled=false;btn.textContent=oldText||'حفظ الفاتورة وتحديث مبيعات أمر الإسناد';}
+ }
+}
+
+async function savePurchaseLink(){
+ const lineId=Number(ccLinkLineId.value||0); if(!lineId){alert('لا يوجد بند');return;}
+ const salesAmountEl=document.getElementById('ccLinkSalesAmount');
+ const full={line_id:lineId,order_id:ccLinkOrder.value?Number(ccLinkOrder.value):null,order_item_id:ccLinkOrderItem.value?Number(ccLinkOrderItem.value):null,sales_invoice_id:ccLinkSalesInvoice.value?Number(ccLinkSalesInvoice.value):null,sales_amount:salesAmountEl?Number(salesAmountEl.value||0):null,notes:ccLinkNotes.value.trim(),updated_by:currentUser?.username||'',updated_at:new Date().toISOString()};
+ const core={line_id:full.line_id,order_id:full.order_id,order_item_id:full.order_item_id,sales_invoice_id:full.sales_invoice_id,notes:full.notes};
+ const {data:existing}=await client.from('purchase_cost_links').select('id').eq('line_id',lineId).maybeSingle();
+ async function doSave(body){ return existing ? await client.from('purchase_cost_links').update(body).eq('id',existing.id) : await client.from('purchase_cost_links').insert({...body,created_by:currentUser?.username||''}); }
+ let res=await doSave(full);
+ if(res.error){
+   const msg=String(res.error.message||'').toLowerCase();
+   if(msg.includes('sales_amount')||msg.includes('updated_by')||msg.includes('updated_at')||msg.includes('column')||msg.includes('schema cache')) res=await doSave(core);
+ }
+ if(res.error){alert('خطأ حفظ التوجيه: '+res.error.message);return;}
+ closePurchaseLinkModal(); loadCostPurchaseInvoices();
+}
+
+async function saveCostOrder(){
+ const no=ccOrderNo.value.trim(); if(!no){alert('اكتب رقم الأمر');return;}
+ calcCostOrderTotalFromRows();
+ const payload={order_no:no,order_date:ccOrderDate.value||null,client_name:ccOrderClient.value.trim(),site:ccOrderSite.value.trim(),total_value:ccNum(ccOrderValue.value),notes:ccOrderNotes.value.trim(),created_by:currentUser?.username||''};
+ const {data:ord,error}=await client.from('cost_orders').insert(payload).select().single();
+ if(error){alert('خطأ حفظ الأمر: '+error.message);return;}
+ const items=[];
+ document.querySelectorAll('#ccOrderItemsBody tr').forEach((tr,i)=>{
+  const code=tr.querySelector('.ccOrderItemCode')?.value.trim()||'';
+  const desc=tr.querySelector('.ccOrderItemDesc')?.value.trim()||'';
+  const qty=ccNum(tr.querySelector('.ccOrderItemQty')?.value);
+  const unitPrice=ccNum(tr.querySelector('.ccOrderItemUnitPrice')?.value);
+  const amount=ccNum(tr.querySelector('.ccOrderItemValue')?.value || qty*unitPrice);
+  if(desc||code) items.push({order_id:ord.id,serial_no:i+1,item_code:code,description:desc,unit:tr.querySelector('.ccOrderItemUnit')?.value.trim()||'',qty,unit_price:unitPrice,currency:tr.querySelector('.ccOrderItemCurrency')?.value||'EGP',amount});
+ });
+ if(items.length){
+   let res=await client.from('cost_order_items').insert(items);
+   if(res.error){
+     const core=items.map(({unit_price,currency,...x})=>x);
+     res=await client.from('cost_order_items').insert(core);
+   }
+   if(res.error){alert('تم حفظ الأمر لكن تعذر حفظ البنود: '+res.error.message);}
+ }
+ closeCostOrderModal(); loadCostOrders(); loadCostPurchaseInvoices();
+}
+
+/* ===== V77 HOTFIX: Cost Control save button no-response fix =====
+   السبب الذي كان يوقف الحفظ بدون رسالة: calcSalesInvoiceTotals() كانت تستدعي
+   ccMakeReadonlyInputsClear() وهي غير معرفة في الملف، فيحدث JavaScript error قبل insert.
+*/
+function ccMakeReadonlyInputsClear(){
+  try{
+    document.querySelectorAll('input[readonly]').forEach(inp=>{
+      inp.style.background = '#f8fafc';
+      inp.style.color = '#0f172a';
+    });
+  }catch(e){}
+}
+async function saveSalesInvoice(){
+ const no=document.getElementById('salesInvNo')?.value?.trim()||'';
+ if(!no){alert('اكتب رقم فاتورة المبيعات');return;}
+ const orderId=document.getElementById('salesInvOrderId')?.value ? Number(document.getElementById('salesInvOrderId').value) : null;
+ if(!orderId){alert('اختار أمر الإسناد');return;}
+ const btn=[...document.querySelectorAll('#salesInvoiceModal button')].find(b=>String(b.textContent||'').includes('حفظ الفاتورة'));
+ const oldText=btn?btn.textContent:'';
+ if(btn){btn.disabled=true;btn.textContent='جارى الحفظ...';}
+ try{
+   const rows=[...document.querySelectorAll('#salesInvItemsBody tr')].map((tr,i)=>{
+    const orderItemId=Number(tr.querySelector('.salesItemSelect')?.value||0);
+    const it=(ccOrderItemsCache||[]).find(x=>String(x.id)===String(orderItemId))||{};
+    const currentQty=ccNum(tr.querySelector('.salesCurQty')?.value);
+    const unitPrice=ccNum(tr.querySelector('.salesUnitPrice')?.value || (typeof ccOrderItemUnitPrice==='function'?ccOrderItemUnitPrice(it):0));
+    const currentAmount=unitPrice*currentQty;
+    const prevAmount=ccNum(tr.querySelector('.salesPrevAmount')?.value);
+    return {
+      serial_no:i+1,
+      order_id:orderId,
+      order_item_id:orderItemId,
+      item_description:it.description||tr.querySelector('.salesItemSelect option:checked')?.textContent||'',
+      unit:it.unit||'',
+      order_qty:ccNum(tr.querySelector('.salesOrderQty')?.value || it.qty),
+      unit_price:unitPrice,
+      previous_qty:ccNum(tr.querySelector('.salesPrevQty')?.value),
+      current_qty:currentQty,
+      previous_amount:prevAmount,
+      current_amount:currentAmount,
+      total_amount:prevAmount+currentAmount
+    };
+   }).filter(r=>r.order_item_id && (r.current_qty || r.current_amount));
+   if(!rows.length){alert('أدخل بند واحد على الأقل وكمية حالية');return;}
+
+   // حساب إجماليات الفاتورة بدون الاعتماد على أي دالة خارجية
+   const sub=rows.reduce((s,r)=>s+ccNum(r.current_amount),0);
+   const vatPct=ccNum(document.getElementById('salesInvVatPercent')?.value ?? 14);
+   const commPct=ccNum(document.getElementById('salesInvCommercialPercent')?.value ?? 0);
+   const vat=sub*vatPct/100;
+   const comm=sub*commPct/100;
+   if(document.getElementById('salesInvSubtotal')) salesInvSubtotal.value=sub.toFixed(2);
+   if(document.getElementById('salesInvVat')) salesInvVat.value=vat.toFixed(2);
+   if(document.getElementById('salesInvCommercialValue')) salesInvCommercialValue.value=comm.toFixed(2);
+   if(document.getElementById('salesInvTotal')) salesInvTotal.value=(sub+vat-comm).toFixed(2);
+
+   const baseNotes=typeof ccStripSalesItemsFromNotes==='function' ? ccStripSalesItemsFromNotes(document.getElementById('salesInvNotes')?.value?.trim()||'') : (document.getElementById('salesInvNotes')?.value?.trim()||'');
+   const packedNotes=typeof ccPackSalesItemsInNotes==='function' ? ccPackSalesItemsInNotes(baseNotes, rows) : baseNotes;
+   const payload={
+     invoice_no:no,
+     invoice_date:document.getElementById('salesInvDate')?.value||null,
+     client_name:document.getElementById('salesInvClient')?.value?.trim()||'',
+     site:document.getElementById('salesInvSite')?.value?.trim()||'',
+     order_id:orderId,
+     subtotal:sub,
+     vat_amount:vat,
+     total_amount:sub+vat-comm,
+     client_invoice_file:null,
+     notes:packedNotes,
+     updated_by:currentUser?.username||'',
+     updated_at:new Date().toISOString(),
+     vat_percent:vatPct,
+     commercial_tax_percent:commPct,
+     commercial_tax_value:comm
+   };
+
+   let invoiceId=Number(document.getElementById('salesInvEditId')?.value||0);
+   let saved = (typeof ccSaveSalesInvoiceHeader==='function') ? await ccSaveSalesInvoiceHeader(invoiceId,payload) : {error:{message:'ccSaveSalesInvoiceHeader غير موجود'}};
+   if(saved.error || !saved.invoiceId){
+     // محاولة أخيرة بأقل أعمدة مضمونة لو الـ SQL قديم أو الـ schema cache لم يتحدث
+     const core={invoice_no:no,invoice_date:payload.invoice_date,client_name:payload.client_name,site:payload.site,order_id:orderId,subtotal:sub,vat_amount:vat,total_amount:sub+vat-comm,notes:packedNotes};
+     let res;
+     if(invoiceId) res=await client.from('sales_invoices').update(core).eq('id',invoiceId).select().maybeSingle();
+     else res=await client.from('sales_invoices').insert({...core,created_by:currentUser?.username||''}).select().single();
+     if(res.error){
+       alert('خطأ حفظ فاتورة المبيعات: '+res.error.message+'\nلو الرسالة Duplicate key يبقى رقم الفاتورة موجود قبل كده.');
+       return;
+     }
+     invoiceId=invoiceId || res.data?.id;
+   }else{
+     invoiceId=saved.invoiceId;
+   }
+
+   if(invoiceId && typeof ccTrySaveSalesInvoiceItems==='function') await ccTrySaveSalesInvoiceItems(invoiceId,rows);
+   if(typeof closeSalesInvoiceModal==='function') closeSalesInvoiceModal();
+   if(typeof loadSalesInvoices==='function') await loadSalesInvoices();
+   if(typeof loadCostPurchaseInvoices==='function') await loadCostPurchaseInvoices();
+   if(document.getElementById('ccOrderDetailsArea')?.innerHTML && typeof openCostOrderDetails==='function') openCostOrderDetails(orderId);
+   alert('تم حفظ الفاتورة وتحديث مبيعات أمر الإسناد');
+ }catch(err){
+   console.error('saveSalesInvoice V77 error:',err);
+   alert('سبب عدم الحفظ كان خطأ JavaScript وتم إظهاره الآن: '+(err?.message||err));
+ }finally{
+   if(btn){btn.disabled=false;btn.textContent=oldText||'حفظ الفاتورة وتحديث مبيعات أمر الإسناد';}
+ }
 }
 
 </script>
