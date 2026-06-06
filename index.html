@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<title>Taswyat System - UPGRADED V70</title>
+<title>Taswyat System - UPGRADED V86</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
 
 /* ================= COST CONTROL V60 ================= */
@@ -100,6 +100,9 @@ function renderSingleFileLinkLocal(f,label='فتح'){
  return `<a href="${f.data||'#'}" download="${f.name||label}" target="_blank">${label}</a>`;
 }
 async function loadSalesInvoices(render=true){
+ if((!ccOrdersCache || !ccOrdersCache.length) && typeof loadCostOrders==='function'){
+   try{ await loadCostOrders(false); }catch(e){ console.warn('Could not load cost orders for sales filter',e); }
+ }
  const {data,error}=await client.from('sales_invoices').select('*').order('id',{ascending:false}).limit(1000);
  if(error){ if(render) salesInvoicesArea.innerHTML='شغّل SQL الخاص بفواتير المبيعات أولاً'; return; }
  ccSalesCache=data||[]; refreshCostControlSelects();
@@ -249,6 +252,9 @@ function renderSingleFileLinkLocal(f,label='فتح'){
  return `<a href="${f.data||'#'}" download="${f.name||label}" target="_blank">${label}</a>`;
 }
 async function loadSalesInvoices(render=true){
+ if((!ccOrdersCache || !ccOrdersCache.length) && typeof loadCostOrders==='function'){
+   try{ await loadCostOrders(false); }catch(e){ console.warn('Could not load cost orders for sales filter',e); }
+ }
  const {data,error}=await client.from('sales_invoices').select('*').order('id',{ascending:false}).limit(1000);
  if(error){ if(render) salesInvoicesArea.innerHTML='شغّل SQL الخاص بفواتير المبيعات أولاً'; return; }
  ccSalesCache=data||[]; refreshCostControlSelects();
@@ -492,6 +498,15 @@ button.small{padding:6px 10px;font-size:12px}
 .cc-sales-items-wrap{max-height:360px;overflow:auto;border:1px solid #e2e8f0;border-radius:10px;background:white}
 #ccSalesItemsTable input,#ccSalesItemsTable select{min-width:95px;padding:6px;font-size:12px}
 #ccSalesItemsTable .salesItemSelect{min-width:280px}
+
+/* ===== V78 Professional inventory autocomplete inside invoices ===== */
+.inv-autocomplete-wrap{position:relative;width:100%}
+.inv-suggest-box{position:absolute;top:100%;right:0;left:0;background:#fff;border:1px solid #cbd5e1;border-radius:10px;box-shadow:0 12px 30px rgba(15,23,42,.18);z-index:5000;max-height:260px;overflow:auto;text-align:right;display:none}
+.inv-suggest-item{padding:8px 10px;border-bottom:1px solid #eef2f7;cursor:pointer;font-size:12px;line-height:1.55}
+.inv-suggest-item:hover{background:#eef6ff}
+.inv-suggest-title{font-weight:bold;color:#0f172a}
+.inv-suggest-meta{color:#475569;font-size:11px}
+.inv-suggest-empty{padding:10px;color:#b42318;font-weight:bold;font-size:12px}
 </style>
 </head>
 
@@ -526,7 +541,7 @@ button.small{padding:6px 10px;font-size:12px}
 <div id="app" class="app">
 
 <div class="sidebar">
-<h2>Taswyat V75</h2>
+<h2>Taswyat V86</h2>
 <p id="currentUserText"></p>
 
 <button onclick="showPage('homePage')">الرئيسية</button>
@@ -700,6 +715,7 @@ button.small{padding:6px 10px;font-size:12px}
 <button class="gray" onclick="showCostTab('ccSalesTab');loadSalesInvoices()">2- فواتير المبيعات</button>
 <button class="gray" onclick="showCostTab('ccPurchasesTab');loadCostPurchaseInvoices()">3- فواتير المشتريات</button>
 <button class="export-btn" onclick="exportElementTableToExcel('costControlActiveArea','cost_control.xls')">تصدير Excel</button>
+<button class="print-btn gray" onclick="printCostControlPdf()">طباعة / PDF</button>
 <button class="gray" onclick="loadCostControl()">تحديث</button>
 </div>
 
@@ -1519,6 +1535,15 @@ h1{text-align:center;margin:0 0 12px;font-size:20px}.summary{display:grid;grid-t
 .cc-sales-items-wrap{max-height:360px;overflow:auto;border:1px solid #e2e8f0;border-radius:10px;background:white}
 #ccSalesItemsTable input,#ccSalesItemsTable select{min-width:95px;padding:6px;font-size:12px}
 #ccSalesItemsTable .salesItemSelect{min-width:280px}
+
+/* ===== V78 Professional inventory autocomplete inside invoices ===== */
+.inv-autocomplete-wrap{position:relative;width:100%}
+.inv-suggest-box{position:absolute;top:100%;right:0;left:0;background:#fff;border:1px solid #cbd5e1;border-radius:10px;box-shadow:0 12px 30px rgba(15,23,42,.18);z-index:5000;max-height:260px;overflow:auto;text-align:right;display:none}
+.inv-suggest-item{padding:8px 10px;border-bottom:1px solid #eef2f7;cursor:pointer;font-size:12px;line-height:1.55}
+.inv-suggest-item:hover{background:#eef6ff}
+.inv-suggest-title{font-weight:bold;color:#0f172a}
+.inv-suggest-meta{color:#475569;font-size:11px}
+.inv-suggest-empty{padding:10px;color:#b42318;font-weight:bold;font-size:12px}
 </style></head><body><h1>كشف حساب - ${owner}</h1>${preparePrintHtmlWithRepeatingHeaders(content)}</body></html>`);
 w.document.close();
 w.focus();
@@ -1714,6 +1739,15 @@ button{display:none}
 .cc-sales-items-wrap{max-height:360px;overflow:auto;border:1px solid #e2e8f0;border-radius:10px;background:white}
 #ccSalesItemsTable input,#ccSalesItemsTable select{min-width:95px;padding:6px;font-size:12px}
 #ccSalesItemsTable .salesItemSelect{min-width:280px}
+
+/* ===== V78 Professional inventory autocomplete inside invoices ===== */
+.inv-autocomplete-wrap{position:relative;width:100%}
+.inv-suggest-box{position:absolute;top:100%;right:0;left:0;background:#fff;border:1px solid #cbd5e1;border-radius:10px;box-shadow:0 12px 30px rgba(15,23,42,.18);z-index:5000;max-height:260px;overflow:auto;text-align:right;display:none}
+.inv-suggest-item{padding:8px 10px;border-bottom:1px solid #eef2f7;cursor:pointer;font-size:12px;line-height:1.55}
+.inv-suggest-item:hover{background:#eef6ff}
+.inv-suggest-title{font-weight:bold;color:#0f172a}
+.inv-suggest-meta{color:#475569;font-size:11px}
+.inv-suggest-empty{padding:10px;color:#b42318;font-weight:bold;font-size:12px}
 </style></head><body>${title}${settlementRowsHtml(lines)}</body></html>`);
 w.document.close();
 w.focus();
@@ -3724,6 +3758,15 @@ function printSiteCostsReport(){
 .cc-sales-items-wrap{max-height:360px;overflow:auto;border:1px solid #e2e8f0;border-radius:10px;background:white}
 #ccSalesItemsTable input,#ccSalesItemsTable select{min-width:95px;padding:6px;font-size:12px}
 #ccSalesItemsTable .salesItemSelect{min-width:280px}
+
+/* ===== V78 Professional inventory autocomplete inside invoices ===== */
+.inv-autocomplete-wrap{position:relative;width:100%}
+.inv-suggest-box{position:absolute;top:100%;right:0;left:0;background:#fff;border:1px solid #cbd5e1;border-radius:10px;box-shadow:0 12px 30px rgba(15,23,42,.18);z-index:5000;max-height:260px;overflow:auto;text-align:right;display:none}
+.inv-suggest-item{padding:8px 10px;border-bottom:1px solid #eef2f7;cursor:pointer;font-size:12px;line-height:1.55}
+.inv-suggest-item:hover{background:#eef6ff}
+.inv-suggest-title{font-weight:bold;color:#0f172a}
+.inv-suggest-meta{color:#475569;font-size:11px}
+.inv-suggest-empty{padding:10px;color:#b42318;font-weight:bold;font-size:12px}
 </style></head><body><h2>تقرير تكاليف المواقع</h2>${content}</body></html>`);
  w.document.close();
  w.print();
@@ -4051,7 +4094,7 @@ function invoiceRowHtml(i){
 return `
 <tr>
 <td>${i}</td>
-<td><select class="inv-category"><option>خامات</option><option>عدة</option><option>مهمات سلامة</option><option>مهمات مشروع</option><option>أخرى</option></select><input class="inv-desc" list="inventoryItemSuggestions" placeholder="اكتب الصنف وسيظهر المتشابه من المخزن" onfocus="loadInventoryItemSuggestions()" oninput="applyInventorySuggestionToRow(this)"></td>
+<td><select class="inv-category"><option>خامات</option><option>عدة</option><option>مهمات سلامة</option><option>مهمات مشروع</option><option>أخرى</option></select><div class="inv-autocomplete-wrap"><input class="inv-desc" autocomplete="off" placeholder="اكتب أول حرف أو حرفين وسيظهر كل المتشابه من المخزن"><div class="inv-suggest-box"></div></div></td>
 <td><input class="inv-unit"></td>
 <td><input type="number" class="inv-qty" oninput="calcInvoice()"></td>
 <td><input type="number" class="inv-price" oninput="calcInvoice()"></td>
@@ -4240,7 +4283,8 @@ item_category:category,
 unit,
 quantity:qty,
 unit_price:price,
-total
+total,
+inventory_item_id: r.querySelector(".inv-desc")?.dataset?.inventoryId || null
 });
 }
 });
@@ -4899,6 +4943,15 @@ function printLaborExtractA4(){
 .cc-sales-items-wrap{max-height:360px;overflow:auto;border:1px solid #e2e8f0;border-radius:10px;background:white}
 #ccSalesItemsTable input,#ccSalesItemsTable select{min-width:95px;padding:6px;font-size:12px}
 #ccSalesItemsTable .salesItemSelect{min-width:280px}
+
+/* ===== V78 Professional inventory autocomplete inside invoices ===== */
+.inv-autocomplete-wrap{position:relative;width:100%}
+.inv-suggest-box{position:absolute;top:100%;right:0;left:0;background:#fff;border:1px solid #cbd5e1;border-radius:10px;box-shadow:0 12px 30px rgba(15,23,42,.18);z-index:5000;max-height:260px;overflow:auto;text-align:right;display:none}
+.inv-suggest-item{padding:8px 10px;border-bottom:1px solid #eef2f7;cursor:pointer;font-size:12px;line-height:1.55}
+.inv-suggest-item:hover{background:#eef6ff}
+.inv-suggest-title{font-weight:bold;color:#0f172a}
+.inv-suggest-meta{color:#475569;font-size:11px}
+.inv-suggest-empty{padding:10px;color:#b42318;font-weight:bold;font-size:12px}
 </style></head><body>${laborExtractBox.outerHTML}</body></html>`);
  w.document.close(); w.focus(); setTimeout(()=>w.print(),500);
 }
@@ -5337,50 +5390,7 @@ async function saveInventoryDistReturn(){
 if(document.addEventListener){ document.addEventListener('change', function(e){ if(e.target && e.target.id==='distItemSelect') loadDistributionDetails(); }); }
 
 let inventoryItemCatalog = [];
-
-async function loadInventoryItemSuggestions(){
- try{
-  const {data,error} = await client
-   .from("inventory_items")
-   .select("item_name,item_code,category,unit,warehouse,current_qty,purchased_qty,unit_price")
-   .order("item_name");
-  if(error){ console.warn("Inventory suggestion load error", error.message); return; }
-  const map = new Map();
-  (data||[]).forEach(x=>{
-   const name = cleanText(x.item_name);
-   if(!name) return;
-   const key = name.toLowerCase();
-   if(!map.has(key)) map.set(key, x);
-  });
-  inventoryItemCatalog = [...map.values()];
-  const dl = document.getElementById("inventoryItemSuggestions");
-  if(dl){
-   dl.innerHTML = inventoryItemCatalog.map(x=>`<option value="${escapeHtml(x.item_name||'')}">${escapeHtml((x.item_code||'') + ' - ' + (x.category||'') + ' - رصيد ' + (x.current_qty||0) + ' ' + (x.unit||''))}</option>`).join("");
-  }
- }catch(e){ console.warn(e); }
-}
-
-function setupInvoiceInventoryAutocomplete(){
- loadInventoryItemSuggestions();
- document.querySelectorAll(".inv-desc").forEach(inp=>{
-  inp.setAttribute("list","inventoryItemSuggestions");
-  inp.onfocus = loadInventoryItemSuggestions;
-  inp.oninput = function(){ applyInventorySuggestionToRow(this); };
- });
-}
-
-function applyInventorySuggestionToRow(input){
- const name = cleanText(input.value).toLowerCase();
- if(!name) return;
- const found = inventoryItemCatalog.find(x=>cleanText(x.item_name).toLowerCase() === name);
- if(!found) return;
- const row = input.closest("tr");
- if(!row) return;
- const cat = row.querySelector(".inv-category");
- const unit = row.querySelector(".inv-unit");
- if(cat && found.category) cat.value = found.category;
- if(unit && found.unit) unit.value = found.unit;
-}
+let inventoryCatalogLoadedAt = 0;
 
 function escapeHtml(v){
  return (v||"").toString().replace(/[&<>'"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[m]));
@@ -5394,6 +5404,127 @@ function inventoryNameKey(v){
   .replace(/\s+/g," ").toLowerCase();
 }
 
+function inventorySearchKey(v){
+ return inventoryNameKey(v).replace(/[-_/\\.]/g," ").replace(/\s+/g," ");
+}
+
+async function fetchAllInventoryItemsForSuggestions(force=false){
+ const now = Date.now();
+ if(!force && inventoryItemCatalog.length && (now - inventoryCatalogLoadedAt) < 20000) return inventoryItemCatalog;
+ let all = [];
+ let from = 0;
+ const step = 1000;
+ while(true){
+  const {data,error} = await client
+   .from("inventory_items")
+   .select("id,item_name,item_code,category,unit,warehouse,current_qty,purchased_qty,unit_price,invoice_no,settlement_no")
+   .order("item_name", {ascending:true})
+   .range(from, from + step - 1);
+  if(error){ console.warn("Inventory suggestion load error", error.message); break; }
+  all = all.concat(data || []);
+  if(!data || data.length < step) break;
+  from += step;
+ }
+ inventoryItemCatalog = all
+  .filter(x=>cleanText(x.item_name))
+  .map(x=>({
+    ...x,
+    _search: inventorySearchKey([x.item_name,x.item_code,x.category,x.warehouse,x.invoice_no,x.settlement_no].filter(Boolean).join(" "))
+  }));
+ inventoryCatalogLoadedAt = now;
+ return inventoryItemCatalog;
+}
+
+async function loadInventoryItemSuggestions(force=false){
+ try{
+  await fetchAllInventoryItemsForSuggestions(force);
+  const dl = document.getElementById("inventoryItemSuggestions");
+  if(dl){
+   // datalist احتياطي فقط؛ القائمة الاحترافية بالأسفل هي الأساسية وتعرض كل المتشابه بدون إخفاء التكرارات
+   dl.innerHTML = inventoryItemCatalog.slice(0,2000).map(x=>`<option value="${escapeHtml(x.item_name||'')}">${escapeHtml((x.item_code||'') + ' - ' + (x.category||'') + ' - ' + (x.warehouse||'') + ' - رصيد ' + (x.current_qty||0) + ' ' + (x.unit||''))}</option>`).join("");
+  }
+ }catch(e){ console.warn(e); }
+}
+
+function setupInvoiceInventoryAutocomplete(){
+ loadInventoryItemSuggestions(true);
+ document.querySelectorAll(".inv-desc").forEach(inp=>{
+  inp.removeAttribute("list");
+  inp.setAttribute("autocomplete","off");
+  inp.onfocus = async function(){ await loadInventoryItemSuggestions(); showInventoryMatches(this); };
+  inp.oninput = function(){ this.dataset.inventoryId=""; showInventoryMatches(this); };
+  inp.onkeydown = function(e){
+   const box = this.parentElement?.querySelector(".inv-suggest-box");
+   if(e.key === "Escape" && box) box.style.display = "none";
+  };
+ });
+}
+
+document.addEventListener('click', function(e){
+ if(!e.target.closest('.inv-autocomplete-wrap')){
+  document.querySelectorAll('.inv-suggest-box').forEach(b=>b.style.display='none');
+ }
+});
+
+function showInventoryMatches(input){
+ const box = input.parentElement?.querySelector(".inv-suggest-box");
+ if(!box) return;
+ const termRaw = cleanText(input.value);
+ const term = inventorySearchKey(termRaw);
+ if(term.length < 1){
+  box.innerHTML = '<div class="inv-suggest-empty">اكتب أول حرف أو حرفين لعرض الأصناف المتشابهة من المخزن</div>';
+  box.style.display = 'block';
+  return;
+ }
+ const words = term.split(' ').filter(Boolean);
+ const matches = inventoryItemCatalog.filter(x=>words.every(w=>x._search.includes(w))).slice(0,120);
+ if(!matches.length){
+  box.innerHTML = '<div class="inv-suggest-empty">لا يوجد صنف مطابق في المخزن - سيتم إضافته كصنف جديد عند الحفظ</div>';
+  box.style.display = 'block';
+  return;
+ }
+ box.innerHTML = matches.map(x=>`
+  <div class="inv-suggest-item" data-id="${x.id}">
+   <div class="inv-suggest-title">${escapeHtml(x.item_name||'')}</div>
+   <div class="inv-suggest-meta">كود: ${escapeHtml(x.item_code||'-')} | تصنيف: ${escapeHtml(x.category||'-')} | وحدة: ${escapeHtml(x.unit||'-')} | مخزن: ${escapeHtml(x.warehouse||'-')} | رصيد: ${Number(x.current_qty||0).toLocaleString()}</div>
+  </div>`).join('');
+ box.querySelectorAll('.inv-suggest-item').forEach(el=>{
+  el.onclick = function(){
+   const item = inventoryItemCatalog.find(a=>String(a.id) === String(this.dataset.id));
+   if(item) selectInventorySuggestionForRow(input, item);
+   box.style.display='none';
+  };
+ });
+ box.style.display = 'block';
+}
+
+function selectInventorySuggestionForRow(input, found){
+ input.value = found.item_name || '';
+ input.dataset.inventoryId = found.id || '';
+ const row = input.closest("tr");
+ if(!row) return;
+ const cat = row.querySelector(".inv-category");
+ const unit = row.querySelector(".inv-unit");
+ const price = row.querySelector(".inv-price");
+ if(cat && found.category) cat.value = found.category;
+ if(unit && found.unit) unit.value = found.unit;
+ if(price && !Number(price.value||0) && Number(found.unit_price||0)) price.value = Number(found.unit_price||0);
+ calcInvoice();
+}
+
+function applyInventorySuggestionToRow(input){
+ const id = input.dataset.inventoryId;
+ if(id){
+  const found = inventoryItemCatalog.find(x=>String(x.id)===String(id));
+  if(found) selectInventorySuggestionForRow(input, found);
+  return;
+ }
+ const name = inventoryNameKey(input.value);
+ if(!name) return;
+ const found = inventoryItemCatalog.find(x=>inventoryNameKey(x.item_name) === name);
+ if(found) selectInventorySuggestionForRow(input, found);
+}
+
 async function saveInvoiceToolsToInventory(items, inv, invoiceId){
  const allowedCats = ["عدة","خامات","مهمات سلامة","مهمات مشروع","أخرى"];
  const raw=(items||[]).filter(x=>allowedCats.includes(cleanText(x.item_category)) && cleanText(x.description) && Number(x.quantity||0));
@@ -5401,11 +5532,12 @@ async function saveInvoiceToolsToInventory(items, inv, invoiceId){
  const settlementKey = activeSettlementSearchKey || activeSettlementNo || inv.settlement_no || "";
  const purchaseDate = (document.getElementById("lineDate")?.value || inv.invoice_date || new Date().toISOString().slice(0,10));
 
- // نجمع البنود المتكررة داخل نفس الفاتورة قبل الترحيل
+ // نجمع البنود المتكررة داخل نفس الفاتورة. لو المستخدم اختار صنف محدد من القائمة يتم التجميع على رقم الصنف لضمان تحديث نفس البند بالمخزن.
  const grouped = {};
  raw.forEach(x=>{
-   const key = inventoryNameKey(x.description);
-   if(!grouped[key]) grouped[key] = {description:cleanText(x.description), item_category:cleanText(x.item_category)||"خامات", unit:cleanText(x.unit)||"عدد", quantity:0, unit_price:0, total:0};
+   const selectedId = cleanText(x.inventory_item_id || "");
+   const key = selectedId ? ("ID:" + selectedId) : ("NAME:" + inventoryNameKey(x.description));
+   if(!grouped[key]) grouped[key] = {inventory_item_id:selectedId, description:cleanText(x.description), item_category:cleanText(x.item_category)||"خامات", unit:cleanText(x.unit)||"عدد", quantity:0, unit_price:0, total:0};
    grouped[key].quantity += Number(x.quantity||0);
    grouped[key].unit_price = Number(x.unit_price||grouped[key].unit_price||0);
    grouped[key].total += Number(x.total||0);
@@ -5422,25 +5554,27 @@ async function saveInvoiceToolsToInventory(items, inv, invoiceId){
   const totalValue = Number(x.total||0);
   if(!itemName || !qty) continue;
 
-  // لو نفس الفاتورة ونفس الصنف تم ترحيله مسبقًا لا نكرره حتى لا تتضاعف الكمية عند فتح الفاتورة وحفظها مرة أخرى
-  const {data:alreadyForInvoice} = await client
-   .from("inventory_items")
-   .select("id")
-   .eq("invoice_no", inv.invoice_no)
-   .eq("settlement_no", settlementKey)
-   .ilike("item_name", itemName)
-   .limit(1);
+  // منع تكرار نفس الترحيل لنفس الفاتورة ونفس الصنف عند فتح الفاتورة وحفظها مرة أخرى
+  let alreadyQ = client.from("inventory_items").select("id").eq("invoice_no", inv.invoice_no).eq("settlement_no", settlementKey).limit(1);
+  if(x.inventory_item_id) alreadyQ = alreadyQ.eq("id", Number(x.inventory_item_id));
+  else alreadyQ = alreadyQ.ilike("item_name", itemName);
+  const {data:alreadyForInvoice} = await alreadyQ;
   if(alreadyForInvoice && alreadyForInvoice.length){ skipped++; continue; }
 
-  // البحث الذكي عن نفس الصنف في مخزن القاهرة بغض النظر عن اختلاف التصنيف أو المسافات
-  const {data:allItems,error:findErr} = await client
-   .from("inventory_items")
-   .select("*")
-   .eq("warehouse", "مخزن القاهرة")
-   .limit(1000);
-  if(findErr){ alert("تم حفظ الفاتورة ولكن تعذر البحث في المخزن: " + findErr.message); return; }
-  const nameKey = inventoryNameKey(itemName);
-  const existingItem = (allItems||[]).find(r=>inventoryNameKey(r.item_name) === nameKey);
+  let existingItem = null;
+  if(x.inventory_item_id){
+   const {data:byId,error:idErr} = await client.from("inventory_items").select("*").eq("id", Number(x.inventory_item_id)).maybeSingle();
+   if(idErr){ alert("تم حفظ الفاتورة ولكن تعذر قراءة الصنف المختار من المخزن: " + idErr.message); return; }
+   existingItem = byId || null;
+  }
+
+  if(!existingItem){
+   const allItems = await fetchAllInventoryItemsForSuggestions(true);
+   const nameKey = inventoryNameKey(itemName);
+   existingItem = (allItems||[]).find(r=>inventoryNameKey(r.item_name) === nameKey && (r.warehouse === "مخزن القاهرة" || !r.warehouse))
+               || (allItems||[]).find(r=>inventoryNameKey(r.item_name) === nameKey)
+               || null;
+  }
 
   if(existingItem){
    const oldPurchased = Number(existingItem.purchased_qty||0);
@@ -5487,7 +5621,7 @@ async function saveInvoiceToolsToInventory(items, inv, invoiceId){
    inserted++;
   }
  }
- await loadInventoryItemSuggestions();
+ await loadInventoryItemSuggestions(true);
  await loadLineDropdownSuggestions();
  if(document.getElementById("inventoryPage") && !document.getElementById("inventoryPage").classList.contains("hidden")) loadInventory();
  if(inserted || updated || skipped) console.log(`Inventory transfer: inserted ${inserted}, updated ${updated}, skipped ${skipped}`);
@@ -5618,6 +5752,9 @@ function renderSingleFileLinkLocal(f,label='فتح'){
  return `<a href="${f.data||'#'}" download="${f.name||label}" target="_blank">${label}</a>`;
 }
 async function loadSalesInvoices(render=true){
+ if((!ccOrdersCache || !ccOrdersCache.length) && typeof loadCostOrders==='function'){
+   try{ await loadCostOrders(false); }catch(e){ console.warn('Could not load cost orders for sales filter',e); }
+ }
  const {data,error}=await client.from('sales_invoices').select('*').order('id',{ascending:false}).limit(1000);
  if(error){ if(render) salesInvoicesArea.innerHTML='شغّل SQL الخاص بفواتير المبيعات أولاً'; return; }
  ccSalesCache=data||[]; refreshCostControlSelects();
@@ -6271,6 +6408,9 @@ async function deleteSalesInvoice(id=null){
  alert('تم حذف الفاتورة وتحديث المبيعات');
 }
 async function loadSalesInvoices(render=true){
+ if((!ccOrdersCache || !ccOrdersCache.length) && typeof loadCostOrders==='function'){
+   try{ await loadCostOrders(false); }catch(e){ console.warn('Could not load cost orders for sales filter',e); }
+ }
  const {data,error}=await client.from('sales_invoices').select('*').order('id',{ascending:false}).limit(1000);
  if(error){ if(render) salesInvoicesArea.innerHTML='شغّل SQL الخاص بفواتير المبيعات أولاً'; return; }
  ccSalesCache=data||[]; refreshCostControlSelects();
@@ -6614,6 +6754,340 @@ async function saveSalesInvoice(){
  }
 }
 
+
+
+/* ===== V79: Sales invoices collection status + filters + selected total ===== */
+function ccSalesCollectionMeta(inv){
+  const notes=String(inv?.notes||'');
+  let meta={status: inv?.collection_status || inv?.collect_status || '', doc_no: inv?.collection_doc_no || inv?.payment_doc_no || inv?.collection_ref || ''};
+  const m=notes.match(/\[\[COLLECTION_META:([\s\S]*?)\]\]/);
+  if(m){try{ meta={...meta,...JSON.parse(m[1])}; }catch(e){}}
+  if(!meta.status) meta.status='تحت التحصيل';
+  return meta;
+}
+function ccStripCollectionMeta(notes){return String(notes||'').replace(/\n?\[\[COLLECTION_META:[\s\S]*?\]\]/g,'').trim();}
+function ccPackCollectionMeta(notes,meta){return (ccStripCollectionMeta(notes)||'')+'\n[[COLLECTION_META:'+JSON.stringify(meta)+']]';}
+function ccSalesBaseNotes(inv){
+  let n=String(inv?.notes||'');
+  if(typeof ccStripSalesItemsFromNotes==='function') n=ccStripSalesItemsFromNotes(n);
+  n=ccStripCollectionMeta(n);
+  return n;
+}
+function ccSalesOrderNo(inv){return (ccSalesGetOrder(inv?.order_id)||{}).order_no||'';}
+function ccNorm(v){return String(v||'').toLowerCase().trim();}
+function ccGetSalesFilterValues(){return {
+ site:document.getElementById('ccSalesSearchSite')?.value||'',
+ orderId:document.getElementById('ccSalesOrderClientFilter')?.value||'',
+ status:document.getElementById('ccSalesStatusFilter')?.value||''
+};}
+function ccSalesOrderClientOptions(selected=''){
+ const orders=ccOrdersCache||[];
+ return '<option value="">كل أوامر الإسناد / كل العملاء</option>'+orders.map(o=>{
+   const txt=[o.order_no,o.client_name,o.site].filter(Boolean).join(' - ');
+   return `<option value="${o.id}" ${String(selected)===String(o.id)?'selected':''}>${ccEscape(txt)}</option>`;
+ }).join('');
+}
+function ccSalesFilteredRows(){
+ const f=ccGetSalesFilterValues(); const siteQ=ccNorm(f.site);
+ return (ccSalesCache||[]).filter(s=>{
+   const meta=ccSalesCollectionMeta(s);
+   if(f.orderId && String(s.order_id||'')!==String(f.orderId)) return false;
+   const text=[s.site,s.invoice_no,s.client_name,ccSalesBaseNotes(s),meta.doc_no].map(ccNorm).join(' ');
+   if(siteQ && !text.includes(siteQ)) return false;
+   if(f.status && meta.status!==f.status) return false;
+   return true;
+ });
+}
+async function ccUpdateSalesCollectionStatus(invoiceId,status){
+ invoiceId=Number(invoiceId||0); if(!invoiceId) return;
+ const inv=(ccSalesCache||[]).find(x=>Number(x.id)===invoiceId);
+ if(!inv){alert('الفاتورة غير موجودة');return;}
+ let docNo=ccSalesCollectionMeta(inv).doc_no||'';
+ if(status==='محصلة'){
+   docNo=prompt('اكتب رقم مستند الدفع / رقم الحركة',docNo||'');
+   if(!docNo){alert('لا يمكن جعل الفاتورة محصلة بدون رقم مستند الدفع / الحركة'); await loadSalesInvoices(); return;}
+   const duplicate=(ccSalesCache||[]).some(x=>Number(x.id)!==invoiceId && ccSalesCollectionMeta(x).doc_no===docNo);
+   if(duplicate){alert('رقم مستند الدفع / الحركة مكرر، برجاء إدخال رقم مختلف'); await loadSalesInvoices(); return;}
+ }else{
+   docNo='';
+ }
+ const oldNotes=String(inv.notes||'');
+ const newNotes=ccPackCollectionMeta(oldNotes,{status,doc_no:docNo,updated_at:new Date().toISOString(),updated_by:currentUser?.username||''});
+ const full={collection_status:status,collection_doc_no:docNo,notes:newNotes,updated_by:currentUser?.username||'',updated_at:new Date().toISOString()};
+ const core={notes:newNotes};
+ let res=await client.from('sales_invoices').update(full).eq('id',invoiceId);
+ if(res.error){res=await client.from('sales_invoices').update(core).eq('id',invoiceId);}
+ if(res.error){alert('تعذر تحديث حالة التحصيل: '+res.error.message);return;}
+ await loadSalesInvoices();
+}
+async function loadSalesInvoices(render=true){
+ if((!ccOrdersCache || !ccOrdersCache.length) && typeof loadCostOrders==='function'){
+   try{ await loadCostOrders(false); }catch(e){ console.warn('Could not load cost orders for sales filter',e); }
+ }
+ const {data,error}=await client.from('sales_invoices').select('*').order('id',{ascending:false}).limit(1000);
+ if(error){ if(render && document.getElementById('salesInvoicesArea')) salesInvoicesArea.innerHTML='شغّل SQL الخاص بفواتير المبيعات أولاً'; return; }
+ ccSalesCache=data||[]; if(typeof refreshCostControlSelects==='function') refreshCostControlSelects();
+ if(!render||!document.getElementById('salesInvoicesArea')) return;
+ const f=ccGetSalesFilterValues();
+ const rows=ccSalesFilteredRows();
+ const total=rows.reduce((s,r)=>s+ccNum(r.total_amount),0);
+ salesInvoicesArea.innerHTML=`
+ <div class="grid" style="background:#f8fafc;border:1px solid #e2e8f0;padding:12px;border-radius:12px;margin:10px 0">
+  <div class="form-field"><label>بحث بالموقع / رقم الفاتورة / العميل</label><input id="ccSalesSearchSite" value="${ccEscape(f.site)}" oninput="loadSalesInvoices()" placeholder="اكتب الموقع أو رقم الفاتورة أو العميل"></div>
+  <div class="form-field"><label>أمر الإسناد / العميل</label><select id="ccSalesOrderClientFilter" onchange="loadSalesInvoices()">${ccSalesOrderClientOptions(f.orderId)}</select></div>
+  <div class="form-field"><label>حالة الفواتير</label><select id="ccSalesStatusFilter" onchange="loadSalesInvoices()"><option value="">كل الحالات</option><option ${f.status==='تحت التحصيل'?'selected':''}>تحت التحصيل</option><option ${f.status==='محصلة'?'selected':''}>محصلة</option></select></div>
+  <div class="summary" style="display:block"><div class="box"><h3>إجمالي الاختيار</h3><h2>${total.toLocaleString()}</h2></div></div>
+ </div>
+ <table class="table"><thead><tr><th>إجراء</th><th>حالة التحصيل</th><th>رقم مستند الدفع / الحركة</th><th>رقم الفاتورة</th><th>تاريخ عمل الفاتورة</th><th>رقم أمر الإسناد</th><th>العميل</th><th>الموقع</th><th>قيمة الفاتورة الإجمالية</th><th>ملاحظات</th></tr></thead><tbody>${rows.map(s=>{const o=ccSalesGetOrder(s.order_id)||{}; const meta=ccSalesCollectionMeta(s); return `<tr><td><button class="small green" onclick="openSalesInvoiceModal(${s.id})">فتح/تعديل</button> <button class="small red" onclick="deleteSalesInvoice(${s.id})">حذف</button></td><td><select onchange="ccUpdateSalesCollectionStatus(${s.id},this.value)"><option ${meta.status==='تحت التحصيل'?'selected':''}>تحت التحصيل</option><option ${meta.status==='محصلة'?'selected':''}>محصلة</option></select></td><td>${ccEscape(meta.doc_no||'-')}</td><td>${ccEscape(s.invoice_no||'')}</td><td>${s.invoice_date||''}</td><td>${ccEscape(o.order_no||'')}</td><td>${ccEscape(s.client_name||'')}</td><td>${ccEscape(s.site||'')}</td><td>${ccNum(s.total_amount).toLocaleString()}</td><td>${ccEscape(ccSalesBaseNotes(s))}</td></tr>`}).join('')}</tbody></table>`;
+}
+</script>
+
+
+<style>
+/* ===== V82 Professional routing screen ===== */
+.cc-v81-filter-card{background:#f8fafc;border:1px solid #e2e8f0;padding:12px;border-radius:14px;margin:12px 0}
+.cc-v81-status{display:inline-block;padding:5px 10px;border-radius:999px;font-weight:bold;font-size:12px}
+.cc-v81-done{background:#d1e7dd;color:#0f5132}
+.cc-v81-pending{background:#fff3cd;color:#856404}
+.cc-v81-modal-table{width:100%;border-collapse:collapse;min-width:1150px;background:#fff}
+.cc-v81-modal-table th,.cc-v81-modal-table td{border:1px solid #e5e7eb;padding:6px;text-align:center;vertical-align:middle}
+.cc-v81-modal-table th{background:#f8fafc;position:sticky;top:0;z-index:2}
+.cc-v81-modal-table td.desc{text-align:right;font-weight:bold;line-height:1.5}
+.cc-v81-modal-table select,.cc-v81-modal-table input{min-width:120px;font-size:12px;padding:6px}
+.cc-v81-details-box{background:#f8fafc;border:1px dashed #cbd5e1;border-radius:10px;padding:10px;margin:10px 0;text-align:right;line-height:1.8}
+.cc-v81-modal-scroll{max-height:58vh;overflow:auto;border:1px solid #e2e8f0;border-radius:12px}
+</style>
+
+<script>
+
+/* ===== V81: Site based routing + status + professional modal ===== */
+(function(){
+function v81Num(v){ if(typeof ccNum==='function') return ccNum(v); const n=Number(String(v??'').replace(/,/g,'')); return isFinite(n)?n:0; }
+function v81Esc(v){ if(typeof ccEscape==='function') return ccEscape(v); return String(v??'').replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])); }
+async function v81Select(table, sel='*'){
+  if(typeof ccTrySelect==='function') return await ccTrySelect(table, sel);
+  try{ const {data,error}=await client.from(table).select(sel); return error?[]:(data||[]); }catch(e){ return []; }
+}
+function v81OrderOptions(selected=''){
+  if(typeof ccOrderOptionHtml==='function') return ccOrderOptionHtml(selected);
+  return '<option value="">اختر أمر الإسناد</option>'+(ccOrdersCache||[]).map(o=>`<option value="${o.id}" ${String(o.id)===String(selected)?'selected':''}>${v81Esc(o.order_no||'')} - ${v81Esc(o.client_name||'')} - ${v81Esc(o.site||'')}</option>`).join('');
+}
+function v81OrderItemsOptions(orderId, selected=''){
+  if(typeof ccOrderItemsOptionHtml==='function') return ccOrderItemsOptionHtml(orderId, selected);
+  return '<option value="">اختر بند الأمر</option>'+(ccOrderItemsCache||[]).filter(i=>String(i.order_id)===String(orderId)).map(i=>`<option value="${i.id}" ${String(i.id)===String(selected)?'selected':''}>${v81Esc(i.item_code||'')} - ${v81Esc(i.description||'')}</option>`).join('');
+}
+function v81SalesOptions(selected=''){
+  if(typeof ccSalesOptionHtml==='function') return ccSalesOptionHtml(selected);
+  return '<option value="">اختر فاتورة المبيعات</option>'+(ccSalesCache||[]).map(s=>`<option value="${s.id}" ${String(s.id)===String(selected)?'selected':''}>${v81Esc(s.invoice_no||'')} - ${v81Esc(s.client_name||'')}</option>`).join('');
+}
+function v81Status(isDone){ return isDone?'<span class="cc-v81-status cc-v81-done">تم التوجيه</span>':'<span class="cc-v81-status cc-v81-pending">غير موجه</span>'; }
+function v81BuildModal(){
+ if(document.getElementById('ccV81RoutingModal')) return;
+ const div=document.createElement('div'); div.id='ccV81RoutingModal'; div.className='modal-bg'; div.innerHTML=`
+ <div class="modal" style="max-width:1450px">
+  <div class="modal-header"><h2 id="ccV81ModalTitle">توجيه البند</h2><button class="red small" onclick="closeV81RoutingModal()">إغلاق</button></div>
+  <div id="ccV81LineInfo" class="cc-v81-details-box"></div>
+  <div class="actions-wrap" style="justify-content:flex-start;margin:8px 0">
+   <button class="gray small" onclick="v81ApplyFirstOrderToAll()">تطبيق أول أمر إسناد على كل البنود</button>
+   <button class="gray small" onclick="v81ApplyFirstSalesToAll()">تطبيق أول فاتورة مبيعات على كل البنود</button>
+   <button class="green" onclick="saveV81RoutingModal()">حفظ التوجيه بالكامل</button>
+  </div>
+  <div class="cc-v81-modal-scroll"><table class="cc-v81-modal-table"><thead><tr><th>م</th><th>بند الفاتورة / البيان</th><th>الوحدة</th><th>الكمية</th><th>سعر الوحدة</th><th>الإجمالي</th><th>أمر الإسناد</th><th>بند أمر الإسناد</th><th>فاتورة المبيعات</th><th>المبلغ المحمل</th><th>ملاحظات</th></tr></thead><tbody id="ccV81RoutingBody"></tbody></table></div>
+ </div>`;
+ document.body.appendChild(div);
+}
+window.closeV81RoutingModal=function(){ const m=document.getElementById('ccV81RoutingModal'); if(m) m.style.display='none'; }
+window.v81ChangeOrder=function(rowId){
+ const orderId=document.getElementById('v81Order_'+rowId)?.value||'';
+ const item=document.getElementById('v81OrderItem_'+rowId);
+ if(item) item.innerHTML=v81OrderItemsOptions(orderId,'');
+}
+window.v81ApplyFirstOrderToAll=function(){
+ const first=[...document.querySelectorAll('#ccV81RoutingBody select[id^="v81Order_"]')].find(x=>x.value);
+ if(!first) return alert('اختر أمر إسناد في أول بند ثم اضغط التطبيق');
+ document.querySelectorAll('#ccV81RoutingBody select[id^="v81Order_"]').forEach(sel=>{sel.value=first.value; window.v81ChangeOrder(sel.id.replace('v81Order_',''));});
+}
+window.v81ApplyFirstSalesToAll=function(){
+ const first=[...document.querySelectorAll('#ccV81RoutingBody select[id^="v81Sales_"]')].find(x=>x.value);
+ if(!first) return alert('اختر فاتورة مبيعات في أول بند ثم اضغط التطبيق');
+ document.querySelectorAll('#ccV81RoutingBody select[id^="v81Sales_"]').forEach(sel=>sel.value=first.value);
+}
+async function v81Data(){
+ await loadCostOrders(false); await loadSalesInvoices(false);
+ const linesAll=await v81Select('settlement_lines','*');
+ const lines=(linesAll||[]).filter(l=>String(l.main_direction||'')!=='جارى العهدة' && String(l.status||'')!=='deleted');
+ const lineIds=new Set(lines.map(l=>l.id));
+ const invs=(await v81Select('material_invoices','*')).filter(inv=>lineIds.has(inv.line_id));
+ const invoiceIds=new Set(invs.map(inv=>inv.id));
+ const items=(await v81Select('material_invoice_items','*')).filter(it=>invoiceIds.has(it.invoice_id));
+ const plinks=(await v81Select('purchase_cost_links','*')).filter(x=>lineIds.has(x.line_id));
+ const dlinks=(await v81Select('cost_detail_links','*'));
+ const linkByLine={}; plinks.forEach(x=>linkByLine[x.line_id]=x);
+ const dlinkByKey={}; dlinks.forEach(x=>dlinkByKey[(x.source_type||'')+'_'+x.source_id]=x);
+ const invByLine={}; invs.forEach(inv=>(invByLine[inv.line_id]=invByLine[inv.line_id]||[]).push(inv));
+ const itemsByInv={}; items.forEach(it=>(itemsByInv[it.invoice_id]=itemsByInv[it.invoice_id]||[]).push(it));
+ const sites=[...new Set(lines.map(l=>l.site).concat((ccOrdersCache||[]).map(o=>o.site)).filter(Boolean).map(String))].sort((a,b)=>a.localeCompare(b,'ar'));
+ return {lines,invs,items,linkByLine,dlinkByKey,invByLine,itemsByInv,sites};
+}
+function v81LineDone(line, invByLine, itemsByInv, linkByLine, dlinkByKey){
+ const invs=invByLine[line.id]||[];
+ let itemList=[]; invs.forEach(inv=>(itemsByInv[inv.id]||[]).forEach(it=>itemList.push(it)));
+ if(itemList.length){ return itemList.every(it=>{const l=dlinkByKey['material_invoice_item_'+it.id]; return l && (l.order_id || l.order_item_id || l.sales_invoice_id);}); }
+ const l=linkByLine[line.id]; return !!(l && (l.order_id || l.order_item_id || l.sales_invoice_id));
+}
+window.loadCostPurchaseInvoices=async function(){
+ const area=document.getElementById('costControlActiveArea'); if(!area) return;
+ const D=await v81Data();
+ const currentSite=document.getElementById('ccV81SiteFilter')?.value||'';
+ const q=(document.getElementById('ccPurchaseSearch')?.value||'').toLowerCase().trim();
+ const of=(document.getElementById('ccPurchaseOrderFilter')?.value||'');
+ const status=(document.getElementById('ccV81StatusFilter')?.value||'');
+ let rows=D.lines.slice();
+ if(currentSite) rows=rows.filter(l=>String(l.site||'').toLowerCase().includes(String(currentSite).toLowerCase()));
+ if(q) rows=rows.filter(l=>[l.description,l.site,l.payment_ref,l.sub_direction,l.added_to,l.settlement_no].some(v=>String(v||'').toLowerCase().includes(q)));
+ if(of) rows=rows.filter(l=>{
+   const lineLink=D.linkByLine[l.id]||{};
+   const invs=D.invByLine[l.id]||[]; let itemIds=[]; invs.forEach(inv=>(D.itemsByInv[inv.id]||[]).forEach(it=>itemIds.push(it.id)));
+   return String(lineLink.order_id||'')===String(of) || itemIds.some(id=>String((D.dlinkByKey['material_invoice_item_'+id]||{}).order_id||'')===String(of));
+ });
+ if(status) rows=rows.filter(l=>(v81LineDone(l,D.invByLine,D.itemsByInv,D.linkByLine,D.dlinkByKey)?'done':'pending')===status);
+ const total=rows.reduce((s,l)=>s+v81Num(l.amount),0);
+ const doneCount=rows.filter(l=>v81LineDone(l,D.invByLine,D.itemsByInv,D.linkByLine,D.dlinkByKey)).length;
+ const siteOpts=D.sites.map(s=>`<option value="${v81Esc(s)}"></option>`).join('');
+ const orderFilterOpts='<option value="">كل أوامر الإسناد</option>'+(ccOrdersCache||[]).map(o=>`<option value="${o.id}" ${String(o.id)===String(of)?'selected':''}>${v81Esc(o.order_no||'')} - ${v81Esc(o.client_name||'')} - ${v81Esc(o.site||'')}</option>`).join('');
+ let body=rows.map(l=>{
+   const isDone=v81LineDone(l,D.invByLine,D.itemsByInv,D.linkByLine,D.dlinkByKey);
+   const invs=D.invByLine[l.id]||[];
+   const itemCount=invs.reduce((s,inv)=>s+(D.itemsByInv[inv.id]||[]).length,0);
+   return `<tr><td>${isDone?'<button class="small orange" onclick="openV81RoutingModal('+l.id+')">تعديل التوجيه</button>':'<button class="small green" onclick="openV81RoutingModal('+l.id+')">توجيه</button>'}</td><td>${v81Status(isDone)}</td><td>${v81Esc(l.line_date||'')}</td><td>${v81Esc(l.settlement_no||'')}</td><td style="text-align:right;font-weight:bold">${v81Esc(l.description||'')}</td><td>${v81Esc(l.payment_ref||'')}</td><td>${v81Esc(l.main_direction||'')}</td><td>${v81Esc(l.sub_direction||'')}</td><td>${v81Esc(l.site||'')}</td><td>${v81Num(l.amount).toLocaleString()}</td><td>${invs.map(x=>v81Esc(x.invoice_no||'')).filter(Boolean).join(' / ')||'-'}</td><td>${itemCount||'-'}</td></tr>`;
+ }).join('');
+ area.innerHTML=`<div class="cc-v81-filter-card"><div class="grid">
+  <div class="form-field"><label>اختيار الموقع</label><input id="ccV81SiteFilter" list="ccV81SiteList" value="${v81Esc(currentSite)}" placeholder="اكتب أو اختر أي موقع" onchange="loadCostPurchaseInvoices()" oninput="loadCostPurchaseInvoices()"><datalist id="ccV81SiteList">${siteOpts}</datalist></div>
+  <div class="form-field"><label>بحث بالبيان / المستند / رقم التسوية</label><input id="ccPurchaseSearch" value="${v81Esc(document.getElementById('ccPurchaseSearch')?.value||'')}" placeholder="اكتب للبحث" oninput="loadCostPurchaseInvoices()"></div>
+  <div class="form-field"><label>فلتر أمر الإسناد / العميل</label><select id="ccPurchaseOrderFilter" onchange="loadCostPurchaseInvoices()">${orderFilterOpts}</select></div>
+  <div class="form-field"><label>حالة التوجيه</label><select id="ccV81StatusFilter" onchange="loadCostPurchaseInvoices()"><option value="" ${!status?'selected':''}>كل الحالات</option><option value="pending" ${status==='pending'?'selected':''}>غير موجه</option><option value="done" ${status==='done'?'selected':''}>تم التوجيه</option></select></div>
+ </div></div>
+ <div class="summary" style="margin-bottom:12px"><div class="box"><h3>عدد البنود المختارة</h3><h2>${rows.length}</h2></div><div class="box"><h3>إجمالي الاختيار</h3><h2>${total.toLocaleString()}</h2></div><div class="box"><h3>بنود تم توجيهها</h3><h2>${doneCount}</h2></div></div>
+ <div class="cc-purchases-note">اختار الموقع ثم اضغط توجيه/تعديل التوجيه. داخل الشاشة ستظهر بنود الفاتورة المرتبطة بالبند، ويمكن توجيه كل بند على أمر إسناد وبند أمر إسناد وفاتورة مبيعات ثم حفظ التوجيه بالكامل.</div>
+ <div class="cc-purchases-wrap"><table class="cc-purchases-table"><thead><tr><th>إجراء</th><th>الحالة</th><th>التاريخ</th><th>رقم التسوية</th><th>البيان</th><th>مستند الدفع</th><th>التوجيه العام</th><th>التوجيه الفرعي</th><th>الموقع</th><th>المبلغ</th><th>رقم الفاتورة</th><th>عدد بنود الفاتورة</th></tr></thead><tbody>${body||'<tr><td colspan="12">لا توجد بيانات مطابقة</td></tr>'}</tbody></table></div>`;
+}
+window.openV81RoutingModal=async function(lineId){
+ v81BuildModal();
+ const D=await v81Data();
+ const line=D.lines.find(l=>String(l.id)===String(lineId)); if(!line) return alert('البند غير موجود');
+ document.getElementById('ccV81RoutingModal').style.display='flex';
+ document.getElementById('ccV81ModalTitle').textContent='توجيه بند التسوية رقم '+(line.settlement_no||'');
+ document.getElementById('ccV81LineInfo').innerHTML=`<b>البيان:</b> ${v81Esc(line.description||'')} &nbsp; | &nbsp; <b>الموقع:</b> ${v81Esc(line.site||'')} &nbsp; | &nbsp; <b>المبلغ:</b> ${v81Num(line.amount).toLocaleString()} &nbsp; | &nbsp; <b>الحالة:</b> ${v81Status(v81LineDone(line,D.invByLine,D.itemsByInv,D.linkByLine,D.dlinkByKey))}`;
+ const invs=D.invByLine[line.id]||[];
+ let routeRows=[];
+ invs.forEach(inv=>(D.itemsByInv[inv.id]||[]).forEach(it=>routeRows.push({source_type:'material_invoice_item',source_id:it.id,serial:it.serial_no,desc:it.description,unit:it.unit,qty:it.quantity,price:it.unit_price,total:it.total, invoice_no:inv.invoice_no})));
+ if(!routeRows.length) routeRows.push({source_type:'settlement_line',source_id:line.id,serial:1,desc:line.description,unit:'-',qty:'-',price:'-',total:line.amount, invoice_no:''});
+ document.getElementById('ccV81RoutingBody').innerHTML=routeRows.map((r,i)=>{
+   const link=(r.source_type==='settlement_line')?(D.linkByLine[line.id]||{}):(D.dlinkByKey[r.source_type+'_'+r.source_id]||{});
+   const rowId=(r.source_type+'_'+r.source_id).replace(/[^a-zA-Z0-9_]/g,'_');
+   const amount=link.sales_invoice_id?v81Num(link.sales_amount||link.allocated_amount||link.amount||r.total):v81Num(r.total);
+   return `<tr data-source-type="${r.source_type}" data-source-id="${r.source_id}" data-row-id="${rowId}"><td>${v81Esc(r.serial||i+1)}</td><td class="desc">${v81Esc(r.desc||'')}<br><small>${r.invoice_no?'فاتورة: '+v81Esc(r.invoice_no):'بند تسوية بدون فاتورة تفصيلية'}</small></td><td>${v81Esc(r.unit||'')}</td><td>${v81Num(r.qty).toLocaleString? (isNaN(Number(r.qty))?v81Esc(r.qty):v81Num(r.qty).toLocaleString()) : v81Esc(r.qty)}</td><td>${isNaN(Number(r.price))?v81Esc(r.price):v81Num(r.price).toLocaleString()}</td><td>${v81Num(r.total).toLocaleString()}</td><td><select id="v81Order_${rowId}" onchange="v81ChangeOrder('${rowId}')">${v81OrderOptions(link.order_id||'')}</select></td><td><select id="v81OrderItem_${rowId}">${v81OrderItemsOptions(link.order_id||'',link.order_item_id||'')}</select></td><td><select id="v81Sales_${rowId}">${v81SalesOptions(link.sales_invoice_id||'')}</select></td><td><input id="v81Amount_${rowId}" type="number" step="0.01" value="${amount}"></td><td><input id="v81Notes_${rowId}" value="${v81Esc(link.notes||'')}" placeholder="ملاحظات"></td></tr>`;
+ }).join('');
+}
+window.saveV81RoutingModal=async function(){
+ const trs=[...document.querySelectorAll('#ccV81RoutingBody tr')];
+ if(!trs.length) return alert('لا توجد بنود للحفظ');
+ let errors=[];
+ for(const tr of trs){
+   const sourceType=tr.dataset.sourceType; const sourceId=Number(tr.dataset.sourceId); const rowId=tr.dataset.rowId;
+   const orderId=document.getElementById('v81Order_'+rowId)?.value||'';
+   const orderItemId=document.getElementById('v81OrderItem_'+rowId)?.value||'';
+   const salesId=document.getElementById('v81Sales_'+rowId)?.value||'';
+   const amt=v81Num(document.getElementById('v81Amount_'+rowId)?.value);
+   const notes=document.getElementById('v81Notes_'+rowId)?.value?.trim()||'';
+   if(!orderId && !orderItemId && !salesId) continue;
+   if(sourceType==='settlement_line'){
+     const payload={line_id:sourceId,order_id:orderId?Number(orderId):null,order_item_id:orderItemId?Number(orderItemId):null,sales_invoice_id:salesId?Number(salesId):null,sales_amount:salesId?amt:0,notes,updated_by:currentUser.username,updated_at:new Date().toISOString()};
+     const {data:existing}=await client.from('purchase_cost_links').select('id').eq('line_id',sourceId).maybeSingle();
+     let error; if(existing) ({error}=await client.from('purchase_cost_links').update(payload).eq('id',existing.id)); else ({error}=await client.from('purchase_cost_links').insert({...payload,created_by:currentUser.username}));
+     if(error) errors.push(error.message||'purchase_cost_links');
+   }else{
+     const payload={source_type:sourceType,source_id:sourceId,order_id:orderId?Number(orderId):null,order_item_id:orderItemId?Number(orderItemId):null,sales_invoice_id:salesId?Number(salesId):null,sales_amount:salesId?amt:0,notes,updated_by:currentUser.username,updated_at:new Date().toISOString()};
+     const {data:existing}=await client.from('cost_detail_links').select('id').eq('source_type',sourceType).eq('source_id',sourceId).maybeSingle();
+     let error; if(existing) ({error}=await client.from('cost_detail_links').update(payload).eq('id',existing.id)); else ({error}=await client.from('cost_detail_links').insert({...payload,created_by:currentUser.username}));
+     if(error) errors.push(error.message||'cost_detail_links');
+   }
+ }
+ if(errors.length){ alert('لم يتم حفظ بعض البنود. تأكد من تشغيل SQL لجداول التوجيه.\n'+errors.slice(0,3).join('\n')); return; }
+ alert('تم حفظ التوجيه وتحديث الحالة'); closeV81RoutingModal(); loadCostPurchaseInvoices();
+}
+})();
+
+</script>
+
+<script>
+/* ===== V86 clean manual notes only + safe PDF printing (non destructive) ===== */
+(function(){
+  function _cleanSystemAutoNotes(v){
+    var s = String(v == null ? '' : v);
+    // Remove internal packed data blocks only; keep any manually typed notes.
+    s = s.replace(/\n?\[\[CC_SALES_ITEMS\]\][\s\S]*?\[\[\/CC_SALES_ITEMS\]\]\n?/g, '\n');
+    s = s.replace(/\n?\[\[CC_[A-Z0-9_]+\]\][\s\S]*?\[\[\/CC_[A-Z0-9_]+\]\]\n?/g, '\n');
+    return s.split(/\n+/).map(function(x){return x.trim();}).filter(Boolean).join('\n');
+  }
+  window.cleanSystemAutoNotes = _cleanSystemAutoNotes;
+  var _oldSafeHtml = window.safeHtml;
+  window.safeHtml = function(v){
+    var s = _cleanSystemAutoNotes(v);
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  };
+  window.ccEscape = window.safeHtml;
+  window.ccCleanNotesOnly = _cleanSystemAutoNotes;
+  function cleanNodeText(root){
+    if(!root) return;
+    root.querySelectorAll('td,th,div,span,p').forEach(function(el){
+      if(el.children.length===0){
+        var before = el.textContent || '';
+        var after = _cleanSystemAutoNotes(before);
+        if(before !== after) el.textContent = after;
+      }
+    });
+  }
+  function printable(title, html){
+    var w = window.open('', '_blank', 'width=1200,height=800');
+    if(!w){ alert('المتصفح منع فتح نافذة الطباعة. اسمح بالـ Pop-up ثم حاول مرة أخرى.'); return; }
+    var css = '<style>@page{size:A4 landscape;margin:8mm}body{font-family:Arial,Tahoma,sans-serif;direction:rtl;color:#111;margin:14px}h1,h2,h3{text-align:center;margin:8px 0}table{width:100%;border-collapse:collapse;font-size:10px}th,td{border:1px solid #888;padding:4px;text-align:center;vertical-align:middle}th{background:#f1f5f9}.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0}.box{border:1px solid #ddd;border-radius:10px;padding:8px;text-align:center}button,input,select,.no-print{display:none!important}</style>';
+    w.document.open();
+    w.document.write('<!doctype html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>'+window.safeHtml(title)+'</title>'+css+'</head><body><h2>'+window.safeHtml(title)+'</h2>'+html+'</body></html>');
+    w.document.close();
+    setTimeout(function(){ w.focus(); w.print(); }, 500);
+  }
+  window.printCostControlPdf = function(){
+    var page = document.getElementById('costControlPage');
+    if(!page || page.classList.contains('hidden')){ alert('افتح Cost Control أولاً'); return; }
+    var active = page.querySelector('.cc-tab:not(.hidden)') || page;
+    var clone = active.cloneNode(true);
+    cleanNodeText(clone);
+    clone.querySelectorAll('button,input,select').forEach(function(e){
+      if(e.tagName==='INPUT' || e.tagName==='SELECT'){
+        var span=document.createElement('span'); span.textContent=e.value||''; e.parentNode.replaceChild(span,e);
+      }else{ e.remove(); }
+    });
+    printable('Cost Control - تقرير', clone.innerHTML);
+  };
+  var _oldExport = window.exportElementTableToExcel;
+  if(typeof _oldExport === 'function'){
+    window.exportElementTableToExcel = function(elementId, filename){
+      var el = document.getElementById(elementId);
+      if(!el) return _oldExport.apply(this, arguments);
+      cleanNodeText(el);
+      return _oldExport.apply(this, arguments);
+    };
+  }
+  // Clean currently displayed system notes shortly after any page render.
+  var obs = new MutationObserver(function(muts){
+    muts.forEach(function(m){ if(m.addedNodes){ m.addedNodes.forEach(function(n){ if(n.nodeType===1) cleanNodeText(n); }); } });
+  });
+  document.addEventListener('DOMContentLoaded', function(){
+    cleanNodeText(document.body);
+    obs.observe(document.body,{childList:true,subtree:true});
+  });
+})();
 </script>
 
 </body>
