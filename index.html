@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<title>Taswyat System - UPGRADED V89</title>
+<title>Taswyat System - UPGRADED V103 PO</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
 
 /* ================= COST CONTROL V60 ================= */
@@ -510,6 +510,41 @@ button.small{padding:6px 10px;font-size:12px}
 .inv-suggest-title{font-weight:bold;color:#0f172a}
 .inv-suggest-meta{color:#475569;font-size:11px}
 .inv-suggest-empty{padding:10px;color:#b42318;font-weight:bold;font-size:12px}
+
+
+/* ===== V101 Standalone PO Module - fixed ===== */
+#poBtn{background:#0f766e!important;color:white!important;font-weight:bold!important}
+.po-toolbar{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-start;margin-bottom:12px}
+.po-workspace{background:#e2e8f0;border-radius:16px;padding:14px;overflow:auto;max-height:calc(100vh - 145px);direction:rtl}
+.po-a4{width:210mm;min-height:297mm;margin:0 auto 14px;background:#fff;color:#111;padding:12mm;box-shadow:0 8px 24px rgba(15,23,42,.16);box-sizing:border-box;font-size:12px;line-height:1.55;page-break-after:always}
+.po-head{display:grid;grid-template-columns:1fr 1.25fr 1fr;gap:8px;align-items:center;border-bottom:2px solid #0f172a;padding-bottom:8px;margin-bottom:10px}
+.po-logo{font-size:24px;font-weight:900;color:#0f172a;text-align:right;letter-spacing:.5px}.po-title{text-align:center;font-size:22px;font-weight:900;color:#0f172a;border:2px solid #0f172a;border-radius:10px;padding:7px;background:#f8fafc}.po-meta{font-size:11px;text-align:left;color:#334155}
+.po-info,.po-items,.po-totals,.po-sign{width:100%;border-collapse:collapse;table-layout:fixed;margin:8px 0}.po-info th,.po-info td,.po-items th,.po-items td,.po-totals td,.po-sign th,.po-sign td{border:1px solid #111;padding:5px;text-align:center;vertical-align:middle}.po-info th,.po-items th,.po-sign th{background:#f1f5f9;font-weight:bold}.po-info input,.po-items input,.po-totals input{width:100%;border:0!important;background:transparent!important;border-radius:0!important;padding:4px;text-align:center;font-size:11px}.po-items input.po-desc{text-align:right;font-weight:bold}.po-recipient{font-weight:bold;font-size:13px;margin:10px 0 4px;text-align:right}.po-greeting{margin:6px 0;text-align:right}.po-intro{width:100%;height:74px;line-height:1.8;resize:vertical;text-align:right;border:1px dashed #cbd5e1;border-radius:8px;background:#f8fafc;padding:8px;box-sizing:border-box}.po-section-title{font-size:15px;font-weight:bold;background:#0f172a;color:#fff;padding:6px 10px;border-radius:8px;margin:10px 0 6px;text-align:right}.po-bottom{display:grid;grid-template-columns:1.05fr .95fr;gap:12px;align-items:start;margin-top:8px}.po-terms{border:1px solid #111;border-radius:8px;padding:8px;min-height:145px;text-align:right}.po-terms ol{margin:0;padding-right:22px}.po-terms li{margin-bottom:5px}.po-term-row{display:flex;gap:6px;align-items:center;margin:4px 0}.po-term-row input{border:1px solid #cbd5e1!important;border-radius:6px!important;background:#fff!important;text-align:right!important}.po-upload{background:#f8fafc;border:1px dashed #94a3b8;border-radius:12px;padding:10px;margin:8px 0;text-align:right}.po-sign{height:92px;margin-top:16px}.po-sign th{height:26px}.po-sign td{height:58px;color:#64748b}.po-muted{color:#64748b;font-size:11px}.po-page2{page-break-before:always;margin-top:8mm}.po-actions-cell{width:42px}
+@media print{body *{visibility:hidden!important}#poPage,#poPage *{visibility:visible!important}#poPage{position:absolute!important;right:0!important;top:0!important;left:0!important;background:#fff!important;margin:0!important;padding:0!important}#poPage.card{box-shadow:none!important;border-radius:0!important;background:#fff!important;padding:0!important}.sidebar,.po-toolbar,.po-upload,.po-actions-cell,#poPage button,#poPage input[type=file],.po-muted{display:none!important}.main{margin:0!important;padding:0!important}.po-workspace{background:#fff!important;padding:0!important;margin:0!important;overflow:visible!important;max-height:none!important}.po-a4{box-shadow:none!important;margin:0!important;width:210mm!important;min-height:297mm!important;padding:12mm!important;page-break-after:always!important}.po-info input,.po-items input,.po-totals input,.po-intro{border:0!important;background:transparent!important;resize:none!important;overflow:hidden!important}@page{size:A4 portrait;margin:0}}
+</style>
+
+
+<style id="po-v113-css">
+.po-screen-head{max-width:980px;margin:0 auto 12px;text-align:center;background:#fff;border:1px solid #dbe3ef;border-radius:14px;padding:12px}.po-toolbar{display:flex;gap:8px;justify-content:center;align-items:center;flex-wrap:wrap}.po-help{font-size:12px;color:#64748b;margin-top:8px}.po-workspace{background:#dfe7f1;padding:14px;display:flex;flex-direction:column;align-items:center;gap:14px;overflow:auto}.po-a4{width:210mm;height:297mm;background:white;position:relative;box-sizing:border-box;padding:10mm 10mm 24mm;box-shadow:0 4px 18px rgba(15,23,42,.18);color:#0f172a;font-family:Arial,'Tahoma',sans-serif;direction:rtl;overflow:hidden;page-break-after:always}.po-doc-header{height:25mm;display:flex;align-items:center;justify-content:space-between;gap:8mm}.po-doc-header.small{height:22mm}.po-brand-left{direction:ltr;text-align:left;color:#0b7895;font-weight:bold;font-size:30px;line-height:1}.po-brand-left small{display:block;font-size:9px;color:#0b7895;font-weight:bold}.po-brand-ag{font-weight:900}.po-brand-air{font-weight:400}.po-brand-ar{font-size:27px;color:#0b7895;font-weight:bold;text-align:right;line-height:1.1}.po-brand-ar small{font-size:12px}.po-title-box{background:#07306f;color:#fff;border-radius:8px;padding:8px 18px;font-size:16px;font-weight:900;text-align:center;line-height:1.3;box-shadow:inset 0 -2px 0 rgba(255,255,255,.2)}.po-title-box span{font-size:15px}.po-red-line{border-top:2px solid #d71920;margin-bottom:5mm}.po-page-content{position:absolute;top:39mm;right:10mm;left:10mm;bottom:31mm;overflow:hidden}.po-page-1 .po-page-content{top:39mm;bottom:31mm}.po-top-grid{display:grid;grid-template-columns:70mm 1fr;gap:6mm;margin-bottom:5mm;align-items:stretch}.po-info-card,.po-intro-card{border:1.5px solid #1d63b7;border-radius:8px;overflow:hidden;background:#fff}.po-section-title{background:#061733;color:white;font-weight:bold;text-align:right;border-radius:6px 6px 0 0;padding:6px 10px;font-size:14px}.po-section-main{margin-top:2mm;border-radius:6px}.po-info{width:100%;border-collapse:collapse;font-size:11px}.po-info th,.po-info td{border:1px solid #c9d6e7;padding:3px;text-align:center}.po-info th{background:#eef5ff;font-weight:bold;width:42%}.po-info input,.po-info select{border:0;background:transparent;text-align:center;font-size:11px;font-weight:bold;width:100%;padding:2px}.po-intro-card{padding:8px 12px;font-size:14px;line-height:1.9}.po-recipient,.po-greeting{font-size:15px;margin:3px 0 5px;text-align:center}.po-intro{width:100%;height:34mm;border:0;resize:none;overflow:hidden;font-size:14px;line-height:1.9;text-align:right;background:transparent;font-family:Arial,'Tahoma',sans-serif}.po-items{width:100%;border-collapse:collapse;table-layout:fixed;font-size:11px}.po-items th,.po-items td{border:1px solid #8da3bd;padding:3px;text-align:center;vertical-align:middle}.po-items th{background:#07306f;color:#fff;font-weight:bold}.po-items th:nth-child(1){width:8mm}.po-items th:nth-child(2){width:16mm}.po-items th:nth-child(3){width:auto}.po-items th:nth-child(4){width:18mm}.po-items th:nth-child(5){width:20mm}.po-items th:nth-child(6){width:24mm}.po-items th:nth-child(7){width:25mm}.po-items th:nth-child(8){width:13mm}.po-items textarea,.po-items input{width:100%;box-sizing:border-box;border:0;background:transparent;text-align:center;font-size:11px;padding:2px;font-weight:bold}.po-items textarea{height:13mm;resize:vertical;text-align:right;line-height:1.4;font-weight:bold;overflow:hidden}.po-items tfoot td{font-weight:bold;background:#f3f8ff}.po-totals{width:100%;border-collapse:collapse;margin-top:4mm;font-size:14px}.po-totals th,.po-totals td{border:1px solid #8da3bd;padding:6px;text-align:center}.po-totals th{background:#f3f8ff}.po-totals input{border:0;background:transparent;text-align:center;font-weight:bold;font-size:14px}.po-net-row th,.po-net-row td{background:#eaf4ff!important;font-size:17px;font-weight:bold}.po-terms{border:1.5px solid #1d63b7;border-top:0;border-radius:0 0 8px 8px;padding:8px 12px;min-height:54mm;font-size:14px;line-height:1.9}.po-terms li{margin-bottom:5px}.po-notes{width:100%;height:45mm;border:1.5px solid #1d63b7;border-radius:0 0 8px 8px;box-sizing:border-box;padding:8px;font-size:14px;line-height:1.8;resize:none}.po-sign{width:100%;border-collapse:collapse;margin-top:5mm;font-size:12px}.po-sign th,.po-sign td{border:1px solid #8da3bd;padding:8px;text-align:center;line-height:2}.po-sign th{background:#eef5ff}.po-closing{text-align:center;font-size:20px;margin:8mm 0 5mm}.po-stamp-box{border:1px dashed #7fa4d3;border-radius:8px;height:34mm;text-align:center;padding-top:5mm;font-weight:bold;margin:0 auto 5mm;width:110mm}.po-stamp-circle{width:31mm;height:31mm;border:2px solid #2f69c5;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:3mm auto;color:#2f69c5;font-weight:bold;transform:rotate(-8deg)}.po-contact-big{text-align:center;line-height:1.8;font-size:13px;color:#0f2b57}.po-doc-footer{position:absolute;right:10mm;left:10mm;bottom:7mm;height:20mm;border-top:2px solid #d71920;display:grid;grid-template-columns:40mm 1fr 25mm;align-items:center;gap:4mm;color:#0f2b57}.po-qr-wrap{display:flex;align-items:center;gap:3mm;font-size:9px;text-align:right}.po-qr svg{width:17mm;height:17mm;border:1px solid #222}.po-contact{text-align:center;font-size:10.5px;line-height:1.5;font-weight:bold}.po-page-no{text-align:left;font-size:11px;font-weight:bold}.po-actions-cell button{padding:3px 7px}.hidden{display:none!important}
+.po-saved-orders{max-width:1120px;margin:12px auto 0;background:#fff;border:1px solid #dbe3ef;border-radius:12px;padding:10px;text-align:right}.po-saved-orders h3{margin:0 0 8px}.po-saved-table{width:100%;border-collapse:collapse;background:#fff}.po-saved-table th,.po-saved-table td{border:1px solid #e5e7eb;padding:7px;text-align:center;font-size:12px}.po-saved-table th{background:#f8fafc}.po-edit-only.hidden{display:none!important}
+
+@media print{body *{visibility:hidden!important}#invoiceModal,#invoiceModal *{display:none!important;visibility:hidden!important}.po-workspace,.po-workspace *{visibility:visible!important}.po-screen-head,.sidebar,.no-print,.po-actions-cell{display:none!important}.main{margin:0!important;padding:0!important}.po-workspace{position:absolute!important;inset:0!important;background:#fff!important;display:block!important;padding:0!important;overflow:visible!important}.po-a4{width:210mm!important;height:297mm!important;margin:0!important;box-shadow:none!important;padding:10mm 10mm 24mm!important;page-break-after:always!important;overflow:hidden!important}.po-a4:last-child{page-break-after:auto!important}.po-info input,.po-info select,.po-items input,.po-items textarea,.po-totals input,.po-intro,.po-notes{border:0!important;outline:0!important;box-shadow:none!important;appearance:none!important} @page{size:A4 portrait;margin:0}}
+</style>
+
+
+
+<style id="quote-v115-css">
+#quoteBtn{background:#7c3aed!important;color:#fff!important;font-weight:bold!important}.quote-head{max-width:1120px;margin:0 auto 12px;text-align:center;background:#fff;border:1px solid #dbe3ef;border-radius:14px;padding:12px}.quote-toolbar{display:flex;gap:8px;justify-content:center;align-items:center;flex-wrap:wrap}.quote-help,.quote-mini-note{font-size:12px;color:#64748b;margin:8px 0;text-align:right}.quote-saved{margin-top:10px;text-align:right}.quote-saved table{width:100%;border-collapse:collapse}.quote-saved th,.quote-saved td{border:1px solid #e5e7eb;padding:7px;text-align:center;font-size:12px}.quote-saved th{background:#f8fafc}.quote-editor{background:#dfe7f1;padding:14px;display:flex;flex-direction:column;align-items:center;gap:14px;overflow:auto;max-height:calc(100vh - 145px)}.quote-a4{width:210mm;min-height:297mm;background:white;box-sizing:border-box;padding:10mm;box-shadow:0 4px 18px rgba(15,23,42,.18);color:#0f172a;font-family:Arial,Tahoma,sans-serif;direction:rtl}.quote-doc-header{display:flex;align-items:center;justify-content:space-between;gap:8mm}.quote-brand{direction:ltr;text-align:left;color:#0b7895;font-weight:900;font-size:28px;line-height:1}.quote-brand small,.quote-brand-ar small{font-size:10px;font-weight:bold}.quote-brand-ar{font-size:26px;color:#0b7895;font-weight:bold;text-align:right}.quote-title{background:#07306f;color:#fff;border-radius:8px;padding:8px 18px;font-size:16px;font-weight:900;text-align:center;line-height:1.3}.quote-title span{font-size:15px}.quote-red-line{border-top:2px solid #d71920;margin:6mm 0}.quote-info-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;background:#f8fafc;border:1px solid #dbe3ef;border-radius:12px;padding:10px}.quote-section-title{background:#061733;color:white;font-weight:bold;text-align:right;border-radius:6px;padding:7px 10px;font-size:14px;margin:12px 0 6px}.quote-items-table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:12px}.quote-items-table th,.quote-items-table td{border:1px solid #8da3bd;padding:5px;text-align:center;vertical-align:middle}.quote-items-table th{background:#07306f;color:#fff;font-weight:bold}.quote-items-table th:nth-child(1){width:18mm}.quote-items-table th:nth-child(2){width:auto}.quote-items-table th:nth-child(3){width:22mm}.quote-items-table th:nth-child(4){width:22mm}.quote-items-table th:nth-child(5){width:35mm}.quote-items-table th:nth-child(6){width:35mm}.quote-items-table input,.quote-items-table textarea{width:100%;box-sizing:border-box;border:0;background:transparent;text-align:center;font-weight:bold;padding:4px}.quote-items-table textarea{text-align:right;resize:vertical;min-height:34px;cursor:pointer}.quote-items-table tfoot td{font-weight:bold;background:#f3f8ff}.quote-summary-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0;background:#f8fafc;border:1px solid #dbe3ef;border-radius:12px;padding:10px}.quote-modal{max-width:1200px}.quote-supply-table{width:100%;border-collapse:collapse;margin-top:12px}.quote-supply-table th,.quote-supply-table td{border:1px solid #e5e7eb;padding:6px;text-align:center}.quote-supply-table th{background:#f8fafc}.quote-supply-table input,.quote-supply-table select{min-width:110px}.quote-item-calc{display:flex;gap:25px;flex-wrap:wrap;background:#f8fafc;border:1px dashed #94a3b8;border-radius:10px;padding:10px;margin-top:10px}.quote-guide-row{border:1px solid #e5e7eb;background:#fff;border-radius:10px;margin:8px 0;padding:10px;text-align:right}.quote-guide-row b{color:#0f172a}.quote-guide-details{font-size:12px;color:#475569;line-height:1.7;margin-top:6px}.quote-price-badge{display:inline-block;background:#eef6ff;color:#07306f;border-radius:999px;padding:4px 9px;font-weight:bold;margin:3px}@media print{body *{visibility:hidden!important}#quotePage,#quotePage *{visibility:visible!important}#quotePage{position:absolute!important;inset:0!important;background:#fff!important;margin:0!important;padding:0!important}.sidebar,.quote-head,.no-print,#quotePage button{display:none!important}.main{margin:0!important;padding:0!important}.quote-editor{display:block!important;background:#fff!important;padding:0!important;overflow:visible!important;max-height:none!important}.quote-a4{box-shadow:none!important;margin:0!important;width:210mm!important;min-height:297mm!important;padding:10mm!important}.quote-items-table input,.quote-items-table textarea{border:0!important;outline:0!important;resize:none!important}@page{size:A4 portrait;margin:0}}
+</style>
+
+
+<style id="login-visibility-fix-v116">
+/* V116 fix: force login/register controls visible after quotation module additions */
+#loginPage .login-card{width:390px!important;text-align:center!important;padding:28px!important;background:#fff!important;border-radius:18px!important;box-shadow:0 10px 30px rgba(0,0,0,.12)!important;}
+#loginPage input{display:block!important;width:100%!important;height:40px!important;padding:10px!important;border:1px solid #cbd5e1!important;border-radius:8px!important;background:#fff!important;color:#0f172a!important;font-size:14px!important;box-sizing:border-box!important;text-align:center!important;visibility:visible!important;opacity:1!important;}
+#loginPage button{display:block!important;width:100%!important;height:42px!important;margin:0!important;padding:10px!important;border:0!important;border-radius:8px!important;background:#0a6cff!important;color:#fff!important;font-weight:bold!important;cursor:pointer!important;visibility:visible!important;opacity:1!important;}
+#loginPage .link{display:block!important;color:#0a6cff!important;cursor:pointer!important;margin-top:12px!important;visibility:visible!important;opacity:1!important;}
+#loginPage #loginBox:not(.hidden),#loginPage #registerBox:not(.hidden){display:block!important;}
 </style>
 </head>
 
@@ -544,7 +579,7 @@ button.small{padding:6px 10px;font-size:12px}
 <div id="app" class="app">
 
 <div class="sidebar">
-<h2>Taswyat V89</h2>
+<h2>Taswyat V102</h2>
 <p id="currentUserText"></p>
 
 <button onclick="showPage('homePage')">الرئيسية</button>
@@ -553,6 +588,9 @@ button.small{padding:6px 10px;font-size:12px}
 <button onclick="showPage('accountPage')">كشف حساب</button>
 <button id="accountsBtn" onclick="showPage('accountsPage');loadAccountsInvoices()">🧾 حسابات</button>
 <button id="costControlBtn" class="hidden" onclick="showPage('costControlPage');loadCostControl()">📌 Cost Control</button>
+<button id="poBtn" class="hidden" onclick="showPage('poPage');initPOPage()">📄 PO - أمر توريد</button>
+<button id="quoteBtn" onclick="showPage('quotePage');initQuotePage()">📋 عروض أسعار</button>
+
 
 <button id="inventoryBtn" onclick="showPage('inventoryPage');loadInventory()">
 📦 معدات المخزن
@@ -830,6 +868,192 @@ button.small{padding:6px 10px;font-size:12px}
 </div>
 
 </div>
+</div>
+
+
+
+
+<div id="poPage" class="card page hidden">
+  <div class="po-screen-head no-print">
+    <h2>📄 PO - أمر توريد</h2>
+    <div class="po-toolbar">
+      <button class="green" onclick="poNew()">+ إضافة أمر توريد</button>
+      <button class="orange po-edit-only" onclick="document.getElementById('poQuotationFile').click()">+ إضافة عرض السعر PDF</button>
+      <button class="gray po-edit-only" onclick="poAddRow()">+ إضافة بند</button>
+      <button class="orange po-edit-only" onclick="poAddTerm()">+ إضافة شرط</button>
+      <button class="print-btn po-edit-only" onclick="poPrintPdf()">طباعة PDF A4</button>
+      <button class="export-btn po-edit-only" onclick="poSaveLocal()">حفظ أمر التوريد</button>
+      <button class="gray po-edit-only" onclick="poCloseEditor()">إغلاق واجهة الإدخال</button>
+    </div>
+    <input id="poQuotationFile" class="hidden" type="file" accept="application/pdf,.pdf" onchange="poReadQuotationPdf(this.files[0])">
+    <div id="poPdfStatus" class="po-help">أوامر التوريد مستقلة تمامًا في هذه المرحلة ولا ترتبط بأي فواتير أو Cost Control.</div>
+    <div id="poSavedOrders" class="po-saved-orders"></div>
+  </div>
+
+  <div class="po-workspace hidden" dir="rtl">
+    <section class="po-a4 po-page-1">
+      <div class="po-doc-header">
+        <div class="po-brand-left"><span class="po-brand-ag">AG</span> <span class="po-brand-air">air</span><small>for cooling and air conditioning</small></div>
+        <div class="po-title-box">PURCHASE ORDER<br><span>أمر توريد</span></div>
+        <div class="po-brand-ar">إيجي اير<br><small>للتبريد و التكييف</small></div>
+      </div>
+      <div class="po-red-line"></div>
+      <div class="po-page-content page1-content">
+        <div class="po-top-grid">
+          <div class="po-info-card">
+            <div class="po-section-title">بيانات أمر التوريد</div>
+            <table class="po-info"><tbody>
+              <tr><th>رقم أمر التوريد</th><td><input id="poNo" readonly></td></tr>
+              <tr><th>التاريخ</th><td><input id="poDate" type="date" onchange="poSync()"></td></tr>
+              <tr><th>اسم المورد / المقاول</th><td><input id="poSupplier" oninput="poSync()" placeholder="اكتب اسم المورد / المقاول"></td></tr>
+              <tr><th>اسم المشروع</th><td><input id="poProject" placeholder="اسم المشروع"></td></tr>
+              <tr><th>العميل</th><td><input id="poClient" placeholder="اسم العميل"></td></tr>
+              <tr><th>العملة</th><td><select id="poCurrency" onchange="poCalc()"><option value="EGP">جنيه مصري - EGP</option><option value="USD">دولار - USD</option><option value="EUR">يورو - EUR</option><option value="SAR">ريال سعودي - SAR</option><option value="AED">درهم إماراتي - AED</option><option value="GBP">جنيه إسترليني - GBP</option></select></td></tr>
+              <tr><th>سعر الصرف</th><td><input id="poFxRate" type="number" step="0.0001" value="1" oninput="poCalc()"></td></tr>
+              <tr><th>مدة التوريد</th><td><input id="poDelivery" value="15 يوم"></td></tr>
+              <tr><th>مدة السريان</th><td><input id="poValidity" value="30 يوم"></td></tr>
+            </tbody></table>
+          </div>
+          <div class="po-intro-card">
+            <p class="po-recipient"><b>السادة / <span id="poSupplierText">اكتب اسم المورد / المقاول</span></b></p>
+            <p class="po-greeting"><b>تحية طيبة وبعد ،،،</b></p>
+            <textarea id="poIntro" class="po-intro">تتشرف شركة إيجي إير للتبريد والتكييف بإسناد توريد البنود الموضحة بالجدول التالي لشركتكم الموقرة، وذلك طبقاً لعرض السعر المقدم من سيادتكم والمرفق بهذا الأمر، ووفقاً للمواصفات الفنية والشروط المتفق عليها.
+
+يرجى التكرم باتخاذ اللازم نحو تنفيذ الأعمال والتوريدات المبينة أدناه طبقاً للجدول الزمني المتفق عليه وبالجودة المطلوبة.</textarea>
+          </div>
+        </div>
+        <div class="po-section-title po-section-main">أولاً: جدول البنود والأسعار</div>
+        <table class="po-items" id="poItemsTable"><thead><tr><th>م</th><th>رقم البند<br>في العرض</th><th>البيان / الوصف كامل</th><th>الوحدة</th><th>الكمية</th><th>سعر الوحدة</th><th>الإجمالي</th><th class="po-actions-cell no-print">حذف</th></tr></thead><tbody id="poItemsBody"></tbody><tfoot><tr><td colspan="6">إجمالي البنود</td><td id="poItemsTotalCell">0.00</td><td class="po-actions-cell no-print"></td></tr></tfoot></table>
+      </div>
+      <div class="po-doc-footer"><div class="po-qr-wrap"><div id="poQr1" class="po-qr"></div><span>امسح الكود لمشاهدة أمر التوريد<br><b class="poQrNo">PO</b></span></div><div class="po-contact">20 شارع طرابلس من عباس العقاد - مدينة نصر - القاهرة<br>ت: 01223476741 - 02-37628917 - 01234844636 &nbsp;&nbsp; فاكس: 02-37628917<br>Email / agairforAC@gmail.com</div><div class="po-page-no">الصفحة 1 من 3</div></div>
+    </section>
+
+    <section class="po-a4 po-page-2">
+      <div class="po-doc-header small"><div class="po-brand-left"><span class="po-brand-ag">AG</span> <span class="po-brand-air">air</span><small>for cooling and air conditioning</small></div><div class="po-brand-ar">إيجي اير<br><small>للتبريد و التكييف</small></div></div><div class="po-red-line"></div>
+      <div class="po-page-content">
+        <div class="po-section-title">ثانياً: الشروط</div>
+        <div class="po-terms"><ol id="poTermsList"></ol></div>
+        <div class="po-section-title">ثالثاً: الملخص المالي</div>
+        <table class="po-totals"><tbody>
+          <tr><th>إجمالي البنود</th><td><input id="poSubtotal" readonly></td></tr>
+          <tr><th>نسبة الخصم %</th><td><input id="poDiscPct" type="number" value="0" oninput="poCalc()"></td></tr>
+          <tr><th>قيمة الخصم</th><td><input id="poDiscVal" readonly></td></tr>
+          <tr><th>الإجمالي بعد الخصم</th><td><input id="poAfterDisc" readonly></td></tr>
+          <tr><th>ضريبة القيمة المضافة %</th><td><input id="poVatPct" type="number" value="14" oninput="poCalc()"></td></tr>
+          <tr><th>قيمة ضريبة القيمة المضافة</th><td><input id="poVatVal" readonly></td></tr>
+          <tr><th>ضريبة أ.ت.ص %</th><td><input id="poWhtPct" type="number" value="1" step="0.1" oninput="poCalc()"></td></tr>
+          <tr><th>قيمة ضريبة أ.ت.ص</th><td><input id="poWhtVal" readonly></td></tr>
+          <tr class="po-net-row"><th>الصافي النهائي</th><td><input id="poNet" readonly></td></tr>
+          <tr><th>الصافي المعادل بالجنيه المصري</th><td><input id="poNetEgp" readonly></td></tr>
+        </tbody></table>
+      </div>
+      <div class="po-doc-footer"><div class="po-qr-wrap"><div id="poQr2" class="po-qr"></div><span>امسح الكود لمشاهدة أمر التوريد<br><b class="poQrNo">PO</b></span></div><div class="po-contact">20 شارع طرابلس من عباس العقاد - مدينة نصر - القاهرة<br>ت: 01223476741 - 02-37628917 - 01234844636 &nbsp;&nbsp; فاكس: 02-37628917<br>Email / agairforAC@gmail.com</div><div class="po-page-no">الصفحة 2 من 3</div></div>
+    </section>
+
+    <section class="po-a4 po-page-3">
+      <div class="po-doc-header small"><div class="po-brand-left"><span class="po-brand-ag">AG</span> <span class="po-brand-air">air</span><small>for cooling and air conditioning</small></div><div class="po-brand-ar">إيجي اير<br><small>للتبريد و التكييف</small></div></div><div class="po-red-line"></div>
+      <div class="po-page-content">
+        <div class="po-section-title">رابعاً: ملاحظات</div>
+        <textarea id="poNotes" class="po-notes" placeholder="اكتب أي ملاحظات إضافية هنا..."></textarea>
+        <div class="po-section-title">خامساً: الاعتمادات والتوقيع</div>
+        <table class="po-sign"><thead><tr><th>المشتريات / المخازن</th><th>المالية</th><th>الفنية</th><th>يعتمد</th></tr></thead><tbody><tr><td>الاسم: ....................<br>التوقيع: ..................<br>التاريخ: .... / .... / 20....</td><td>الاسم: ....................<br>التوقيع: ..................<br>التاريخ: .... / .... / 20....</td><td>الاسم: ....................<br>التوقيع: ..................<br>التاريخ: .... / .... / 20....</td><td>الاسم: ....................<br>التوقيع: ..................<br>التاريخ: .... / .... / 20....</td></tr></tbody></table>
+        <div class="po-closing"><b>وتفضلوا بقبول وافر الاحترام والتقدير</b></div>
+        <div class="po-stamp-box"><div>ختم الشركة</div><div class="po-stamp-circle">AG AIR</div></div>
+        <div class="po-contact-big"><b>بيانات التواصل</b><br>إيجي إير للتبريد والتكييف<br>20 شارع طرابلس من عباس العقاد - مدينة نصر - القاهرة<br>ت: 01223476741 - 02-37628917 - 01234844636 &nbsp;&nbsp; فاكس: 02-37628917<br>Email / agairforAC@gmail.com</div>
+      </div>
+      <div class="po-doc-footer"><div class="po-qr-wrap"><div id="poQr3" class="po-qr"></div><span>امسح الكود لمشاهدة أمر التوريد<br><b class="poQrNo">PO</b></span></div><div class="po-contact">20 شارع طرابلس من عباس العقاد - مدينة نصر - القاهرة<br>ت: 01223476741 - 02-37628917 - 01234844636 &nbsp;&nbsp; فاكس: 02-37628917<br>Email / agairforAC@gmail.com</div><div class="po-page-no">الصفحة 3 من 3</div></div>
+    </section>
+  </div>
+</div>
+
+
+<!-- ===== COM Quotation Module V115 ===== -->
+<div id="quotePage" class="card page hidden">
+  <div class="quote-head no-print">
+    <h2>📋 عروض أسعار</h2>
+    <div class="quote-toolbar">
+      <button class="green" onclick="quoteNew()">+ إضافة عرض سعر</button>
+      <button class="gray quote-edit-only" onclick="quoteAddRow()">+ إضافة بند</button>
+      <button class="orange quote-edit-only" onclick="quoteOpenGuide()">🔍 أسعار استرشادية</button>
+      <button class="export-btn quote-edit-only" onclick="quoteSave()">حفظ عرض السعر</button>
+      <button class="print-btn quote-edit-only" onclick="quotePrint()">طباعة PDF A4</button>
+      <button class="gray quote-edit-only" onclick="quoteCloseEditor()">إغلاق واجهة الإدخال</button>
+    </div>
+    <div class="quote-help">اختيار العملة يتم مرة واحدة أعلى عرض السعر ويتعمم تلقائياً على كل البنود لمنع الخطأ.</div>
+    <div id="quoteSavedArea" class="quote-saved"></div>
+  </div>
+
+  <div id="quoteEditor" class="quote-editor hidden" dir="rtl">
+    <section class="quote-a4">
+      <div class="quote-doc-header">
+        <div class="quote-brand">AG air<br><small>for cooling and air conditioning</small></div>
+        <div class="quote-title">COMMERCIAL OFFER<br><span>عرض سعر</span></div>
+        <div class="quote-brand-ar">إيجي إير<br><small>للتبريد والتكييف</small></div>
+      </div>
+      <div class="quote-red-line"></div>
+      <div class="quote-info-grid">
+        <div class="form-field"><label>رقم عرض السعر</label><input id="quoteNo" readonly></div>
+        <div class="form-field"><label>التاريخ</label><input id="quoteDate" type="date"></div>
+        <div class="form-field"><label>العميل</label><input id="quoteClient" placeholder="اسم العميل"></div>
+        <div class="form-field"><label>المشروع</label><input id="quoteProject" placeholder="اسم المشروع"></div>
+        <div class="form-field"><label>العملة لكل البنود</label><select id="quoteCurrency" onchange="quoteCalcAll()"><option value="EGP">EGP - جنيه مصري</option><option value="USD">USD - دولار</option><option value="EUR">EUR - يورو</option><option value="SAR">SAR - ريال</option><option value="AED">AED - درهم</option><option value="GBP">GBP - إسترليني</option></select></div>
+        <div class="form-field"><label>سعر الصرف</label><input id="quoteFxRate" type="number" step="0.0001" value="1"></div>
+      </div>
+
+      <h3 class="quote-section-title">جدول البنود</h3>
+      <table class="quote-items-table" id="quoteItemsTable">
+        <thead><tr><th>مسلسل</th><th>البيان</th><th>الوحدة</th><th>الكمية</th><th>سعر الوحدة <span id="quoteCurrencyHead">EGP</span></th><th>الإجمالي</th></tr></thead>
+        <tbody id="quoteItemsBody"></tbody>
+        <tfoot><tr><td colspan="5">الإجمالي قبل الضرائب</td><td id="quoteSubtotalCell">0.00</td></tr></tfoot>
+      </table>
+      <div class="quote-mini-note no-print">اضغط على خانة البيان في أي بند لفتح شاشة تفاصيل البند وإدخال الموردين وعروضهم وتكاليف النقل/الرفع/التركيب.</div>
+
+      <div class="quote-summary-grid">
+        <div class="form-field"><label>Risk %</label><input id="quoteRiskPct" type="number" value="0" step="0.1" oninput="quoteCalcAll()"></div>
+        <div class="form-field"><label>مصاريف عامة %</label><input id="quoteOverheadPct" type="number" value="0" step="0.1" oninput="quoteCalcAll()"></div>
+        <div class="form-field"><label>مكسب %</label><input id="quoteProfitPct" type="number" value="0" step="0.1" oninput="quoteCalcAll()"></div>
+        <div class="form-field"><label>ضريبة القيمة المضافة %</label><input id="quoteVatPct" type="number" value="14" step="0.1" oninput="quoteCalcAll()"></div>
+        <div class="form-field"><label>ضرائب عامة / خصم %</label><input id="quoteTaxPct" type="number" value="0" step="0.1" oninput="quoteCalcAll()"></div>
+        <div class="form-field"><label>الإجمالي النهائي</label><input id="quoteNetTotal" readonly></div>
+      </div>
+      <div class="form-field"><label>الشروط والملاحظات</label><textarea id="quoteTerms" rows="5" placeholder="اكتب الشروط بالكامل يدوياً: مدة التوريد، الدفع، الضمان، الاستثناءات..."></textarea></div>
+    </section>
+  </div>
+</div>
+
+<div id="quoteItemModal" class="modal-bg">
+  <div class="modal quote-modal">
+    <div class="modal-header"><h2>تفاصيل البند</h2><button class="red small" onclick="quoteCloseItemModal()">إغلاق</button></div>
+    <input type="hidden" id="quoteActiveRow">
+    <div class="grid">
+      <div class="form-field"><label>اسم المورد</label><input id="qiSupplier" placeholder="اسم المورد"></div>
+      <div class="form-field"><label>رقم عرض سعر المورد</label><input id="qiSupplierQuoteNo" placeholder="رقم عرض المورد"></div>
+      <div class="form-field"><label>تاريخ عرض المورد</label><input id="qiSupplierQuoteDate" type="date"></div>
+    </div>
+    <table class="quote-supply-table"><thead><tr><th>نوع التكلفة</th><th>وصف الخامة / الخدمة</th><th>السعة / المقاس</th><th>الكمية</th><th>الوحدة</th><th>سعر الوحدة</th><th>الإجمالي</th><th>حذف</th></tr></thead><tbody id="qiSupplyBody"></tbody></table>
+    <div class="actions-wrap" style="justify-content:flex-start;margin-top:8px"><button class="gray" onclick="quoteAddSupplyRow()">+ إضافة توريد / تكلفة</button><button class="orange" onclick="quoteOpenGuide()">🔍 أسعار استرشادية</button></div>
+    <div class="quote-item-calc">
+      <div><b>إجمالي تكلفة البند:</b> <span id="qiCostTotal">0.00</span></div>
+      <div><b>سعر الوحدة المحسوب:</b> <span id="qiAutoUnitPrice">0.00</span></div>
+    </div>
+    <div class="actions-wrap" style="justify-content:flex-end;margin-top:12px"><button class="export-btn" onclick="quoteApplyItemDetails()">حفظ تفاصيل البند وتحديث سعر الوحدة</button></div>
+  </div>
+</div>
+
+<div id="quoteGuideModal" class="modal-bg">
+  <div class="modal quote-modal">
+    <div class="modal-header"><h2>🔍 أسعار استرشادية محفوظة</h2><button class="red small" onclick="quoteCloseGuide()">إغلاق</button></div>
+    <div class="grid">
+      <div class="form-field"><label>اسم الصنف</label><input id="qgItem" list="qgItemList" oninput="quoteFilterGuide()"></div>
+      <div class="form-field"><label>السعة / المقاس</label><input id="qgCapacity" list="qgCapList" oninput="quoteFilterGuide()"></div>
+      <div class="form-field"><label>رقم عرض المورد</label><input id="qgSupplierQuoteNo" list="qgSupQuoteList" oninput="quoteFilterGuide()"></div>
+      <div class="form-field"><label>تاريخ العرض</label><input id="qgDate" type="date" oninput="quoteFilterGuide()"></div>
+      <div class="form-field"><label>المورد</label><input id="qgSupplier" list="qgSupplierList" oninput="quoteFilterGuide()"></div>
+      <div class="form-field"><label>رقم COM</label><input id="qgComNo" list="qgComList" oninput="quoteFilterGuide()"></div>
+    </div>
+    <datalist id="qgItemList"></datalist><datalist id="qgCapList"></datalist><datalist id="qgSupQuoteList"></datalist><datalist id="qgSupplierList"></datalist><datalist id="qgComList"></datalist>
+    <div id="quoteGuideResults"></div>
+  </div>
 </div>
 
 <div id="invoiceModal" class="modal-bg">
@@ -1384,6 +1608,8 @@ currentUserText.innerHTML = "المستخدم : " + currentUser.username;
 
 if(currentUser.role === "super_admin"){
 if(document.getElementById("costControlBtn")) costControlBtn.classList.remove("hidden");
+if(document.getElementById("poBtn")) poBtn.classList.remove("hidden");
+if(typeof poUpdateVisibility === "function") poUpdateVisibility();
 usersBtn.classList.remove("hidden");
 combinedSettlementsBtn.classList.remove("hidden");
 siteCostsBtn.classList.remove("hidden");
@@ -1547,7 +1773,18 @@ h1{text-align:center;margin:0 0 12px;font-size:20px}.summary{display:grid;grid-t
 .inv-suggest-title{font-weight:bold;color:#0f172a}
 .inv-suggest-meta{color:#475569;font-size:11px}
 .inv-suggest-empty{padding:10px;color:#b42318;font-weight:bold;font-size:12px}
-</style></head><body><h1>كشف حساب - ${owner}</h1>${preparePrintHtmlWithRepeatingHeaders(content)}</body></html>`);
+</style>
+<style id="login-visibility-fix-v116">
+/* V116 fix: force login/register controls visible after quotation module additions */
+#loginPage .login-card{width:390px!important;text-align:center!important;padding:28px!important;background:#fff!important;border-radius:18px!important;box-shadow:0 10px 30px rgba(0,0,0,.12)!important;}
+#loginPage input{display:block!important;width:100%!important;height:40px!important;padding:10px!important;border:1px solid #cbd5e1!important;border-radius:8px!important;background:#fff!important;color:#0f172a!important;font-size:14px!important;box-sizing:border-box!important;text-align:center!important;visibility:visible!important;opacity:1!important;}
+#loginPage button{display:block!important;width:100%!important;height:42px!important;margin:0!important;padding:10px!important;border:0!important;border-radius:8px!important;background:#0a6cff!important;color:#fff!important;font-weight:bold!important;cursor:pointer!important;visibility:visible!important;opacity:1!important;}
+#loginPage .link{display:block!important;color:#0a6cff!important;cursor:pointer!important;margin-top:12px!important;visibility:visible!important;opacity:1!important;}
+#loginPage #loginBox:not(.hidden),#loginPage #registerBox:not(.hidden){display:block!important;}
+</style>
+</head><body><h1>كشف حساب - ${owner}</h1>${preparePrintHtmlWithRepeatingHeaders(content)}
+
+</body></html>`);
 w.document.close();
 w.focus();
 setTimeout(()=>w.print(),500);
@@ -1597,7 +1834,16 @@ const el = document.getElementById(elementId);
 if(!el){ alert("لا يوجد جدول للتصدير"); return; }
 const table = el.querySelector("table");
 if(!table){ alert("لا يوجد جدول للتصدير"); return; }
-const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body>${table.outerHTML}</body></html>`;
+const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+<style id="login-visibility-fix-v116">
+/* V116 fix: force login/register controls visible after quotation module additions */
+#loginPage .login-card{width:390px!important;text-align:center!important;padding:28px!important;background:#fff!important;border-radius:18px!important;box-shadow:0 10px 30px rgba(0,0,0,.12)!important;}
+#loginPage input{display:block!important;width:100%!important;height:40px!important;padding:10px!important;border:1px solid #cbd5e1!important;border-radius:8px!important;background:#fff!important;color:#0f172a!important;font-size:14px!important;box-sizing:border-box!important;text-align:center!important;visibility:visible!important;opacity:1!important;}
+#loginPage button{display:block!important;width:100%!important;height:42px!important;margin:0!important;padding:10px!important;border:0!important;border-radius:8px!important;background:#0a6cff!important;color:#fff!important;font-weight:bold!important;cursor:pointer!important;visibility:visible!important;opacity:1!important;}
+#loginPage .link{display:block!important;color:#0a6cff!important;cursor:pointer!important;margin-top:12px!important;visibility:visible!important;opacity:1!important;}
+#loginPage #loginBox:not(.hidden),#loginPage #registerBox:not(.hidden){display:block!important;}
+</style>
+</head><body>${table.outerHTML}</body></html>`;
 const blob = new Blob([html], {type:"application/vnd.ms-excel;charset=utf-8"});
 const a = document.createElement("a");
 a.href = URL.createObjectURL(blob);
@@ -1697,7 +1943,16 @@ const title = `
 <p>صاحب التسوية: ${(header && header.owner_name) || ""}</p>
 <p>تاريخ الإدخال: ${(header && header.entry_date) || ""}</p>`;
 
-const html = `<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"></head><body>${title}${settlementRowsHtml(lines)}</body></html>`;
+const html = `<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8">
+<style id="login-visibility-fix-v116">
+/* V116 fix: force login/register controls visible after quotation module additions */
+#loginPage .login-card{width:390px!important;text-align:center!important;padding:28px!important;background:#fff!important;border-radius:18px!important;box-shadow:0 10px 30px rgba(0,0,0,.12)!important;}
+#loginPage input{display:block!important;width:100%!important;height:40px!important;padding:10px!important;border:1px solid #cbd5e1!important;border-radius:8px!important;background:#fff!important;color:#0f172a!important;font-size:14px!important;box-sizing:border-box!important;text-align:center!important;visibility:visible!important;opacity:1!important;}
+#loginPage button{display:block!important;width:100%!important;height:42px!important;margin:0!important;padding:10px!important;border:0!important;border-radius:8px!important;background:#0a6cff!important;color:#fff!important;font-weight:bold!important;cursor:pointer!important;visibility:visible!important;opacity:1!important;}
+#loginPage .link{display:block!important;color:#0a6cff!important;cursor:pointer!important;margin-top:12px!important;visibility:visible!important;opacity:1!important;}
+#loginPage #loginBox:not(.hidden),#loginPage #registerBox:not(.hidden){display:block!important;}
+</style>
+</head><body>${title}${settlementRowsHtml(lines)}</body></html>`;
 const blob = new Blob([html], {type:"application/vnd.ms-excel;charset=utf-8"});
 const a = document.createElement("a");
 a.href = URL.createObjectURL(blob);
@@ -1751,7 +2006,16 @@ button{display:none}
 .inv-suggest-title{font-weight:bold;color:#0f172a}
 .inv-suggest-meta{color:#475569;font-size:11px}
 .inv-suggest-empty{padding:10px;color:#b42318;font-weight:bold;font-size:12px}
-</style></head><body>${title}${settlementRowsHtml(lines)}</body></html>`);
+</style>
+<style id="login-visibility-fix-v116">
+/* V116 fix: force login/register controls visible after quotation module additions */
+#loginPage .login-card{width:390px!important;text-align:center!important;padding:28px!important;background:#fff!important;border-radius:18px!important;box-shadow:0 10px 30px rgba(0,0,0,.12)!important;}
+#loginPage input{display:block!important;width:100%!important;height:40px!important;padding:10px!important;border:1px solid #cbd5e1!important;border-radius:8px!important;background:#fff!important;color:#0f172a!important;font-size:14px!important;box-sizing:border-box!important;text-align:center!important;visibility:visible!important;opacity:1!important;}
+#loginPage button{display:block!important;width:100%!important;height:42px!important;margin:0!important;padding:10px!important;border:0!important;border-radius:8px!important;background:#0a6cff!important;color:#fff!important;font-weight:bold!important;cursor:pointer!important;visibility:visible!important;opacity:1!important;}
+#loginPage .link{display:block!important;color:#0a6cff!important;cursor:pointer!important;margin-top:12px!important;visibility:visible!important;opacity:1!important;}
+#loginPage #loginBox:not(.hidden),#loginPage #registerBox:not(.hidden){display:block!important;}
+</style>
+</head><body>${title}${settlementRowsHtml(lines)}</body></html>`);
 w.document.close();
 w.focus();
 setTimeout(()=>w.print(),500);
@@ -3770,7 +4034,16 @@ function printSiteCostsReport(){
 .inv-suggest-title{font-weight:bold;color:#0f172a}
 .inv-suggest-meta{color:#475569;font-size:11px}
 .inv-suggest-empty{padding:10px;color:#b42318;font-weight:bold;font-size:12px}
-</style></head><body><h2>تقرير تكاليف المواقع</h2>${content}</body></html>`);
+</style>
+<style id="login-visibility-fix-v116">
+/* V116 fix: force login/register controls visible after quotation module additions */
+#loginPage .login-card{width:390px!important;text-align:center!important;padding:28px!important;background:#fff!important;border-radius:18px!important;box-shadow:0 10px 30px rgba(0,0,0,.12)!important;}
+#loginPage input{display:block!important;width:100%!important;height:40px!important;padding:10px!important;border:1px solid #cbd5e1!important;border-radius:8px!important;background:#fff!important;color:#0f172a!important;font-size:14px!important;box-sizing:border-box!important;text-align:center!important;visibility:visible!important;opacity:1!important;}
+#loginPage button{display:block!important;width:100%!important;height:42px!important;margin:0!important;padding:10px!important;border:0!important;border-radius:8px!important;background:#0a6cff!important;color:#fff!important;font-weight:bold!important;cursor:pointer!important;visibility:visible!important;opacity:1!important;}
+#loginPage .link{display:block!important;color:#0a6cff!important;cursor:pointer!important;margin-top:12px!important;visibility:visible!important;opacity:1!important;}
+#loginPage #loginBox:not(.hidden),#loginPage #registerBox:not(.hidden){display:block!important;}
+</style>
+</head><body><h2>تقرير تكاليف المواقع</h2>${content}</body></html>`);
  w.document.close();
  w.print();
 }
@@ -4963,7 +5236,16 @@ function printLaborExtractA4(){
 .inv-suggest-title{font-weight:bold;color:#0f172a}
 .inv-suggest-meta{color:#475569;font-size:11px}
 .inv-suggest-empty{padding:10px;color:#b42318;font-weight:bold;font-size:12px}
-</style></head><body>${laborExtractBox.outerHTML}</body></html>`);
+</style>
+<style id="login-visibility-fix-v116">
+/* V116 fix: force login/register controls visible after quotation module additions */
+#loginPage .login-card{width:390px!important;text-align:center!important;padding:28px!important;background:#fff!important;border-radius:18px!important;box-shadow:0 10px 30px rgba(0,0,0,.12)!important;}
+#loginPage input{display:block!important;width:100%!important;height:40px!important;padding:10px!important;border:1px solid #cbd5e1!important;border-radius:8px!important;background:#fff!important;color:#0f172a!important;font-size:14px!important;box-sizing:border-box!important;text-align:center!important;visibility:visible!important;opacity:1!important;}
+#loginPage button{display:block!important;width:100%!important;height:42px!important;margin:0!important;padding:10px!important;border:0!important;border-radius:8px!important;background:#0a6cff!important;color:#fff!important;font-weight:bold!important;cursor:pointer!important;visibility:visible!important;opacity:1!important;}
+#loginPage .link{display:block!important;color:#0a6cff!important;cursor:pointer!important;margin-top:12px!important;visibility:visible!important;opacity:1!important;}
+#loginPage #loginBox:not(.hidden),#loginPage #registerBox:not(.hidden){display:block!important;}
+</style>
+</head><body>${laborExtractBox.outerHTML}</body></html>`);
  w.document.close(); w.focus(); setTimeout(()=>w.print(),500);
 }
 
@@ -8625,6 +8907,103 @@ window.saveV81RoutingModal=async function(){
     try{obs.observe(document.body,{childList:true,subtree:true});}catch(e){}
     ensureAllRows();
   });
+})();
+</script>
+
+
+
+<script>
+/* ===== V114 Standalone Purchase Order Module - saved rows + PO only print ===== */
+(function(){
+function $(id){return document.getElementById(id)}
+function n(v){let x=Number(String(v??'').replace(/,/g,''));return isFinite(x)?x:0}
+function fmt(v){return n(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}
+function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function isSuper(){return !!(typeof currentUser !== 'undefined' && currentUser && currentUser.role === 'super_admin')}
+const STORE_KEY='taswyat_po_orders_v114';
+const LAST_KEY='taswyat_last_po';
+function saved(){try{return JSON.parse(localStorage.getItem(STORE_KEY)||'[]')}catch(e){return []}}
+function putSaved(list){localStorage.setItem(STORE_KEY,JSON.stringify(list||[]))}
+window.poUpdateVisibility=function(){const b=$('poBtn'); if(b){ if(isSuper()) b.classList.remove('hidden'); else b.classList.add('hidden'); }};
+const oldShow=window.showPage;
+window.showPage=function(id){ if(id==='poPage' && !isSuper()){alert('PO للسوبر أدمن فقط');return;} if(typeof oldShow==='function') oldShow(id); poUpdateVisibility(); if(id==='poPage') initPOPage(); };
+setInterval(poUpdateVisibility,1000); document.addEventListener('DOMContentLoaded',poUpdateVisibility);
+function nextNo(){let last=n(localStorage.getItem('taswyat_po_last_no')||10000)+1; localStorage.setItem('taswyat_po_last_no',last); return 'PO-'+last;}
+function editor(show){const w=document.querySelector('#poPage .po-workspace'); if(w) w.classList.toggle('hidden',!show); document.querySelectorAll('#poPage .po-edit-only').forEach(b=>b.classList.toggle('hidden',!show));}
+window.initPOPage=function(){ if(!$('poItemsBody')) return; poRenderSavedOrders(); editor(false); };
+window.poCloseEditor=function(){editor(false); poRenderSavedOrders();};
+window.poNew=function(){ if(!$('poItemsBody')) return; editor(true); $('poDate').value=new Date().toISOString().slice(0,10); $('poNo').value=nextNo(); $('poSupplier').value=''; $('poProject').value=''; $('poClient').value=''; $('poCurrency').value='EGP'; $('poFxRate').value=1; $('poDelivery').value='15 يوم'; $('poValidity').value='30 يوم'; $('poDiscPct').value=0; $('poVatPct').value=14; $('poWhtPct').value=1; $('poNotes').value=''; $('poItemsBody').innerHTML=''; for(let i=1;i<=7;i++) poAddRow({itemNo:i,unit:'وحدة'}); $('poTermsList').innerHTML='<li>يتم التوريد طبقاً للمواصفات الفنية المحددة وعرض السعر المقدم.</li><li>الأسعار شاملة كافة الالتزامات المتفق عليها ما لم يذكر خلاف ذلك.</li><li>لا يتم صرف الدفعات إلا بعد الاستلام والفحص طبقاً لإجراءات الشركة.</li><li>مدة التوريد حسب الاتفاق المبين في عرض السعر.</li><li>الضمان طبقاً للشروط الواردة في عرض السعر.</li>'; poSync(); poCalc(); setTimeout(()=>window.scrollTo({top:0,behavior:'smooth'}),50); };
+window.poSync=function(){ if($('poSupplierText')) $('poSupplierText').textContent=$('poSupplier')?.value||'اكتب اسم المورد / المقاول'; document.querySelectorAll('.poQrNo').forEach(e=>e.textContent=$('poNo')?.value||'PO'); poMakeQR(); };
+window.poAddRow=function(data={}){ const body=$('poItemsBody'); if(!body) return; const tr=document.createElement('tr'); tr.innerHTML=`<td class="po-serial"></td><td><input class="po-item-no" value="${esc(data.itemNo||'')}" placeholder="رقم"></td><td><textarea class="po-desc" placeholder="اكتب البيان / الوصف الكامل">${esc(data.desc||'')}<\/textarea></td><td><input class="po-unit" value="${esc(data.unit||'')}" placeholder="وحدة"></td><td><input class="po-qty" type="number" value="${data.qty??''}" oninput="poCalc()"></td><td><input class="po-price" type="number" value="${data.price??''}" oninput="poCalc()"></td><td><input class="po-line-total" readonly></td><td class="po-actions-cell no-print"><button class="red small" onclick="poDeleteRow(this)">×</button></td>`; body.appendChild(tr); poRenumber(); poCalc(); };
+window.poDeleteRow=function(btn){ btn.closest('tr')?.remove(); poRenumber(); poCalc(); };
+function poRenumber(){document.querySelectorAll('#poItemsBody tr').forEach((tr,i)=>{tr.querySelector('.po-serial').textContent=i+1})}
+window.poCalc=function(){let subtotal=0; document.querySelectorAll('#poItemsBody tr').forEach(tr=>{let q=n(tr.querySelector('.po-qty')?.value), p=n(tr.querySelector('.po-price')?.value), t=q*p; subtotal+=t; let out=tr.querySelector('.po-line-total'); if(out) out.value=t?fmt(t):'';}); let d=subtotal*n($('poDiscPct')?.value)/100, after=subtotal-d, vat=after*n($('poVatPct')?.value)/100, wht=after*n($('poWhtPct')?.value)/100, net=after+vat-wht; if($('poItemsTotalCell')) $('poItemsTotalCell').textContent=fmt(subtotal); if($('poSubtotal')) $('poSubtotal').value=fmt(subtotal); if($('poDiscVal')) $('poDiscVal').value=fmt(d); if($('poAfterDisc')) $('poAfterDisc').value=fmt(after); if($('poVatVal')) $('poVatVal').value=fmt(vat); if($('poWhtVal')) $('poWhtVal').value=fmt(wht); if($('poNet')) $('poNet').value=fmt(net); if($('poNetEgp')) $('poNetEgp').value=fmt(net*n($('poFxRate')?.value||1)); poSync(); };
+window.poAddTerm=function(text=''){ const t=prompt('اكتب الشرط الجديد',text||''); if(!t) return; const li=document.createElement('li'); li.textContent=t; $('poTermsList').appendChild(li); };
+function getData(){poCalc(); return {savedAt:new Date().toISOString(),date:$('poDate').value,no:$('poNo').value,supplier:$('poSupplier').value,project:$('poProject').value,client:$('poClient').value,currency:$('poCurrency').value,fx:$('poFxRate').value,delivery:$('poDelivery').value,validity:$('poValidity').value,disc:$('poDiscPct').value,vat:$('poVatPct').value,wht:$('poWhtPct').value,intro:$('poIntro').value,notes:$('poNotes').value,net:$('poNet').value,items:[...document.querySelectorAll('#poItemsBody tr')].map(tr=>({itemNo:tr.querySelector('.po-item-no').value,desc:tr.querySelector('.po-desc').value,unit:tr.querySelector('.po-unit').value,qty:tr.querySelector('.po-qty').value,price:tr.querySelector('.po-price').value})),terms:[...document.querySelectorAll('#poTermsList li')].map(li=>li.textContent)}}
+function loadData(d){ if(!d) return; editor(true); $('poDate').value=d.date||'';$('poNo').value=d.no||'';$('poSupplier').value=d.supplier||'';$('poProject').value=d.project||'';$('poClient').value=d.client||'';$('poCurrency').value=d.currency||'EGP';$('poFxRate').value=d.fx||1;$('poDelivery').value=d.delivery||'15 يوم';$('poValidity').value=d.validity||'30 يوم';$('poDiscPct').value=d.disc||0;$('poVatPct').value=d.vat||14;$('poWhtPct').value=d.wht||1;$('poIntro').value=d.intro||$('poIntro').value;$('poNotes').value=d.notes||'';$('poItemsBody').innerHTML='';(d.items||[]).forEach(it=>poAddRow(it)); if(!$('poItemsBody').children.length) for(let i=1;i<=7;i++) poAddRow({itemNo:i,unit:'وحدة'}); $('poTermsList').innerHTML='';(d.terms||[]).forEach(x=>{let li=document.createElement('li');li.textContent=x;$('poTermsList').appendChild(li)}); poSync(); poCalc(); }
+window.poSaveLocal=function(){const d=getData(); if(!d.no){alert('رقم أمر التوريد غير موجود'); return;} let list=saved(); const i=list.findIndex(x=>x.no===d.no); if(i>=0) list[i]=d; else list.unshift(d); putSaved(list); localStorage.setItem(LAST_KEY,JSON.stringify(d)); poRenderSavedOrders(); alert('تم حفظ أمر التوريد وظهر في أوامر التوريد المحفوظة'); editor(false);};
+window.poOpenSaved=function(no){const d=saved().find(x=>x.no===no); if(!d){alert('أمر التوريد غير موجود');return;} loadData(d);};
+window.poDeleteSaved=function(no){if(!confirm('هل تريد حذف أمر التوريد المحفوظ؟'))return; putSaved(saved().filter(x=>x.no!==no)); poRenderSavedOrders();};
+window.poLoadLocal=function(){let raw=localStorage.getItem(LAST_KEY); if(!raw){alert('لا يوجد PO محفوظ');return;} loadData(JSON.parse(raw));};
+window.poRenderSavedOrders=function(){const area=$('poSavedOrders'); if(!area) return; const list=saved(); if(!list.length){area.innerHTML='<h3>أوامر التوريد المحفوظة</h3><div class="po-help">لا يوجد أوامر توريد محفوظة حتى الآن. اضغط + إضافة أمر توريد لإدخال أمر جديد.</div>';return;} area.innerHTML='<h3>أوامر التوريد المحفوظة</h3><table class="po-saved-table"><thead><tr><th>رقم الأمر</th><th>التاريخ</th><th>المورد</th><th>المشروع</th><th>العملة</th><th>الصافي</th><th>إجراءات</th></tr></thead><tbody>'+list.map(d=>`<tr><td>${esc(d.no)}</td><td>${esc(d.date)}</td><td>${esc(d.supplier)}</td><td>${esc(d.project)}</td><td>${esc(d.currency)}</td><td>${esc(d.net||'')}</td><td><button class="small" onclick="poOpenSaved('${esc(d.no)}')">فتح / تعديل</button> <button class="small print-btn" onclick="poOpenSaved('${esc(d.no)}');setTimeout(poPrintPdf,250)">طباعة PDF</button> <button class="small red" onclick="poDeleteSaved('${esc(d.no)}')">حذف</button></td></tr>`).join('')+'</tbody></table>';};
+window.poPrintPdf=function(){poCalc(); const inv=document.getElementById('invoiceModal'); if(inv) inv.style.display='none'; setTimeout(()=>window.print(),120);};
+function simpleQR(el,text){ if(!el) return; let seed=0; for(let i=0;i<text.length;i++) seed=(seed*31+text.charCodeAt(i))>>>0; let cells=21, s=4, svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${cells*s}" height="${cells*s}" viewBox="0 0 ${cells} ${cells}"><rect width="21" height="21" fill="#fff"/>`; function box(x,y,w,h){svg+=`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#000"/>`;} function finder(x,y){box(x,y,7,7); svg+=`<rect x="${x+1}" y="${y+1}" width="5" height="5" fill="#fff"/><rect x="${x+2}" y="${y+2}" width="3" height="3" fill="#000"/>`;} finder(0,0); finder(14,0); finder(0,14); for(let y=0;y<21;y++){for(let x=0;x<21;x++){if((x<7&&y<7)||(x>13&&y<7)||(x<7&&y>13)) continue; seed=(seed*1103515245+12345)>>>0; if(((seed>>16)&1) || ((x*y+seed)%7===0)) box(x,y,1,1);}} svg+='</svg>'; el.innerHTML=svg; }
+window.poMakeQR=function(){const no=$('poNo')?.value||'PO'; const url=location.href.split('#')[0]+'#'+encodeURIComponent(no); const text=`${no} | ${$('poSupplier')?.value||''} | ${$('poProject')?.value||''} | ${url}`; ['poQr1','poQr2','poQr3'].forEach(id=>simpleQR($(id),text));};
+function applyExtractedText(text){ const lines=text.split(/\r?\n/).map(x=>x.trim()).filter(Boolean); const supplier=lines.find(x=>/(شركة|مؤسسة|للتوريدات|للمقاولات|Engineering|Trading|Contracting)/i.test(x)); if(supplier && !$('poSupplier').value) $('poSupplier').value=supplier.slice(0,100); const terms=lines.filter(x=>/(payment|delivery|validity|warranty|توريد|الدفع|السداد|الضمان|السعر|المدة|التسليم|الصلاحية|مسؤول|responsible|cash|bank)/i.test(x)).slice(0,10); if(terms.length){$('poTermsList').innerHTML=''; terms.forEach(t=>{let li=document.createElement('li');li.textContent=t;$('poTermsList').appendChild(li);});} const groups=[]; let cur=null; for(const line of lines){ let m=line.match(/^\s*(\d{1,3})[\s\-\.\)]*(.+)?$/); if(m){ if(cur) groups.push(cur); cur={itemNo:m[1], parts:[m[2]||'']}; } else if(cur){ cur.parts.push(line); } } if(cur) groups.push(cur); const items=groups.filter(g=>g.parts.join(' ').length>6).slice(0,20); if(items.length){$('poItemsBody').innerHTML=''; items.forEach(g=>{let all=g.parts.join(' ').replace(/\s+/g,' '); let nums=[...all.matchAll(/\b\d+(?:\.\d+)?\b/g)].map(m=>Number(m[0])).filter(x=>isFinite(x)); let price=nums.length?nums[nums.length-1]:''; let qty=nums.length>1?nums[nums.length-2]:''; poAddRow({itemNo:g.itemNo,desc:all,unit:'',qty:qty,price:price});});} poSync(); poCalc(); $('poPdfStatus').textContent='تم استخراج بيانات مبدئية حسب رقم البند. راجع الوصف والكمية وسعر الوحدة قبل الطباعة.'; }
+window.poReadQuotationPdf=async function(file){ if(!file) return; $('poPdfStatus').textContent='جارى قراءة ملف PDF...'; try{ if(!window.pdfjsLib){ await new Promise((ok,err)=>{let s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';s.onload=ok;s.onerror=err;document.head.appendChild(s);}); } pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; const buf=await file.arrayBuffer(); const pdf=await pdfjsLib.getDocument({data:buf}).promise; let text=''; for(let i=1;i<=Math.min(pdf.numPages,5);i++){let pg=await pdf.getPage(i);let tc=await pg.getTextContent();text+='\n'+tc.items.map(it=>it.str).join('\n');} applyExtractedText(text); }catch(e){ $('poPdfStatus').textContent='تعذر قراءة PDF تلقائياً. يمكنك إدخال البنود والشروط يدوياً.'; console.warn(e); } };
+})();
+</script>
+
+
+
+<style id="quote-v118-smart-fix-css">
+#quotePage .quote-info-grid{grid-template-columns:repeat(4,1fr)!important;align-items:end}
+.quote-v118-row-tools{font-size:10px;color:#64748b;margin-top:3px}.quote-v118-row-tools button{padding:4px 7px;font-size:11px}
+@media(max-width:900px){#quotePage .quote-info-grid{grid-template-columns:1fr!important}}
+@media print{.quote-v118-row-tools{display:none!important}}
+</style>
+<script id="quote-v118-smart-fix-js">
+(function(){
+  function $(id){return document.getElementById(id)}
+  function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(m){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]})}
+  function num(v){return Number(v||0)||0}
+  function today(){return new Date().toISOString().slice(0,10)}
+  var LS='taswyat_supplier_quotations_v118';
+  function list(){try{return JSON.parse(localStorage.getItem(LS)||'[]')}catch(e){return[]}}
+  function put(a){localStorage.setItem(LS,JSON.stringify(a||[]))}
+  function currency(){return ($('quoteCurrency')&&$('quoteCurrency').value)||'EGP'}
+  function fmt(v){return num(v).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}
+  function ensureHeader(){
+    var grid=document.querySelector('#quotePage .quote-info-grid'); if(!grid) return;
+    var client=$('quoteClient'); if(client){var lab=client.closest('.form-field')?.querySelector('label'); if(lab) lab.textContent='اسم المورد'; client.placeholder='اسم المورد';}
+    var project=$('quoteProject'); if(project){var lab2=project.closest('.form-field')?.querySelector('label'); if(lab2) lab2.textContent='رقم عرض سعر المورد'; project.placeholder='رقم عرض السعر';}
+    if(!$('quoteDeliveryPeriod')) grid.insertAdjacentHTML('beforeend','<div class="form-field"><label>مدة التوريد</label><input id="quoteDeliveryPeriod" placeholder="مثال: 4 أسابيع"></div>');
+    if(!$('quoteValidityPeriod')) grid.insertAdjacentHTML('beforeend','<div class="form-field"><label>صلاحية العرض</label><input id="quoteValidityPeriod" placeholder="مثال: 30 يوم"></div>');
+    var title=document.querySelector('#quotePage .quote-section-title'); if(title) title.textContent='جدول بنود عرض السعر';
+    var help=document.querySelector('#quotePage .quote-help'); if(help) help.textContent='هذا الجدول داخل عروض الأسعار: اختر العملة مرة واحدة للعرض بالكامل، ثم أدخل البنود والكمية وسعر الوحدة والإجمالي يحسب تلقائياً.';
+  }
+  function nextNo(){var max=1500000; list().forEach(function(q){var m=String(q.no||'').match(/COM\.(\d+)/); if(m) max=Math.max(max,Number(m[1]));}); return 'COM.'+(max+1)}
+  function showEditor(show){var e=$('quoteEditor'); if(e) e.classList.toggle('hidden',!show); document.querySelectorAll('.quote-edit-only').forEach(function(x){x.classList.toggle('hidden',!show)})}
+  window.initQuotePage=function(){ensureHeader(); window.quoteRenderSaved(); showEditor(false)};
+  window.quoteCloseEditor=function(){showEditor(false); window.quoteRenderSaved();};
+  window.quoteNew=function(){ensureHeader(); showEditor(true); if($('quoteNo')) $('quoteNo').value=nextNo(); if($('quoteDate')) $('quoteDate').value=today(); if($('quoteClient')) $('quoteClient').value=''; if($('quoteProject')) $('quoteProject').value=''; if($('quoteDeliveryPeriod')) $('quoteDeliveryPeriod').value=''; if($('quoteValidityPeriod')) $('quoteValidityPeriod').value=''; if($('quoteCurrency')) $('quoteCurrency').value='EGP'; if($('quoteFxRate')) $('quoteFxRate').value='1'; ['quoteRiskPct','quoteOverheadPct','quoteProfitPct','quoteTaxPct'].forEach(function(id){if($(id)) $(id).value=0}); if($('quoteVatPct')) $('quoteVatPct').value=14; if($('quoteTerms')) $('quoteTerms').value=''; if($('quoteItemsBody')) $('quoteItemsBody').innerHTML=''; window.quoteAddRow(); window.quoteCalcAll();};
+  function renumber(){var b=$('quoteItemsBody'); if(!b) return; Array.prototype.forEach.call(b.children,function(tr,i){var s=tr.querySelector('.q-serial'); if(s) s.textContent=i+1})}
+  window.quoteAddRow=function(it){ensureHeader(); showEditor(true); it=it||{}; var body=$('quoteItemsBody'); if(!body) return; var tr=document.createElement('tr');
+    var c1=document.createElement('td'); c1.className='q-serial';
+    var c2=document.createElement('td'); var ta=document.createElement('textarea'); ta.className='q-desc'; ta.placeholder='البيان'; ta.value=it.desc||''; c2.appendChild(ta); var tools=document.createElement('div'); tools.className='quote-v118-row-tools no-print'; var btn=document.createElement('button'); btn.type='button'; btn.className='small orange'; btn.textContent='تفاصيل / أسعار سابقة'; btn.onclick=function(){ if(window.quoteOpenItemModal) window.quoteOpenItemModal(ta); }; tools.appendChild(btn); c2.appendChild(tools);
+    var c3=document.createElement('td'); c3.innerHTML='<input class="q-unit">'; c3.querySelector('input').value=it.unit||'';
+    var c4=document.createElement('td'); c4.innerHTML='<input class="q-qty" type="number" step="0.001">'; c4.querySelector('input').value=it.qty==null?0:it.qty; c4.querySelector('input').oninput=window.quoteCalcAll;
+    var c5=document.createElement('td'); c5.innerHTML='<input class="q-price" type="number" step="0.01"><div class="quote-mini-note"></div>'; c5.querySelector('input').value=it.price==null?0:it.price; c5.querySelector('input').oninput=window.quoteCalcAll;
+    var c6=document.createElement('td'); c6.innerHTML='<input class="q-total" readonly>';
+    [c1,c2,c3,c4,c5,c6].forEach(function(c){tr.appendChild(c)}); tr._supplies=it.supplies||[]; body.appendChild(tr); renumber(); window.quoteCalcAll(); };
+  window.quoteCalcAll=function(){var cur=currency(); if($('quoteCurrencyHead')) $('quoteCurrencyHead').textContent=cur; var sub=0; document.querySelectorAll('#quoteItemsBody tr').forEach(function(tr){var q=num(tr.querySelector('.q-qty')?.value), p=num(tr.querySelector('.q-price')?.value), t=q*p; var tot=tr.querySelector('.q-total'); if(tot) tot.value=fmt(t)+' '+cur; var note=tr.querySelector('.quote-mini-note'); if(note) note.textContent=cur; sub+=t;}); if($('quoteSubtotalCell')) $('quoteSubtotalCell').textContent=fmt(sub)+' '+cur; var v=sub; v*=1+num($('quoteRiskPct')?.value)/100; v*=1+num($('quoteOverheadPct')?.value)/100; v*=1+num($('quoteProfitPct')?.value)/100; v*=1+num($('quoteVatPct')?.value)/100; v*=1-num($('quoteTaxPct')?.value)/100; if($('quoteNetTotal')) $('quoteNetTotal').value=fmt(v)+' '+cur;};
+  function collect(){var items=Array.from(document.querySelectorAll('#quoteItemsBody tr')).map(function(tr){return {desc:tr.querySelector('.q-desc')?.value||'',unit:tr.querySelector('.q-unit')?.value||'',qty:num(tr.querySelector('.q-qty')?.value),price:num(tr.querySelector('.q-price')?.value),supplies:tr._supplies||[]}}); return {no:$('quoteNo')?.value||nextNo(),date:$('quoteDate')?.value||today(),supplier:$('quoteClient')?.value||'',supplier_quote_no:$('quoteProject')?.value||'',delivery_period:$('quoteDeliveryPeriod')?.value||'',validity_period:$('quoteValidityPeriod')?.value||'',currency:currency(),fx_rate:num($('quoteFxRate')?.value)||1,risk:num($('quoteRiskPct')?.value),overhead:num($('quoteOverheadPct')?.value),profit:num($('quoteProfitPct')?.value),vat:num($('quoteVatPct')?.value),tax:num($('quoteTaxPct')?.value),net:$('quoteNetTotal')?.value||'',terms:$('quoteTerms')?.value||'',items:items};}
+  window.quoteSave=function(){ensureHeader(); var q=collect(); if(!q.supplier){alert('اكتب اسم المورد');return;} var a=list().filter(function(x){return x.no!==q.no}); a.unshift(q); put(a); alert('تم حفظ عرض السعر '+q.no); window.quoteRenderSaved();};
+  window.quoteRenderSaved=function(){ensureHeader(); var area=$('quoteSavedArea'); if(!area) return; var a=list(); if(!a.length){area.innerHTML='<h3>عروض الأسعار المحفوظة</h3><div class="quote-help">لا توجد عروض محفوظة. اضغط + إضافة عرض سعر.</div>';return;} area.innerHTML='<h3>عروض الأسعار المحفوظة</h3><table><thead><tr><th>رقم داخلي</th><th>تاريخ العرض</th><th>المورد</th><th>رقم عرض المورد</th><th>العملة</th><th>الإجمالي</th><th>إجراءات</th></tr></thead><tbody>'+a.map(function(q){return '<tr><td>'+esc(q.no)+'</td><td>'+esc(q.date)+'</td><td>'+esc(q.supplier)+'</td><td>'+esc(q.supplier_quote_no)+'</td><td>'+esc(q.currency)+'</td><td>'+esc(q.net)+'</td><td><button class="small" onclick="quoteOpenSaved(\''+esc(q.no)+'\')">فتح / تعديل</button> <button class="small print-btn" onclick="quoteOpenSaved(\''+esc(q.no)+'\');setTimeout(quotePrint,200)">PDF</button> <button class="small red" onclick="quoteDelete(\''+esc(q.no)+'\')">حذف</button></td></tr>'}).join('')+'</tbody></table>';};
+  window.quoteOpenSaved=function(no){ensureHeader(); var q=list().find(function(x){return x.no===no}); if(!q) return; showEditor(true); if($('quoteNo')) $('quoteNo').value=q.no||nextNo(); if($('quoteDate')) $('quoteDate').value=q.date||today(); if($('quoteClient')) $('quoteClient').value=q.supplier||''; if($('quoteProject')) $('quoteProject').value=q.supplier_quote_no||''; if($('quoteDeliveryPeriod')) $('quoteDeliveryPeriod').value=q.delivery_period||''; if($('quoteValidityPeriod')) $('quoteValidityPeriod').value=q.validity_period||''; if($('quoteCurrency')) $('quoteCurrency').value=q.currency||'EGP'; if($('quoteFxRate')) $('quoteFxRate').value=q.fx_rate||1; if($('quoteRiskPct')) $('quoteRiskPct').value=q.risk||0; if($('quoteOverheadPct')) $('quoteOverheadPct').value=q.overhead||0; if($('quoteProfitPct')) $('quoteProfitPct').value=q.profit||0; if($('quoteVatPct')) $('quoteVatPct').value=q.vat==null?14:q.vat; if($('quoteTaxPct')) $('quoteTaxPct').value=q.tax||0; if($('quoteTerms')) $('quoteTerms').value=q.terms||''; if($('quoteItemsBody')) $('quoteItemsBody').innerHTML=''; (q.items||[]).forEach(function(it){window.quoteAddRow(it)}); if(!(q.items||[]).length) window.quoteAddRow(); window.quoteCalcAll();};
+  window.quoteDelete=function(no){if(confirm('حذف عرض السعر '+no+'؟')){put(list().filter(function(x){return x.no!==no})); window.quoteRenderSaved();}};
+  window.quotePrint=function(){window.print()};
+  window.quoteOpenGuide=function(){alert('الأسعار الاسترشادية تظهر من تفاصيل/أسعار سابقة بجوار كل بند، ويتم حفظها مع عروض الأسعار المسجلة.');};
 })();
 </script>
 
