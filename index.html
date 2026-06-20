@@ -546,6 +546,53 @@ button.small{padding:6px 10px;font-size:12px}
 #loginPage .link{display:block!important;color:#0a6cff!important;cursor:pointer!important;margin-top:12px!important;visibility:visible!important;opacity:1!important;}
 #loginPage #loginBox:not(.hidden),#loginPage #registerBox:not(.hidden){display:block!important;}
 </style>
+
+<style id="cc-sales-v123-combo-search-css">
+#salesInvoicesArea .grid{grid-template-columns:repeat(3,1fr)!important;align-items:end}
+#salesInvoicesArea datalist{direction:rtl}
+#salesInvoicesArea .form-field input[list]{background:#fff}
+@media(max-width:900px){#salesInvoicesArea .grid{grid-template-columns:1fr!important}}
+</style>
+
+<style id="v127-safe-hide-modules">
+#costControlBtn,#siteCostsBtn,#quoteBtn{display:none!important}
+</style>
+
+<style id="v129-active-settlement-css">
+/* V129: عند فتح التسوية من البحث نعرض ملخص مختصر ونخفي شاشة الإدخال الكبيرة */
+#newSettlementPage.compact-settlement-open > h2,
+#newSettlementPage.compact-settlement-open > .grid,
+#newSettlementPage.compact-settlement-open > .msg,
+#newSettlementPage.compact-settlement-open > button,
+#newSettlementPage.compact-settlement-open > br,
+#newSettlementPage.compact-settlement-open > .grid2,
+#newSettlementPage.compact-settlement-open > #quickSearchResult,
+#newSettlementPage.compact-settlement-open #lineEntryBlock{display:none!important}
+#newSettlementPage.compact-settlement-open{padding:14px!important}
+#newSettlementPage.compact-settlement-open #lineSection{display:flex;flex-direction:column;height:calc(100vh - 120px);min-height:620px}
+#newSettlementPage.compact-settlement-open #linesArea{flex:1;max-height:none!important;overflow:auto!important}
+#newSettlementPage.compact-settlement-open #linesArea .table{min-width:1450px}
+.active-settlement-summary{background:#f8fafc;border:1px solid #dbe3ef;border-radius:14px;padding:14px;margin-bottom:12px;text-align:right}
+.active-settlement-summary .summary-title{font-size:18px;font-weight:bold;color:#0f172a;margin-bottom:10px}
+.active-settlement-summary .summary-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px}
+.active-settlement-summary .summary-cell{background:white;border:1px solid #e5e7eb;border-radius:10px;padding:10px;text-align:center}
+.active-settlement-summary .summary-cell b{display:block;color:#475569;font-size:12px;margin-bottom:6px}
+.active-settlement-summary .summary-cell span{font-weight:bold;color:#0f172a;font-size:15px}
+.active-settlement-summary .actions-wrap{justify-content:center}
+#settlementLinePopup .modal{max-width:1050px}
+#settlementLinePopup .modal h2{text-align:center;margin-bottom:12px}
+#newSettlementPage.v130-settlement-ui > .grid,
+#newSettlementPage.v130-settlement-ui > .msg,
+#newSettlementPage.v130-settlement-ui > button,
+#newSettlementPage.v130-settlement-ui > br,
+#newSettlementPage.v130-settlement-ui > .grid2,
+#newSettlementPage.v130-settlement-ui > #quickSearchResult{display:none!important}
+.settlement-top-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-start;background:#f8fafc;border:1px solid #dbe3ef;border-radius:12px;padding:10px;margin:8px 0 12px}
+.settlement-top-actions button{min-width:130px}
+#settlementHeaderPopup .modal,#quickSettlementPopup .modal{max-width:720px}
+
+@media(max-width:900px){.active-settlement-summary .summary-grid{grid-template-columns:1fr}}
+</style>
 </head>
 
 <body>
@@ -579,7 +626,7 @@ button.small{padding:6px 10px;font-size:12px}
 <div id="app" class="app">
 
 <div class="sidebar">
-<h2>Taswyat V102</h2>
+<h2>Taswyat V129 Search Line Modal</h2>
 <p id="currentUserText"></p>
 
 <button onclick="showPage('homePage')">الرئيسية</button>
@@ -587,13 +634,17 @@ button.small{padding:6px 10px;font-size:12px}
 <button onclick="showPage('searchPage')">بحث بالاسم أو رقم التسوية</button>
 <button onclick="showPage('accountPage')">كشف حساب</button>
 <button id="accountsBtn" onclick="showPage('accountsPage');loadAccountsInvoices()">🧾 حسابات</button>
-<button id="costControlBtn" class="hidden" onclick="showPage('costControlPage');loadCostControl()">📌 Cost Control</button>
+<!-- removed in V127 safe light -->
 <button id="poBtn" class="hidden" onclick="showPage('poPage');initPOPage()">📄 PO - أمر توريد</button>
-<button id="quoteBtn" onclick="showPage('quotePage');initQuotePage()">📋 عروض أسعار</button>
+<!-- removed in V127 safe light -->
 
 
 <button id="inventoryBtn" onclick="showPage('inventoryPage');loadInventory()">
 📦 معدات المخزن
+</button>
+
+<button id="settlementsListBtn" onclick="showPage('settlementsListPage');loadSettlementsList()">
+📋 التسويات
 </button>
 
 <button id="onlineUsersBtn" class="hidden" onclick="showPage('onlineUsersPage');loadOnlineUsers()">
@@ -604,9 +655,7 @@ button.small{padding:6px 10px;font-size:12px}
 📚 حساب التسويات المجمع
 </button>
 
-<button id="siteCostsBtn" class="hidden" onclick="showPage('siteCostsPage');loadSiteCosts()">
-📊 تكاليف المواقع
-</button>
+<!-- removed in V127 safe light -->
 
 <button id="usersBtn" class="hidden" onclick="showPage('usersPage');loadPendingUsers()">
 اعتماد المستخدمين
@@ -624,8 +673,15 @@ button.small{padding:6px 10px;font-size:12px}
 <p>اختر من القائمة الجانبية.</p>
 </div>
 
-<div id="newSettlementPage" class="card page hidden">
+<div id="newSettlementPage" class="card page hidden v130-settlement-ui">
 <h2>بيانات التسوية</h2>
+<div class="settlement-top-actions no-print">
+<button class="green" onclick="openSettlementHeaderPopup()">إنشاء / فتح تسوية</button>
+<button class="gray" onclick="openQuickSettlementPopup()">بحث سريع وفتح</button>
+<button class="orange" onclick="openSettlementLinePopup()">إدخال بند</button>
+<button class="gray" onclick="if(activeSettlementNo){printActiveSettlementPdf()}else{alert('افتح التسوية أولاً')}">طباعة PDF</button>
+<button class="export-btn" onclick="if(activeSettlementNo){exportActiveSettlementExcel()}else{alert('افتح التسوية أولاً')}">تصدير Excel</button>
+</div>
 
 <div class="grid">
 <div class="form-field"><label>اسم صاحب التسوية</label><input id="ownerName" list="ownerList" placeholder="اكتب أو اختر اسم صاحب التسوية" oninput="clearAutoSettlementNo(); rememberLineDropdownValue('ownerList', this.value)" onblur="previewNextSettlementNo(); rememberLineDropdownValue('ownerList', this.value)"></div>
@@ -649,6 +705,8 @@ button.small{padding:6px 10px;font-size:12px}
 
 <div id="lineSection" class="hidden">
 <hr>
+<div id="activeSettlementSummary" class="active-settlement-summary hidden"></div>
+<div id="lineEntryBlock">
 <h2>إدخال بنود التسوية</h2>
 
 <div class="grid">
@@ -703,6 +761,7 @@ button.small{padding:6px 10px;font-size:12px}
 <button onclick="addLine()">إدخال</button>
 <button class="export-btn" onclick="exportActiveSettlementExcel()">تحميل التسوية Excel</button>
 <button class="gray" onclick="printActiveSettlementPdf()">طباعة / PDF التسوية</button>
+</div>
 <div id="linesArea"></div>
 
 </div>
@@ -716,6 +775,20 @@ button.small{padding:6px 10px;font-size:12px}
 </div>
 
 <div id="searchResult"></div>
+</div>
+
+<div id="settlementsListPage" class="card page hidden">
+<h2>📋 التسويات</h2>
+<div class="grid" style="background:#f8fafc;border:1px solid #e2e8f0;padding:12px;border-radius:12px;margin-bottom:12px">
+<div class="form-field"><label>بحث باسم صاحب التسوية</label><input id="settlementsListOwner" list="ownerList" oninput="loadSettlementsList()" placeholder="اكتب أو اختر الاسم"></div>
+<div class="form-field"><label>بحث برقم التسوية</label><input id="settlementsListNo" oninput="loadSettlementsList()" placeholder="رقم التسوية"></div>
+<div class="form-field"><label>بحث بالتاريخ</label><input id="settlementsListDate" type="date" onchange="loadSettlementsList()"></div>
+</div>
+<div class="actions-wrap" style="justify-content:flex-start;margin-bottom:10px">
+<button class="gray" onclick="loadSettlementsList()">تحديث</button>
+<button class="green" onclick="showPage('newSettlementPage')">إنشاء تسوية جديدة</button>
+</div>
+<div id="settlementsListArea"></div>
 </div>
 
 <div id="accountPage" class="card page hidden">
@@ -1651,7 +1724,7 @@ if(document.getElementById("currency")) updateExchangeRate();
 function canAccessPage(id){
  if(!currentUser) return false;
  if(currentUser.role === "super_admin") return true;
- if(["homePage","newSettlementPage","searchPage","accountPage","accountsPage","inventoryPage"].includes(id)) return true;
+ if(["homePage","newSettlementPage","searchPage","settlementsListPage","accountPage","accountsPage","inventoryPage"].includes(id)) return true;
  const allowed = currentUser.allowed_pages || [];
  return allowed.includes(id);
 }
@@ -1660,6 +1733,7 @@ function pageTitle(id){
   homePage:"الرئيسية",
   newSettlementPage:"إدخال تسوية",
   searchPage:"بحث بالاسم أو رقم التسوية",
+  settlementsListPage:"التسويات",
   accountPage:"كشف حساب",
   accountsPage:"حسابات",
   costControlPage:"Cost Control",
@@ -1784,6 +1858,65 @@ h1{text-align:center;margin:0 0 12px;font-size:20px}.summary{display:grid;grid-t
 </style>
 </head><body><h1>كشف حساب - ${owner}</h1>${preparePrintHtmlWithRepeatingHeaders(content)}
 
+
+
+<div id="settlementHeaderPopup" class="modal-bg">
+<div class="modal">
+<div class="modal-header"><h2>إنشاء / فتح تسوية</h2><button class="red small" onclick="closeSettlementHeaderPopup()">إغلاق</button></div>
+<div class="grid2">
+<div class="form-field"><label>اسم صاحب التسوية</label><input id="popupOwnerName" list="ownerList" placeholder="اكتب أو اختر الاسم"></div>
+<div class="form-field"><label>الرقم اليدوي / رقم الدفتر</label><input id="popupSettlementManualNo" placeholder="ممكن يتكرر"></div>
+<div class="form-field"><label>تاريخ التسوية</label><input id="popupEntryDate" type="date"></div>
+<div class="form-field"><label>ملاحظة</label><input readonly value="سيتم توليد الرقم النهائي تلقائياً بنفس نظام البرنامج"></div>
+</div>
+<br>
+<button class="green" onclick="createHeaderFromPopup()">حفظ / فتح التسوية</button>
+</div>
+</div>
+
+<div id="quickSettlementPopup" class="modal-bg">
+<div class="modal">
+<div class="modal-header"><h2>بحث سريع وفتح تسوية</h2><button class="red small" onclick="closeQuickSettlementPopup()">إغلاق</button></div>
+<div class="grid2">
+<div class="form-field"><label>رقم التسوية</label><input id="popupQuickSettlementSearch" placeholder="مثال: 5-2026 / 1"></div>
+<button class="gray" onclick="quickOpenSettlementFromPopup()">بحث / فتح</button>
+</div>
+<div id="popupQuickSearchResult" class="msg"></div>
+</div>
+</div>
+
+<div id="settlementLinePopup" class="modal-bg">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>إدخال بند على التسوية</h2>
+      <button class="red small" onclick="closeSettlementLinePopup()">إغلاق</button>
+    </div>
+    <div class="grid">
+      <div class="form-field"><label>تاريخ البند</label><input id="popupLineDate" type="date"></div>
+      <div class="form-field"><label>البيان</label><input id="popupDescription" placeholder="اكتب بيان التسوية"></div>
+      <div class="form-field"><label>مضاف إلى</label><input id="popupAddedTo" list="addedToList" placeholder="اكتب أو اختر الاسم"></div>
+      <div class="form-field"><label>رقم مستند الدفع / شيك / تحويل</label><input id="popupPaymentRef" placeholder="يجب ألا يتكرر"></div>
+      <div class="form-field"><label>التوجيه العام</label><select id="popupMainDirection" onchange="updatePopupSubDirectionOptions()">
+        <option value="">التوجيه العام</option><option>مصروفات</option><option>ايرادات</option><option>مستخلصات تحت التحصيل</option><option>تمويل</option><option>جارى العهدة</option>
+      </select></div>
+      <div class="form-field"><label>التوجيه الفرعى</label><select id="popupSubDirection"><option value="">التوجيه الفرعى</option></select></div>
+      <div class="form-field"><label>الموقع</label><input id="popupSite" list="siteList" placeholder="اكتب أو اختر الموقع"></div>
+      <div class="form-field"><label>العملة</label><select id="popupCurrency" onchange="updatePopupExchangeRate()">
+        <option value="EGP">جنيه مصرى EGP</option><option value="USD">دولار USD</option><option value="EUR">يورو EUR</option><option value="SAR">ريال سعودى SAR</option><option value="AED">درهم إماراتى AED</option><option value="GBP">جنيه إسترلينى GBP</option>
+      </select></div>
+      <div class="form-field"><label>المبلغ بالعملة المختارة</label><input id="popupForeignAmount" type="number" placeholder="0" oninput="calculatePopupEgpAmount()"></div>
+      <div class="form-field"><label>سعر الصرف مقابل الجنيه</label><input id="popupExchangeRate" type="number" step="0.0001" placeholder="سعر الصرف" oninput="calculatePopupEgpAmount()"></div>
+      <div class="form-field"><label>المبلغ بالجنيه المصري EGP</label><input id="popupAmount" type="number" readonly placeholder="يُحسب تلقائيًا"></div>
+      <div class="form-field"><label>مرفقات البند</label><input id="popupLineAttachments" type="file" multiple></div>
+    </div>
+    <div id="popupFxNote" class="currency-note" style="margin-top:10px">العملة: جنيه مصرى - كل الحسابات بالجنيه.</div>
+    <br>
+    <div class="actions-wrap">
+      <button class="green" onclick="saveSettlementLineFromPopup()">حفظ</button>
+      <button class="gray" onclick="closeSettlementLinePopup()">إلغاء</button>
+    </div>
+  </div>
+</div>
 </body></html>`);
 w.document.close();
 w.focus();
@@ -2222,7 +2355,8 @@ activeSettlementSearchKey = displaySettlementNo(existingByAuto);
 activeSettlementOwnerName = existingByAuto.owner_name || ownerName.value || "";
 rememberLineDropdownValue("ownerList", activeSettlementOwnerName);
 lineSection.classList.remove("hidden");
-loadLines(activeSettlementSearchKey || activeSettlementNo);
+setCompactSettlementMode(true);
+loadLines(activeSettlementNo);
 alert("تم فتح التسوية الموجودة لنفس الشخص ونفس الرقم التلقائى");
 return;
 }
@@ -2248,8 +2382,39 @@ activeSettlementSearchKey = displaySettlementNo({settlement_auto_no:autoNo, sett
 activeSettlementOwnerName = owner || ownerName.value || "";
 updatePaperSettlementNo();
 lineSection.classList.remove("hidden");
-loadLines(activeSettlementSearchKey || activeSettlementNo);
+setCompactSettlementMode(true);
+loadLines(activeSettlementNo);
 addAudit("create_header","settlement_headers",technicalNo,technicalNo,null,{owner,autoNo,manualNo},`إنشاء تسوية رقم ${manualNo ? manualNo + " / " : ""}${autoNo}`);
+}
+
+function openSettlementHeaderPopup(){
+ const today = new Date().toISOString().slice(0,10);
+ popupOwnerName.value = ownerName.value || activeSettlementOwnerName || "";
+ popupSettlementManualNo.value = settlementManualNo.value || "";
+ popupEntryDate.value = entryDate.value || today;
+ settlementHeaderPopup.style.display = "flex";
+}
+function closeSettlementHeaderPopup(){ settlementHeaderPopup.style.display = "none"; }
+async function createHeaderFromPopup(){
+ ownerName.value = popupOwnerName.value || "";
+ settlementManualNo.value = popupSettlementManualNo.value || "";
+ entryDate.value = popupEntryDate.value || new Date().toISOString().slice(0,10);
+ clearAutoSettlementNo();
+ updatePaperSettlementNo();
+ await createHeader();
+ closeSettlementHeaderPopup();
+}
+function openQuickSettlementPopup(){
+ popupQuickSettlementSearch.value = quickSettlementSearch.value || activeSettlementSearchKey || "";
+ popupQuickSearchResult.innerHTML = "";
+ quickSettlementPopup.style.display = "flex";
+}
+function closeQuickSettlementPopup(){ quickSettlementPopup.style.display = "none"; }
+async function quickOpenSettlementFromPopup(){
+ quickSettlementSearch.value = popupQuickSettlementSearch.value || "";
+ await quickOpenSettlementByNumber();
+ popupQuickSearchResult.innerHTML = quickSearchResult.innerHTML;
+ if(activeSettlementNo) closeQuickSettlementPopup();
 }
 
 
@@ -2963,68 +3128,44 @@ let error = null;
 const {data:headers} = await client.from("settlement_headers").select("*");
 const allHeaders = headers || [];
 
-/*
-  المهم هنا:
-  لو المستخدم اختار تسوية محددة من نتائج البحث، نستخدم أرقام هذه التسوية فقط
-  ولا نجيب أي تسويات أخرى حتى لو الرقم اليدوي متكرر.
-*/
 let selectedHeader = null;
 if(activeSettlementNo){
   selectedHeader = allHeaders.find(h => String(h.settlement_no || "").trim() === String(activeSettlementNo || "").trim()) || null;
 }
 if(!selectedHeader && searchKey){
   const clean = normalizeSettlementText(searchKey);
-  selectedHeader = allHeaders.find(h => normalizeSettlementText(h.settlement_no || "") === clean) || null;
+  selectedHeader = allHeaders.find(h => normalizeSettlementText(h.settlement_no || "") === clean || normalizeSettlementText(displaySettlementNo(h)) === clean) || null;
 }
 
-let candidates = selectedHeader
-  ? getHeaderNoCandidatesStrict(selectedHeader)
-  : await getSettlementNoCandidates(searchKey);
-
-if(!candidates.length && searchKey) candidates = [searchKey];
-
-let res = await client
-.from("settlement_lines")
-.select("*")
-.in("settlement_no", candidates)
-.order("id");
-
-data = res.data || [];
-error = res.error;
-
-/* احتياطى: لو البنود القديمة محفوظة بصيغة مختلفة للرقم */
-if((!data || data.length === 0) && candidates.length){
-  const {data:allLines} = await client.from("settlement_lines").select("*").order("id");
-  data = (allLines || []).filter(l => lineMatchesCandidates(l.settlement_no,candidates));
-}
-
-if(error){
-  console.log(error);
-  data = [];
-}
-
-/* إضافة عمود وارد من لكل بند */
-const hMap = {};
-allHeaders.forEach(h=>{
-  hMap[h.settlement_no] = h;
-  getHeaderNoCandidatesStrict(h).forEach(c=>{ hMap[c] = h; });
-});
-
-data = (data || []).map(l=>{
-  let matchedHeader = hMap[l.settlement_no] || selectedHeader || null;
-  return {
-    ...l,
-    __owner_name: (matchedHeader && matchedHeader.owner_name) || activeSettlementOwnerName || ownerName.value || ""
-  };
-});
-
-/* لو فيه تسوية مختارة، نمنع تماماً ظهور أي بند لا يخصها */
+/* V130 دقة جلب البنود: لا نعتمد على الرقم اليدوي أو الأوتوماتيك وحده حتى لا تظهر بنود تسوية أخرى بنفس الرقم.
+   المصدر الوحيد للتسوية المفتوحة هو settlement_no الكامل المخزن في header. */
 if(selectedHeader){
-  const strictCandidates = getHeaderNoCandidatesStrict(selectedHeader);
-  data = data.filter(l => lineMatchesCandidates(l.settlement_no, strictCandidates));
+  const res = await client
+    .from("settlement_lines")
+    .select("*")
+    .eq("settlement_no", selectedHeader.settlement_no)
+    .order("id");
+  data = res.data || [];
+  error = res.error;
+}else if(searchKey){
+  const res = await client
+    .from("settlement_lines")
+    .select("*")
+    .eq("settlement_no", searchKey)
+    .order("id");
+  data = res.data || [];
+  error = res.error;
 }
+
+if(error){ console.log(error); data = []; }
+
+data = (data || []).map(l=>({
+  ...l,
+  __owner_name: (selectedHeader && selectedHeader.owner_name) || activeSettlementOwnerName || ownerName.value || ""
+}));
 
 renderLines(data || [],linesArea,true);
+renderActiveSettlementSummary(data || [], selectedHeader);
 }
   function renderLines(data,container,showActions){
 
@@ -3338,6 +3479,7 @@ activeSettlementOwnerName = h.owner_name || "";
 rememberLineDropdownValue("ownerList", activeSettlementOwnerName);
 lineSection.classList.remove("hidden");
 showPage("newSettlementPage");
+setCompactSettlementMode(true);
 loadLines(activeSettlementNo);
 }
 
@@ -3393,23 +3535,19 @@ searchResult.innerHTML = "لم يتم العثور على التسوية";
 return;
 }
 
-const {data:lines} = await client
-.from("settlement_lines")
-.select("*")
-.eq("settlement_no",h.settlement_no)
-.in("status",["approved","override_approved","attachment_locked","pending","cancelled"])
-.order("id");
+const lines = await getSettlementLinesStrict(h.settlement_no);
+let annotatedLines = (lines || []).filter(l=>String(l.status||"") !== "deleted").map(l=>({...l,__owner_name:h.owner_name || ""}));
 
-let annotatedLines = (lines || []).map(l=>({...l,__owner_name:h.owner_name || ""}));
-
+const singleTotal = (annotatedLines || []).filter(l=>String(l.status||"") !== "deleted").reduce((s,l)=>s+Number(l.amount||0),0);
 searchResult.innerHTML = `
 <div class="card" style="margin-top:20px">
 <h3>رقم التسوية : ${displaySettlementNo(h)}</h3>
 <p>صاحب التسوية : ${h.owner_name}</p>
-<p>تاريخ الإدخال : ${h.entry_date}</p>
-<button class="export-btn small" onclick="exportSettlementExcel('${h.settlement_no}')">تحميل التسوية Excel</button>
-<button class="gray small" onclick="printSettlementPdf('${h.settlement_no}')">طباعة / PDF التسوية</button>
-<button class="small" onclick="openSettlementFromSearch('${h.settlement_no}')">فتح التسوية وإضافة بنود</button>
+<p>تاريخ التسوية : ${h.entry_date}</p>
+<p><b>إجمالي بنود التسوية : ${singleTotal.toLocaleString()} EGP</b></p>
+<button class="small" onclick="openSettlementFromSearch('${h.settlement_no}')">إدخال بنود على التسوية</button>
+<button class="gray small" onclick="printSettlementPdf('${h.settlement_no}')">طباعة PDF</button>
+<button class="export-btn small" onclick="exportSettlementExcel('${h.settlement_no}')">تصدير البيانات Excel</button>
 <button class="small gray" onclick="searchSettlement()">رجوع للنتائج</button>
 <div id="singleSearchLines"></div>
 </div>`;
@@ -3466,6 +3604,193 @@ ${headers.map(h=>`
 </table>
 </div>`;
 }
+
+function escapeHtmlV129(v){
+ return String(v ?? "").replace(/[&<>"']/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));
+}
+function renderActiveSettlementSummary(lines=[], header=null){
+ const box = document.getElementById("activeSettlementSummary");
+ if(!box) return;
+ if(!activeSettlementNo){ box.classList.add("hidden"); box.innerHTML=""; return; }
+ const owner = (header && header.owner_name) || activeSettlementOwnerName || ownerName.value || "";
+ const date = (header && header.entry_date) || entryDate.value || "";
+ const no = (header && displaySettlementNo(header)) || activeSettlementSearchKey || settlementPaperNo.value || activeSettlementNo || "";
+ const total = (lines || []).filter(l=>String(l.status||"") !== "deleted").reduce((s,l)=>s+Number(l.amount||0),0);
+ box.innerHTML = `
+  <div class="summary-title">بيانات التسوية المفتوحة</div>
+  <div class="summary-grid">
+    <div class="summary-cell"><b>رقم التسوية</b><span>${escapeHtmlV129(no)}</span></div>
+    <div class="summary-cell"><b>صاحب التسوية</b><span>${escapeHtmlV129(owner)}</span></div>
+    <div class="summary-cell"><b>تاريخ التسوية</b><span>${escapeHtmlV129(date)}</span></div>
+    <div class="summary-cell"><b>إجمالي بنود التسوية</b><span>${total.toLocaleString()} EGP</span></div>
+  </div>
+  <div class="actions-wrap">
+    <button class="green" onclick="openSettlementLinePopup()">إدخال بنود على التسوية</button>
+    <button class="gray" onclick="printActiveSettlementPdf()">طباعة PDF</button>
+    <button class="export-btn" onclick="exportActiveSettlementExcel()">تصدير البيانات Excel</button>
+  </div>`;
+ box.classList.remove("hidden");
+}
+function setCompactSettlementMode(on){
+ const page = document.getElementById("newSettlementPage");
+ if(!page) return;
+ page.classList.toggle("compact-settlement-open", !!on);
+}
+function openSettlementLinePopup(){
+ if(!activeSettlementNo){ alert("افتح التسوية أولاً"); openSettlementHeaderPopup(); return; }
+ if(!document.getElementById("settlementLinePopup")) return;
+ popupLineDate.value = new Date().toISOString().slice(0,10);
+ popupDescription.value = "";
+ popupAddedTo.value = activeSettlementOwnerName || ownerName.value || "";
+ popupPaymentRef.value = "";
+ popupSite.value = "";
+ popupMainDirection.value = "";
+ updatePopupSubDirectionOptions();
+ popupCurrency.value = "EGP";
+ popupForeignAmount.value = "";
+ popupExchangeRate.value = 1;
+ popupAmount.value = "";
+ if(popupLineAttachments) popupLineAttachments.value = "";
+ popupFxNote.innerHTML = "العملة: جنيه مصرى - كل الحسابات بالجنيه.";
+ settlementLinePopup.style.display = "flex";
+}
+function closeSettlementLinePopup(){
+ if(document.getElementById("settlementLinePopup")) settlementLinePopup.style.display = "none";
+}
+function updatePopupSubDirectionOptions(selected=""){
+ const main = popupMainDirection.value;
+ const arr = (typeof subDirectionOptionsByMain !== "undefined" && subDirectionOptionsByMain[main]) ? subDirectionOptionsByMain[main] : ["خامات","انتقالات","بدلات","مرتبات","مصروفات ادارية وعمومية","عهدة","نثريات","تأمينات اجتماعية","مصروفات المكتب","اجرة عمال يومية","مستخلص تحت التحصيل"];
+ popupSubDirection.innerHTML = '<option value="">التوجيه الفرعى</option>' + arr.map(x=>`<option>${x}</option>`).join("");
+ if(selected) popupSubDirection.value = selected;
+}
+async function updatePopupExchangeRate(){
+ const cur = popupCurrency.value || "EGP";
+ if(cur === "EGP"){
+  popupExchangeRate.value = 1;
+  popupExchangeRate.readOnly = true;
+  popupFxNote.innerHTML = "العملة: جنيه مصرى - كل الحسابات بالجنيه.";
+  calculatePopupEgpAmount();
+  return;
+ }
+ popupExchangeRate.readOnly = false;
+ popupFxNote.innerHTML = "جارى جلب سعر الصرف اليومى من الإنترنت... ويمكنك تعديله يدوياً.";
+ try{
+  const res = await fetch("https://api.exchangerate-api.com/v4/latest/" + cur);
+  const data = await res.json();
+  const rate = data && data.rates ? Number(data.rates.EGP || 0) : 0;
+  if(rate > 0){ popupExchangeRate.value = rate.toFixed(4); popupFxNote.innerHTML = "سعر الصرف اليومى: 1 " + cur + " = " + rate.toFixed(4) + " EGP."; }
+  else popupFxNote.innerHTML = "لم يتم جلب سعر الصرف تلقائياً. اكتب سعر الصرف يدوياً.";
+ }catch(e){ popupFxNote.innerHTML = "تعذر الاتصال بسعر الصرف من الإنترنت. اكتب سعر الصرف يدوياً."; }
+ calculatePopupEgpAmount();
+}
+function calculatePopupEgpAmount(){
+ const curAmount = Number(popupForeignAmount.value || 0);
+ const rate = Number(popupExchangeRate.value || 0);
+ popupAmount.value = (curAmount * rate).toFixed(2);
+}
+async function saveSettlementLineFromPopup(){
+ if(!popupLineDate.value || !popupDescription.value || !popupMainDirection.value || !popupSubDirection.value || !popupForeignAmount.value || !popupPaymentRef.value){
+  alert("اكمل البيانات - رقم مستند الدفع والمبلغ والعملة إجبارى"); return;
+ }
+ lineDate.value = popupLineDate.value;
+ description.value = popupDescription.value;
+ addedTo.value = popupAddedTo.value;
+ paymentRef.value = popupPaymentRef.value;
+ mainDirection.value = popupMainDirection.value;
+ updateSubDirectionOptions(popupSubDirection.value);
+ site.value = popupSite.value;
+ currency.value = popupCurrency.value;
+ foreignAmount.value = popupForeignAmount.value;
+ exchangeRate.value = popupExchangeRate.value || 1;
+ amount.value = popupAmount.value || (Number(popupForeignAmount.value||0)*Number(popupExchangeRate.value||1)).toFixed(2);
+ try{
+  const dt = new DataTransfer();
+  Array.from(popupLineAttachments.files || []).forEach(f=>dt.items.add(f));
+  lineAttachments.files = dt.files;
+ }catch(e){ console.warn("Could not copy attachments to main input", e); }
+ await addLine();
+ closeSettlementLinePopup();
+ if(activeSettlementNo) await loadLines(activeSettlementNo);
+}
+
+
+
+async function getSettlementLinesStrict(settlementNo){
+ const {data,error} = await client.from("settlement_lines").select("*").eq("settlement_no", settlementNo).order("id");
+ if(error){ console.log(error); return []; }
+ return data || [];
+}
+
+async function loadSettlementsList(){
+ const area = document.getElementById("settlementsListArea");
+ if(!area) return;
+ area.innerHTML = "جارى التحميل...";
+ const owner = (document.getElementById("settlementsListOwner")?.value || "").trim().toLowerCase();
+ const noKey = (document.getElementById("settlementsListNo")?.value || "").trim();
+ const dateKey = (document.getElementById("settlementsListDate")?.value || "").trim();
+ const {data:headers,error} = await client.from("settlement_headers").select("*").order("created_at",{ascending:false}).limit(2000);
+ if(error){ area.innerHTML = "حدث خطأ أثناء تحميل التسويات"; return; }
+ let list = headers || [];
+ if(owner) list = list.filter(h => String(h.owner_name || "").toLowerCase().includes(owner));
+ if(noKey){
+   const clean = normalizeSettlementText(noKey);
+   list = list.filter(h => normalizeSettlementText(h.settlement_no || "").includes(clean) || normalizeSettlementText(displaySettlementNo(h)).includes(clean));
+ }
+ if(dateKey) list = list.filter(h => String(h.entry_date || "") === dateKey);
+ const nos = list.map(h=>h.settlement_no).filter(Boolean);
+ let totals = {}, counts = {};
+ if(nos.length){
+   const {data:lines} = await client.from("settlement_lines").select("settlement_no,amount,status").in("settlement_no", nos);
+   (lines || []).forEach(l=>{
+    if(String(l.status || "") === "deleted") return;
+    totals[l.settlement_no] = (totals[l.settlement_no] || 0) + Number(l.amount || 0);
+    counts[l.settlement_no] = (counts[l.settlement_no] || 0) + 1;
+   });
+ }
+ area.innerHTML = `<table class="table"><thead><tr><th>صاحب التسوية</th><th>رقم التسوية</th><th>تاريخ التسوية</th><th>قيمة البنود</th><th>عدد البنود</th><th>الإجراء</th></tr></thead><tbody>${list.map(h=>`
+  <tr>
+   <td>${escapeHtmlV129(h.owner_name || "")}</td>
+   <td>${escapeHtmlV129(displaySettlementNo(h))}</td>
+   <td>${escapeHtmlV129(h.entry_date || "")}</td>
+   <td><b>${Number(totals[h.settlement_no] || 0).toLocaleString()} EGP</b></td>
+   <td>${Number(counts[h.settlement_no] || 0).toLocaleString()}</td>
+   <td><div class="actions-wrap">
+    <button class="small" onclick="openSettlementFromSearch('${String(h.settlement_no).replace(/'/g,"\\'")}')">فتح</button>
+    ${currentUser.role === "super_admin" ? `<button class="small orange" onclick="editSettlementHeader('${String(h.settlement_no).replace(/'/g,"\\'")}')">تعديل</button><button class="small red" onclick="deleteSettlementHeader('${String(h.settlement_no).replace(/'/g,"\\'")}')">حذف</button>` : ""}
+   </div></td>
+  </tr>`).join("")}</tbody></table>`;
+ if(!list.length) area.innerHTML = "لا توجد تسويات مطابقة";
+}
+
+async function editSettlementHeader(settlementNoValue){
+ if(currentUser.role !== "super_admin"){ alert("التعديل للسوبر أدمن فقط"); return; }
+ const {data:h} = await client.from("settlement_headers").select("*").eq("settlement_no", settlementNoValue).maybeSingle();
+ if(!h){ alert("لم يتم العثور على التسوية"); return; }
+ const newOwner = prompt("اسم صاحب التسوية", h.owner_name || "");
+ if(newOwner === null) return;
+ const newDate = prompt("تاريخ التسوية YYYY-MM-DD", h.entry_date || "");
+ if(newDate === null) return;
+ const {error} = await client.from("settlement_headers").update({owner_name:newOwner.trim(),entry_date:newDate.trim(),updated_at:new Date().toISOString()}).eq("settlement_no", settlementNoValue);
+ if(error){ alert("حدث خطأ أثناء تعديل التسوية"); return; }
+ await addAudit("update_settlement_header","settlement_headers",settlementNoValue,settlementNoValue,h,{...h,owner_name:newOwner.trim(),entry_date:newDate.trim()},"تعديل بيانات التسوية من شاشة التسويات");
+ loadSettlementsList();
+}
+
+async function deleteSettlementHeader(settlementNoValue){
+ if(currentUser.role !== "super_admin"){ alert("الحذف للسوبر أدمن فقط"); return; }
+ const {data:h} = await client.from("settlement_headers").select("*").eq("settlement_no", settlementNoValue).maybeSingle();
+ if(!h){ alert("لم يتم العثور على التسوية"); return; }
+ const reason = prompt("اكتب سبب حذف التسوية بالكامل");
+ if(!reason) return;
+ if(!confirm("سيتم حذف التسوية وكل بنودها نهائياً. هل أنت متأكد؟")) return;
+ const oldLines = await getSettlementLinesStrict(settlementNoValue);
+ await addAudit("delete_settlement_header","settlement_headers",settlementNoValue,settlementNoValue,{header:h,lines:oldLines},null,"حذف تسوية كاملة: "+reason);
+ await client.from("settlement_lines").delete().eq("settlement_no", settlementNoValue);
+ const {error} = await client.from("settlement_headers").delete().eq("settlement_no", settlementNoValue);
+ if(error){ alert("حدث خطأ أثناء حذف التسوية"); return; }
+ loadSettlementsList();
+}
+
   async function accountStatement(){
 
 const owner = accountOwner.value.trim();
@@ -7068,9 +7393,18 @@ function ccSalesBaseNotes(inv){
 }
 function ccSalesOrderNo(inv){return (ccSalesGetOrder(inv?.order_id)||{}).order_no||'';}
 function ccNorm(v){return String(v||'').toLowerCase().trim();}
+function ccUniqOptions(arr){
+ const seen=new Set();
+ return (arr||[]).map(v=>String(v||'').trim()).filter(v=>v && !seen.has(v) && seen.add(v));
+}
+function ccDatalist(id, arr){
+ return `<datalist id="${id}">${ccUniqOptions(arr).map(v=>`<option value="${ccEscape(v)}"></option>`).join('')}</datalist>`;
+}
 function ccGetSalesFilterValues(){return {
- site:document.getElementById('ccSalesSearchSite')?.value||'',
- orderId:document.getElementById('ccSalesOrderClientFilter')?.value||'',
+ invoice:document.getElementById('ccSalesSearchInvoice')?.value||'',
+ client:document.getElementById('ccSalesSearchClient')?.value||'',
+ project:document.getElementById('ccSalesSearchProject')?.value||'',
+ order:document.getElementById('ccSalesSearchOrder')?.value||'',
  status:document.getElementById('ccSalesStatusFilter')?.value||''
 };}
 function ccSalesOrderClientOptions(selected=''){
@@ -7081,13 +7415,16 @@ function ccSalesOrderClientOptions(selected=''){
  }).join('');
 }
 function ccSalesFilteredRows(){
- const f=ccGetSalesFilterValues(); const siteQ=ccNorm(f.site);
+ const f=ccGetSalesFilterValues();
+ const invoiceQ=ccNorm(f.invoice), clientQ=ccNorm(f.client), projectQ=ccNorm(f.project), orderQ=ccNorm(f.order);
  return (ccSalesCache||[]).filter(s=>{
    const meta=ccSalesCollectionMeta(s);
-   if(f.orderId && String(s.order_id||'')!==String(f.orderId)) return false;
-   const text=[s.site,s.invoice_no,s.client_name,ccSalesBaseNotes(s),meta.doc_no].map(ccNorm).join(' ');
-   if(siteQ && !text.includes(siteQ)) return false;
+   const orderNo=ccSalesOrderNo(s);
    if(f.status && meta.status!==f.status) return false;
+   if(invoiceQ && !ccNorm(s.invoice_no).includes(invoiceQ)) return false;
+   if(clientQ && !ccNorm(s.client_name).includes(clientQ)) return false;
+   if(projectQ && !ccNorm(s.site).includes(projectQ)) return false;
+   if(orderQ && !ccNorm(orderNo).includes(orderQ)) return false;
    return true;
  });
 }
@@ -7126,10 +7463,13 @@ async function loadSalesInvoices(render=true){
  const total=rows.reduce((s,r)=>s+ccNum(r.total_amount),0);
  salesInvoicesArea.innerHTML=`
  <div class="grid" style="background:#f8fafc;border:1px solid #e2e8f0;padding:12px;border-radius:12px;margin:10px 0">
-  <div class="form-field"><label>بحث بالموقع / رقم الفاتورة / العميل</label><input id="ccSalesSearchSite" value="${ccEscape(f.site)}" oninput="loadSalesInvoices()" placeholder="اكتب الموقع أو رقم الفاتورة أو العميل"></div>
-  <div class="form-field"><label>أمر الإسناد / العميل</label><select id="ccSalesOrderClientFilter" onchange="loadSalesInvoices()">${ccSalesOrderClientOptions(f.orderId)}</select></div>
-  <div class="form-field"><label>حالة الفواتير</label><select id="ccSalesStatusFilter" onchange="loadSalesInvoices()"><option value="">كل الحالات</option><option ${f.status==='تحت التحصيل'?'selected':''}>تحت التحصيل</option><option ${f.status==='محصلة'?'selected':''}>محصلة</option></select></div>
+  <div class="form-field"><label>حالة التحصيل</label><select id="ccSalesStatusFilter" onchange="loadSalesInvoices()"><option value="">كل الحالات</option><option ${f.status==='تحت التحصيل'?'selected':''}>تحت التحصيل</option><option ${f.status==='محصلة'?'selected':''}>محصلة</option></select></div>
+  <div class="form-field"><label>رقم الفاتورة</label><input id="ccSalesSearchInvoice" list="ccSalesInvoiceList" value="${ccEscape(f.invoice)}" oninput="loadSalesInvoices()" placeholder="اختر أو اكتب رقم الفاتورة">${ccDatalist('ccSalesInvoiceList',(ccSalesCache||[]).map(s=>s.invoice_no))}</div>
+  <div class="form-field"><label>العميل</label><input id="ccSalesSearchClient" list="ccSalesClientList" value="${ccEscape(f.client)}" oninput="loadSalesInvoices()" placeholder="اختر أو اكتب اسم العميل">${ccDatalist('ccSalesClientList',(ccSalesCache||[]).map(s=>s.client_name))}</div>
+  <div class="form-field"><label>المشروع / الموقع</label><input id="ccSalesSearchProject" list="ccSalesProjectList" value="${ccEscape(f.project)}" oninput="loadSalesInvoices()" placeholder="اختر أو اكتب المشروع">${ccDatalist('ccSalesProjectList',(ccSalesCache||[]).map(s=>s.site))}</div>
+  <div class="form-field"><label>أمر الإسناد</label><input id="ccSalesSearchOrder" list="ccSalesOrderList" value="${ccEscape(f.order)}" oninput="loadSalesInvoices()" placeholder="اختر أو اكتب أمر الإسناد">${ccDatalist('ccSalesOrderList',(ccSalesCache||[]).map(s=>ccSalesOrderNo(s)))}</div>
   <div class="summary" style="display:block"><div class="box"><h3>إجمالي الاختيار</h3><h2>${total.toLocaleString()}</h2></div></div>
+  <div style="display:flex;align-items:end"><button class="gray" onclick="document.getElementById('ccSalesSearchInvoice').value='';document.getElementById('ccSalesSearchClient').value='';document.getElementById('ccSalesSearchProject').value='';document.getElementById('ccSalesSearchOrder').value='';document.getElementById('ccSalesStatusFilter').value='';loadSalesInvoices();">مسح البحث</button></div>
  </div>
  <table class="table"><thead><tr><th>إجراء</th><th>حالة التحصيل</th><th>رقم مستند الدفع / الحركة</th><th>رقم الفاتورة</th><th>تاريخ عمل الفاتورة</th><th>رقم أمر الإسناد</th><th>العميل</th><th>الموقع</th><th>قيمة الفاتورة الإجمالية</th><th>ملاحظات</th></tr></thead><tbody>${rows.map(s=>{const o=ccSalesGetOrder(s.order_id)||{}; const meta=ccSalesCollectionMeta(s); return `<tr><td><button class="small green" onclick="openSalesInvoiceModal(${s.id})">فتح/تعديل</button> <button class="small red" onclick="deleteSalesInvoice(${s.id})">حذف</button></td><td><select onchange="ccUpdateSalesCollectionStatus(${s.id},this.value)"><option ${meta.status==='تحت التحصيل'?'selected':''}>تحت التحصيل</option><option ${meta.status==='محصلة'?'selected':''}>محصلة</option></select></td><td>${ccEscape(meta.doc_no||'-')}</td><td>${ccEscape(s.invoice_no||'')}</td><td>${s.invoice_date||''}</td><td>${ccEscape(o.order_no||'')}</td><td>${ccEscape(s.client_name||'')}</td><td>${ccEscape(s.site||'')}</td><td>${ccNum(s.total_amount).toLocaleString()}</td><td>${ccEscape(ccSalesBaseNotes(s))}</td></tr>`}).join('')}</tbody></table>`;
 }
@@ -8903,7 +9243,7 @@ window.saveV81RoutingModal=async function(){
   };
   const obs=new MutationObserver(()=>{document.querySelectorAll('#salesInvItemsBody tr').forEach(ensureRowFx); document.querySelectorAll('td').forEach(td=>{const c=manualNotesOnly(td.textContent); if(c!==td.textContent && /FX_META|V98_SALES_ITEMS|CC_SALES_ITEMS/.test(td.textContent)) td.textContent=c;});});
   document.addEventListener('DOMContentLoaded',function(){
-    const h=document.querySelector('.sidebar h2'); if(h) h.textContent='Taswyat V99'; document.title='Taswyat System - UPGRADED V99';
+    const h=document.querySelector('.sidebar h2'); if(h) h.textContent='Taswyat V131 Fixed'; document.title='Taswyat System - UPGRADED V99';
     try{obs.observe(document.body,{childList:true,subtree:true});}catch(e){}
     ensureAllRows();
   });
@@ -9007,5 +9347,528 @@ window.poReadQuotationPdf=async function(file){ if(!file) return; $('poPdfStatus
 })();
 </script>
 
+
+
+<script id="agair-v122-sales-collection-separate-filters-fixed">
+/* ===== V122 FIX: Separate sales invoice filters + editable collection status ===== */
+(function(){
+  function byId(id){return document.getElementById(id);}
+  function txt(v){return String(v==null?'':v);}
+  function norm(v){return txt(v).toLowerCase().trim();}
+  function esc(v){return txt(v).replace(/[&<>"']/g,function(m){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m];});}
+  function num(v){var x=Number(String(v==null?'':v).replace(/,/g,'')); return isFinite(x)?x:0;}
+  function money(v){return num(v).toLocaleString('en-US',{maximumFractionDigits:2});}
+  function ordersMap(){var m={}; (window.ccOrdersCache||[]).forEach(function(o){m[o.id]=o;}); return m;}
+  function salesMeta(inv){
+    if(typeof window.ccSalesCollectionMeta==='function') return window.ccSalesCollectionMeta(inv);
+    return {status:inv && inv.collection_status || 'تحت التحصيل', doc_no:inv && inv.collection_doc_no || ''};
+  }
+  function invFx(inv){
+    if(typeof window.ccV89ReadSalesMeta==='function') return window.ccV89ReadSalesMeta(inv||{});
+    return {currency:'EGP', exchange_rate:1, egp_total:num(inv&&inv.total_amount)};
+  }
+  function cleanNotes(notes){
+    var s=txt(notes);
+    s=s.replace(/\n?\[\[COLLECTION_META:[\s\S]*?\]\]/g,'');
+    s=s.replace(/\n?\[\[FX_META:[\s\S]*?\]\]/g,'');
+    s=s.replace(/\n?\[\[CC_SALES_ITEMS:[\s\S]*?\]\]/g,'');
+    s=s.replace(/\n?\[\[V98_SALES_ITEMS:[\s\S]*?\]\]/g,'');
+    return s.trim();
+  }
+  function currentFilters(){
+    return {
+      status: byId('ccSalesFilterStatus') ? byId('ccSalesFilterStatus').value : '',
+      invoice: norm(byId('ccSalesFilterInvoice') ? byId('ccSalesFilterInvoice').value : ''),
+      client: norm(byId('ccSalesFilterClient') ? byId('ccSalesFilterClient').value : ''),
+      project: norm(byId('ccSalesFilterProject') ? byId('ccSalesFilterProject').value : ''),
+      order: norm(byId('ccSalesFilterOrder') ? byId('ccSalesFilterOrder').value : '')
+    };
+  }
+  window.ccSalesClearFiltersV122=function(){
+    ['ccSalesFilterStatus','ccSalesFilterInvoice','ccSalesFilterClient','ccSalesFilterProject','ccSalesFilterOrder'].forEach(function(id){var e=byId(id); if(e) e.value='';});
+    if(typeof window.loadSalesInvoices==='function') window.loadSalesInvoices();
+  };
+  window.loadSalesInvoices=async function(render){
+    if(render===undefined) render=true;
+    if((!window.ccOrdersCache || !window.ccOrdersCache.length) && typeof window.loadCostOrders==='function'){
+      try{ await window.loadCostOrders(false); }catch(e){}
+    }
+    var res=await client.from('sales_invoices').select('*').order('id',{ascending:false}).limit(1000);
+    if(res.error){ if(render && byId('salesInvoicesArea')) byId('salesInvoicesArea').innerHTML='شغّل SQL الخاص بفواتير المبيعات أولاً'; return; }
+    window.ccSalesCache=res.data||[];
+    try{ ccSalesCache=window.ccSalesCache; }catch(e){}
+    if(typeof window.refreshCostControlSelects==='function') window.refreshCostControlSelects();
+    if(!render || !byId('salesInvoicesArea')) return;
+    var om=ordersMap();
+    var f=currentFilters();
+    var rows=(window.ccSalesCache||[]).filter(function(s){
+      var o=om[s.order_id]||{};
+      var meta=salesMeta(s);
+      var st=meta.status || 'تحت التحصيل';
+      if(f.status){
+        if(f.status==='محصلة' && st!=='محصلة') return false;
+        if(f.status==='تحت التحصيل' && st==='محصلة') return false;
+      }
+      if(f.invoice && !norm(s.invoice_no).includes(f.invoice)) return false;
+      if(f.client && !norm(s.client_name).includes(f.client)) return false;
+      if(f.project && !norm(s.site).includes(f.project)) return false;
+      if(f.order && !norm(o.order_no).includes(f.order)) return false;
+      return true;
+    });
+    var total=rows.reduce(function(a,s){return a+num(s.total_amount);},0);
+    var egpTotal=rows.reduce(function(a,s){var fx=invFx(s); return a+(num(fx.egp_total)||num(s.total_amount)*(txt(fx.currency||'EGP')==='EGP'?1:num(fx.exchange_rate||1)));},0);
+    var body=rows.map(function(s){
+      var o=om[s.order_id]||{};
+      var meta=salesMeta(s);
+      var fx=invFx(s);
+      var st=meta.status || 'تحت التحصيل';
+      var egp=num(fx.egp_total)||num(s.total_amount)*(txt(fx.currency||'EGP')==='EGP'?1:num(fx.exchange_rate||1));
+      return '<tr>'+
+        '<td><button class="small green" onclick="openSalesInvoiceModal('+Number(s.id)+')">تعديل</button> <button class="small red" onclick="deleteSalesInvoice&&deleteSalesInvoice('+Number(s.id)+')">حذف</button></td>'+
+        '<td><select onchange="ccUpdateSalesCollectionStatus&&ccUpdateSalesCollectionStatus('+Number(s.id)+',this.value)"><option value="تحت التحصيل" '+(st==='محصلة'?'':'selected')+'>غير محصلة</option><option value="محصلة" '+(st==='محصلة'?'selected':'')+'>محصلة</option></select></td>'+
+        '<td>'+esc(meta.doc_no||'-')+'</td>'+
+        '<td>'+esc(s.invoice_no||'')+'</td>'+
+        '<td>'+esc(s.invoice_date||'')+'</td>'+
+        '<td>'+esc(o.order_no||'')+'</td>'+
+        '<td>'+esc(s.client_name||'')+'</td>'+
+        '<td>'+esc(s.site||'')+'</td>'+
+        '<td>'+money(s.total_amount)+'</td>'+
+        '<td><b>'+esc(fx.currency||'EGP')+'</b></td>'+
+        '<td>'+money(fx.exchange_rate||1)+'</td>'+
+        '<td>'+money(egp)+'</td>'+
+        '<td>'+esc(cleanNotes(s.notes||''))+'</td>'+
+      '</tr>';
+    }).join('');
+    byId('salesInvoicesArea').innerHTML =
+      '<div class="summary" style="margin-bottom:12px"><div class="box"><h3>إجمالي الاختيار</h3><h2>'+money(total)+'</h2></div><div class="box"><h3>الإجمالي المعادل بالجنيه</h3><h2>'+money(egpTotal)+'</h2></div></div>'+
+      '<div style="background:#f8fafc;border:1px solid #e2e8f0;padding:12px;border-radius:12px;margin-bottom:12px">'+
+        '<h3 style="margin:0 0 10px;color:#0f766e">بحث وفلاتر فواتير المبيعات</h3>'+
+        '<div class="grid" style="grid-template-columns:repeat(5,1fr);gap:10px">'+
+          '<div class="form-field"><label>حالة التحصيل</label><select id="ccSalesFilterStatus" onchange="loadSalesInvoices()"><option value="" '+(!f.status?'selected':'')+'>كل الحالات</option><option value="محصلة" '+(f.status==='محصلة'?'selected':'')+'>محصلة فقط</option><option value="تحت التحصيل" '+(f.status==='تحت التحصيل'?'selected':'')+'>غير محصلة فقط</option></select></div>'+
+          '<div class="form-field"><label>رقم الفاتورة</label><input id="ccSalesFilterInvoice" value="'+esc(f.invoice)+'" oninput="loadSalesInvoices()" placeholder="بحث برقم الفاتورة"></div>'+
+          '<div class="form-field"><label>العميل</label><input id="ccSalesFilterClient" value="'+esc(f.client)+'" oninput="loadSalesInvoices()" placeholder="بحث بالعميل"></div>'+
+          '<div class="form-field"><label>المشروع / الموقع</label><input id="ccSalesFilterProject" value="'+esc(f.project)+'" oninput="loadSalesInvoices()" placeholder="بحث بالمشروع"></div>'+
+          '<div class="form-field"><label>أمر الإسناد</label><input id="ccSalesFilterOrder" value="'+esc(f.order)+'" oninput="loadSalesInvoices()" placeholder="بحث بأمر الإسناد"></div>'+
+        '</div>'+
+        '<div style="margin-top:10px;display:flex;gap:8px;justify-content:flex-start"><button onclick="loadSalesInvoices()">بحث</button><button class="gray" onclick="ccSalesClearFiltersV122()">مسح البحث</button></div>'+
+      '</div>'+
+      '<table class="table"><thead><tr><th>إجراء</th><th>حالة التحصيل</th><th>رقم مستند الدفع / الحركة</th><th>رقم الفاتورة</th><th>تاريخ عمل الفاتورة</th><th>رقم أمر الإسناد</th><th>العميل</th><th>المشروع / الموقع</th><th>قيمة الفاتورة</th><th>عملة الفاتورة</th><th>سعر الصرف</th><th>المعادلة بالجنيه المصري</th><th>ملاحظات</th></tr></thead><tbody>'+(body||'<tr><td colspan="13">لا توجد فواتير مطابقة للبحث</td></tr>')+'</tbody></table>'+
+      '<div style="margin-top:8px;font-weight:bold;text-align:right">عدد النتائج: '+rows.length+'</div>';
+  };
+})();
+</script>
+
+
+<!-- ================= V128 USER REQUEST FIXES ================= -->
+<style id="v128-user-fixes-css">
+.sidebar button.active-page{background:#f59e0b!important;color:#111827!important;box-shadow:0 0 0 2px rgba(245,158,11,.25) inset!important}
+#settlementStartPanel{background:#fff;border:1px solid #dbe3ef;border-radius:14px;padding:14px;margin:12px 0;text-align:center;box-shadow:0 3px 12px rgba(15,23,42,.06)}
+#settlementStartPanel .start-actions{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px}
+#settlementStartPanel button{min-height:44px}
+#settlementStartPanel .hint{color:#64748b;font-size:13px;margin-top:8px}
+body.v128-settlement-start #newSettlementPage > .grid,
+body.v128-settlement-start #newSettlementPage > .msg,
+body.v128-settlement-start #newSettlementPage > button[onclick="createHeader()"],
+body.v128-settlement-start #newSettlementPage > .grid2,
+body.v128-settlement-start #quickSearchResult{display:none!important}
+#v128SettlementModal .modal{max-width:720px}
+#v128SettlementSearchModal .modal{max-width:720px}
+@media(max-width:900px){#settlementStartPanel .start-actions{grid-template-columns:1fr}}
+</style>
+
+<div id="v128SettlementModal" class="modal-bg">
+ <div class="modal">
+  <div class="modal-header"><h2>إنشاء تسوية جديدة</h2><button class="red small" onclick="v128CloseSettlementModal()">إغلاق</button></div>
+  <div class="grid">
+   <div class="form-field"><label>اسم صاحب التسوية</label><input id="v128OwnerName" list="ownerList" placeholder="اكتب أو اختر اسم صاحب التسوية"></div>
+   <div class="form-field"><label>الرقم اليدوي / رقم الدفتر</label><input id="v128ManualNo" placeholder="ممكن يتكرر"></div>
+   <div class="form-field"><label>تاريخ التسوية</label><input id="v128EntryDate" type="date"></div>
+  </div>
+  <br><button class="green" onclick="v128CreateSettlementFromModal()">إنشاء</button>
+ </div>
+</div>
+
+<div id="v128SettlementSearchModal" class="modal-bg">
+ <div class="modal">
+  <div class="modal-header"><h2>بحث وفتح تسوية</h2><button class="red small" onclick="v128CloseSearchModal()">إغلاق</button></div>
+  <div class="grid2">
+   <div class="form-field"><label>رقم التسوية</label><input id="v128SearchNo" placeholder="مثال: 5-2026 / 1"></div>
+   <button class="gray" onclick="v128SearchSettlementFromModal()">بحث وفتح</button>
+  </div>
+  <div id="v128SearchResult" class="msg"></div>
+ </div>
+</div>
+
+<script id="v128-user-fixes-js">
+(function(){
+  function ready(fn){ if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',fn); else fn(); }
+  window.v128SetActiveSidebar=function(pageId){
+    document.querySelectorAll('.sidebar button').forEach(b=>b.classList.remove('active-page'));
+    const btn=[...document.querySelectorAll('.sidebar button')].find(b=>(b.getAttribute('onclick')||'').includes("'"+pageId+"'") || (b.getAttribute('onclick')||'').includes('"'+pageId+'"'));
+    if(btn) btn.classList.add('active-page');
+  };
+  const oldShow=window.showPage;
+  window.showPage=function(id){
+    const r=oldShow.apply(this,arguments);
+    v128SetActiveSidebar(id);
+    if(id==='newSettlementPage') document.body.classList.add('v128-settlement-start');
+    return r;
+  };
+  ready(function(){
+    const page=document.getElementById('newSettlementPage');
+    if(page && !document.getElementById('settlementStartPanel')){
+      const panel=document.createElement('div');
+      panel.id='settlementStartPanel';
+      panel.innerHTML=`<h3>اختار الإجراء المطلوب</h3><div class="start-actions">
+        <button class="green" onclick="v128OpenSettlementModal()">إنشاء تسوية</button>
+        <button id="v128EnterLinesBtn" onclick="v128EnterSettlementData()">إدخال بيانات التسوية</button>
+        <button class="gray" onclick="v128OpenSearchModal()">بحث</button>
+      </div><div class="hint" id="v128SettlementHint">أنشئ تسوية جديدة أو ابحث عن تسوية محفوظة ثم أضف عليها البنود.</div>`;
+      const h2=page.querySelector('h2');
+      h2.insertAdjacentElement('afterend',panel);
+    }
+    document.body.classList.add('v128-settlement-start');
+  });
+  window.v128OpenSettlementModal=function(){
+    v128SettlementModal.style.display='flex';
+    v128OwnerName.value=ownerName.value||'';
+    v128ManualNo.value=settlementManualNo.value||'';
+    v128EntryDate.value=entryDate.value||new Date().toISOString().slice(0,10);
+  };
+  window.v128CloseSettlementModal=function(){v128SettlementModal.style.display='none'};
+  window.v128CreateSettlementFromModal=async function(){
+    ownerName.value=(v128OwnerName.value||'').trim();
+    settlementManualNo.value=(v128ManualNo.value||'').trim();
+    entryDate.value=v128EntryDate.value||new Date().toISOString().slice(0,10);
+    await previewNextSettlementNo();
+    await createHeader();
+    v128CloseSettlementModal();
+    if(v128SettlementHint) v128SettlementHint.textContent='تم إنشاء / فتح التسوية. اضغط إدخال بيانات التسوية لإضافة البنود.';
+    if(lineSection) lineSection.classList.add('hidden');
+  };
+  window.v128EnterSettlementData=function(){
+    if(!window.activeSettlementNo && !(settlementNo&&settlementNo.value)){alert('أنشئ تسوية أو افتح تسوية محفوظة أولاً');return;}
+    document.body.classList.remove('v128-settlement-start');
+    if(lineSection) lineSection.classList.remove('hidden');
+    if(typeof loadLines==='function') loadLines(window.activeSettlementSearchKey || window.activeSettlementNo || settlementNo.value);
+  };
+  window.v128OpenSearchModal=function(){v128SettlementSearchModal.style.display='flex';v128SearchNo.value='';v128SearchResult.innerHTML=''};
+  window.v128CloseSearchModal=function(){v128SettlementSearchModal.style.display='none'};
+  window.v128SearchSettlementFromModal=async function(){
+    quickSettlementSearch.value=(v128SearchNo.value||'').trim();
+    await quickOpenSettlementByNumber();
+    v128SearchResult.innerHTML=quickSearchResult.innerHTML||'تم البحث';
+    if(window.activeSettlementNo || (settlementNo&&settlementNo.value)){
+      v128CloseSearchModal();
+      if(lineSection) lineSection.classList.add('hidden');
+      if(v128SettlementHint) v128SettlementHint.textContent='تم فتح التسوية. اضغط إدخال بيانات التسوية لإضافة البنود.';
+    }
+  };
+  const oldOpenAcc=window.openAccountsInvoice;
+  if(oldOpenAcc){
+    window.openAccountsInvoice=async function(invoiceId){
+      await oldOpenAcc.apply(this,arguments);
+      if(typeof syncInvoiceTypeView==='function') syncInvoiceTypeView();
+      if(currentUser && currentUser.role==='super_admin'){
+        if(document.getElementById('invoiceEditBtn')) invoiceEditBtn.classList.remove('hidden');
+        if(document.getElementById('deleteInvoiceBtn') && currentInvoiceId) deleteInvoiceBtn.classList.remove('hidden');
+      }
+    };
+  }
+  const oldDel=window.deleteCurrentInvoice;
+  if(oldDel){
+    window.deleteCurrentInvoice=async function(){
+      await oldDel.apply(this,arguments);
+      if(document.getElementById('accountsPage') && !accountsPage.classList.contains('hidden') && typeof loadAccountsInvoices==='function') loadAccountsInvoices();
+    };
+  }
+})();
+</script>
+<!-- ================= END V128 USER REQUEST FIXES ================= -->
+
+
+<!-- ===== V131 FIX: hide duplicated action bar + make settlement popups open reliably ===== -->
+<style id="v131-fix-settlement-buttons-css">
+/* إخفاء صف الزراير الزائد الموجود تحت أزرار البداية */
+#newSettlementPage .settlement-top-actions{display:none!important}
+/* ضبط نافذة إدخال البند فوق كل العناصر */
+#settlementHeaderPopup,#quickSettlementPopup,#settlementLinePopup,#v128SettlementModal,#v128SettlementSearchModal{z-index:99999!important}
+</style>
+<script id="v131-fix-settlement-buttons-js">
+(function(){
+  function el(id){return document.getElementById(id)}
+  function setVal(id,v){const x=el(id); if(x) x.value=(v==null?'':v)}
+  function showModal(id){const x=el(id); if(x){x.style.display='flex'; return true;} return false;}
+  function hideModal(id){const x=el(id); if(x) x.style.display='none';}
+
+  window.openSettlementHeaderPopup=function(){
+    const today=new Date().toISOString().slice(0,10);
+    setVal('popupOwnerName', (el('ownerName')&&el('ownerName').value) || (typeof activeSettlementOwnerName!=='undefined'?activeSettlementOwnerName:'') || '');
+    setVal('popupSettlementManualNo', (el('settlementManualNo')&&el('settlementManualNo').value) || '');
+    setVal('popupEntryDate', (el('entryDate')&&el('entryDate').value) || today);
+    if(!showModal('settlementHeaderPopup')) alert('نافذة إنشاء / فتح التسوية غير موجودة فى الصفحة');
+  };
+  window.closeSettlementHeaderPopup=function(){hideModal('settlementHeaderPopup')};
+
+  window.openQuickSettlementPopup=function(){
+    setVal('popupQuickSettlementSearch','');
+    const r=el('popupQuickSearchResult'); if(r) r.innerHTML='';
+    if(!showModal('quickSettlementPopup')) alert('نافذة البحث غير موجودة فى الصفحة');
+  };
+  window.closeQuickSettlementPopup=function(){hideModal('quickSettlementPopup')};
+
+  window.openSettlementLinePopup=function(){
+    const currentNo=(typeof activeSettlementNo!=='undefined' && activeSettlementNo) || (el('settlementNo')&&el('settlementNo').value) || '';
+    if(!currentNo){ alert('افتح التسوية أولاً'); window.openSettlementHeaderPopup(); return; }
+    const today=new Date().toISOString().slice(0,10);
+    setVal('popupLineDate', today);
+    setVal('popupDescription','');
+    setVal('popupAddedTo', (typeof activeSettlementOwnerName!=='undefined'?activeSettlementOwnerName:'') || (el('ownerName')&&el('ownerName').value) || '');
+    setVal('popupPaymentRef','');
+    setVal('popupSite','');
+    setVal('popupMainDirection','');
+    if(typeof updatePopupSubDirectionOptions==='function') updatePopupSubDirectionOptions();
+    setVal('popupCurrency','EGP');
+    setVal('popupForeignAmount','');
+    setVal('popupExchangeRate','1');
+    setVal('popupAmount','');
+    const att=el('popupLineAttachments'); if(att) att.value='';
+    const note=el('popupFxNote'); if(note) note.innerHTML='العملة: جنيه مصرى - كل الحسابات بالجنيه.';
+    if(!showModal('settlementLinePopup')) alert('نافذة إدخال البند غير موجودة فى الصفحة');
+  };
+  window.closeSettlementLinePopup=function(){hideModal('settlementLinePopup')};
+
+  /* زر إدخال بيانات التسوية فى شاشة البداية يفتح شاشة إدخال البند مباشرة بعد فتح/إنشاء التسوية */
+  window.v128EnterSettlementData=function(){
+    const currentNo=(typeof activeSettlementNo!=='undefined' && activeSettlementNo) || (el('settlementNo')&&el('settlementNo').value) || '';
+    if(!currentNo){ alert('أنشئ تسوية أو افتح تسوية محفوظة أولاً'); window.openSettlementHeaderPopup(); return; }
+    const ls=el('lineSection'); if(ls) ls.classList.remove('hidden');
+    const page=el('newSettlementPage'); if(page) page.classList.add('compact-settlement-open');
+    if(typeof loadLines==='function') loadLines(currentNo);
+    window.openSettlementLinePopup();
+  };
+
+  function bindStartButton(){
+    const b=el('v128EnterLinesBtn');
+    if(b && !b.dataset.v131Fixed){
+      b.dataset.v131Fixed='1';
+      b.onclick=function(ev){ev.preventDefault(); window.v128EnterSettlementData(); return false;};
+    }
+  }
+  document.addEventListener('DOMContentLoaded', bindStartButton);
+  setTimeout(bindStartButton,300);
+  setTimeout(bindStartButton,1000);
+})();
+</script>
+
+
+<!-- ===== V136 FINAL FIX: real entry popup + materials/labor routing ===== -->
+<style id="v136-entry-final-css">
+#settlementLinePopup{z-index:999999!important}
+#settlementLinePopup .modal{max-width:1050px!important}
+#settlementLinePopup .modal h2{text-align:center;margin-bottom:12px}
+#newSettlementPage .settlement-top-actions{display:none!important}
+</style>
+
+<div id="settlementLinePopup" class="modal-bg">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>إدخال بند على التسوية</h2>
+      <button class="red small" onclick="closeSettlementLinePopup()">إغلاق</button>
+    </div>
+    <div class="grid">
+      <div class="form-field"><label>تاريخ البند</label><input id="popupLineDate" type="date"></div>
+      <div class="form-field"><label>البيان</label><input id="popupDescription" placeholder="اكتب بيان التسوية"></div>
+      <div class="form-field"><label>مضاف إلى</label><input id="popupAddedTo" list="addedToList" placeholder="اكتب أو اختر الاسم"></div>
+      <div class="form-field"><label>رقم مستند الدفع / شيك / تحويل</label><input id="popupPaymentRef" placeholder="يجب ألا يتكرر"></div>
+      <div class="form-field"><label>التوجيه العام</label><select id="popupMainDirection" onchange="updatePopupSubDirectionOptions()">
+        <option value="">التوجيه العام</option><option>مصروفات</option><option>ايرادات</option><option>إيرادات</option><option>مستخلصات تحت التحصيل</option><option>تمويل</option><option>جارى العهدة</option>
+      </select></div>
+      <div class="form-field"><label>التوجيه الفرعى</label><select id="popupSubDirection"><option value="">التوجيه الفرعى</option></select></div>
+      <div class="form-field"><label>الموقع</label><input id="popupSite" list="siteList" placeholder="اكتب أو اختر الموقع"></div>
+      <div class="form-field"><label>العملة</label><select id="popupCurrency" onchange="updatePopupExchangeRate()">
+        <option value="EGP">جنيه مصرى EGP</option><option value="USD">دولار USD</option><option value="EUR">يورو EUR</option><option value="SAR">ريال سعودى SAR</option><option value="AED">درهم إماراتى AED</option><option value="GBP">جنيه إسترلينى GBP</option>
+      </select></div>
+      <div class="form-field"><label>المبلغ بالعملة المختارة</label><input id="popupForeignAmount" type="number" placeholder="0" oninput="calculatePopupEgpAmount()"></div>
+      <div class="form-field"><label>سعر الصرف مقابل الجنيه</label><input id="popupExchangeRate" type="number" step="0.0001" placeholder="سعر الصرف" oninput="calculatePopupEgpAmount()"></div>
+      <div class="form-field"><label>المبلغ بالجنيه المصري EGP</label><input id="popupAmount" type="number" readonly placeholder="يُحسب تلقائيًا"></div>
+      <div class="form-field"><label>مرفقات البند</label><input id="popupLineAttachments" type="file" multiple></div>
+    </div>
+    <div id="popupFxNote" class="currency-note" style="margin-top:10px">العملة: جنيه مصرى - كل الحسابات بالجنيه.</div>
+    <br>
+    <div class="actions-wrap">
+      <button class="green" onclick="saveSettlementLineFromPopup()">حفظ</button>
+      <button class="gray" onclick="closeSettlementLinePopup()">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<script id="v136-entry-final-js">
+(function(){
+  function el(id){ return document.getElementById(id); }
+  function value(id){ var x=el(id); return x ? String(x.value||'').trim() : ''; }
+  function setValue(id,v){ var x=el(id); if(x) x.value = (v==null?'':v); }
+  function today(){ return new Date().toISOString().slice(0,10); }
+  function show(id){ var x=el(id); if(x){ x.style.display='flex'; return true; } return false; }
+  function hide(id){ var x=el(id); if(x) x.style.display='none'; }
+  function currentSettlementNo(){
+    var n='';
+    try{ if(typeof activeSettlementNo!=='undefined' && activeSettlementNo) n=activeSettlementNo; }catch(e){}
+    if(!n) n=value('settlementNo');
+    return String(n||'').trim();
+  }
+  function setCurrentSettlementNo(n){
+    n=String(n||'').trim();
+    if(!n) return '';
+    try{ activeSettlementNo=n; }catch(e){}
+    setValue('settlementNo',n);
+    return n;
+  }
+  function currentOwner(){
+    var o='';
+    try{ if(typeof activeSettlementOwnerName!=='undefined' && activeSettlementOwnerName) o=activeSettlementOwnerName; }catch(e){}
+    return o || value('ownerName') || value('popupOwnerName');
+  }
+  function normalizeArabic(s){ return String(s||'').replace(/[إأآا]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه').trim(); }
+  function isMaterials(sub){ return normalizeArabic(sub)==='خامات'; }
+  function isLabor(sub){ return normalizeArabic(sub)==='مصنعيات'; }
+  function setSelectOption(id,v){
+    var s=el(id); if(!s) return;
+    v=String(v||'');
+    var found=false;
+    for(var i=0;i<s.options.length;i++){ if(s.options[i].value===v || s.options[i].text===v){ found=true; break; } }
+    if(v && !found) s.add(new Option(v,v));
+    s.value=v;
+  }
+  function copyPopupToMain(){
+    setValue('lineDate', value('popupLineDate') || today());
+    setValue('description', value('popupDescription'));
+    setValue('addedTo', value('popupAddedTo'));
+    setValue('paymentRef', value('popupPaymentRef'));
+    setValue('site', value('popupSite'));
+    setSelectOption('mainDirection', value('popupMainDirection') || 'مصروفات');
+    if(typeof window.updateSubDirectionOptions==='function'){
+      try{ window.updateSubDirectionOptions(value('popupSubDirection')); }catch(e){}
+    }
+    setSelectOption('subDirection', value('popupSubDirection'));
+    setSelectOption('currency', value('popupCurrency') || 'EGP');
+    setValue('foreignAmount', value('popupForeignAmount'));
+    setValue('exchangeRate', value('popupExchangeRate') || '1');
+    var egp=value('popupAmount');
+    if(!egp) egp=(Number(value('popupForeignAmount')||0)*Number(value('popupExchangeRate')||1)).toFixed(2);
+    setValue('amount', egp);
+    try{
+      var src=el('popupLineAttachments'), dst=el('lineAttachments');
+      if(src && dst && src.files){ var dt=new DataTransfer(); Array.from(src.files).forEach(function(f){dt.items.add(f)}); dst.files=dt.files; }
+    }catch(e){}
+  }
+  function openSpecialIfNeeded(){
+    var sub=value('popupSubDirection');
+    if(!isMaterials(sub) && !isLabor(sub)) return true;
+    if(!value('popupMainDirection')) setValue('popupMainDirection','مصروفات');
+    if(!value('popupLineDate')) setValue('popupLineDate',today());
+    copyPopupToMain();
+    hide('settlementLinePopup');
+    setTimeout(function(){
+      if(isMaterials(sub)){
+        if(typeof window.openInvoice==='function') window.openInvoice();
+        else alert('شاشة فاتورة الخامات غير موجودة فى هذه النسخة');
+      }else if(isLabor(sub)){
+        if(typeof window.openLaborExtractModal==='function') window.openLaborExtractModal();
+        else alert('شاشة مستخلص المصنعيات غير موجودة فى هذه النسخة');
+      }
+    },80);
+    return false;
+  }
+
+  window.closeSettlementLinePopup=function(){ hide('settlementLinePopup'); };
+
+  var oldUpdatePopup=window.updatePopupSubDirectionOptions;
+  window.updatePopupSubDirectionOptions=function(selected){
+    var main=value('popupMainDirection');
+    var arr=[];
+    try{ if(typeof subDirectionOptionsByMain!=='undefined' && subDirectionOptionsByMain[main]) arr=subDirectionOptionsByMain[main]; }catch(e){}
+    if(!arr || !arr.length) arr=['خامات','انتقالات','بدلات','مرتبات','مصروفات ادارية وعمومية','نثريات','تأمينات اجتماعية','مصروفات المكتب','اجرة عمال يومية','ايجارات','مصنعيات','اخرى'];
+    if(arr.indexOf('مصنعيات')<0) arr.push('مصنعيات');
+    if(arr.indexOf('خامات')<0) arr.unshift('خامات');
+    var sub=el('popupSubDirection');
+    if(sub){ sub.innerHTML='<option value="">التوجيه الفرعى</option>'+arr.map(function(x){ return '<option>'+x+'</option>'; }).join(''); if(selected) sub.value=selected; sub.onchange=openSpecialIfNeeded; }
+  };
+
+  window.calculatePopupEgpAmount=function(){
+    var cur=Number(value('popupForeignAmount')||0), rate=Number(value('popupExchangeRate')||1);
+    setValue('popupAmount',(cur*rate).toFixed(2));
+  };
+  var oldUpdateRate=window.updatePopupExchangeRate;
+  window.updatePopupExchangeRate=function(){
+    if(value('popupCurrency')==='EGP'){
+      setValue('popupExchangeRate','1');
+      var r=el('popupExchangeRate'); if(r) r.readOnly=true;
+      var n=el('popupFxNote'); if(n) n.innerHTML='العملة: جنيه مصرى - كل الحسابات بالجنيه.';
+      window.calculatePopupEgpAmount(); return;
+    }
+    var r2=el('popupExchangeRate'); if(r2) r2.readOnly=false;
+    if(typeof oldUpdateRate==='function') return oldUpdateRate.apply(this,arguments);
+    window.calculatePopupEgpAmount();
+  };
+
+  window.openSettlementLinePopup=function(){
+    var no=setCurrentSettlementNo(currentSettlementNo());
+    if(!no){
+      alert('أنشئ تسوية أو افتح تسوية محفوظة أولاً');
+      if(typeof window.v128OpenSettlementModal==='function') window.v128OpenSettlementModal();
+      else if(typeof window.openSettlementHeaderPopup==='function') window.openSettlementHeaderPopup();
+      return false;
+    }
+    var sec=el('lineSection'); if(sec) sec.classList.remove('hidden');
+    var page=el('newSettlementPage'); if(page) page.classList.add('compact-settlement-open');
+    setValue('popupLineDate',today());
+    setValue('popupDescription','');
+    setValue('popupAddedTo',currentOwner());
+    setValue('popupPaymentRef','');
+    setValue('popupSite','');
+    setValue('popupMainDirection','مصروفات');
+    window.updatePopupSubDirectionOptions();
+    setValue('popupCurrency','EGP');
+    setValue('popupForeignAmount','');
+    setValue('popupExchangeRate','1');
+    setValue('popupAmount','');
+    var att=el('popupLineAttachments'); if(att) att.value='';
+    var note=el('popupFxNote'); if(note) note.innerHTML='العملة: جنيه مصرى - كل الحسابات بالجنيه.';
+    if(typeof window.loadLines==='function') try{ window.loadLines(no); }catch(e){}
+    if(!show('settlementLinePopup')) alert('نافذة إدخال البند غير موجودة فى الصفحة');
+    return false;
+  };
+
+  window.v128EnterSettlementData=function(){ return window.openSettlementLinePopup(); };
+
+  var oldSavePopup=window.saveSettlementLineFromPopup;
+  window.saveSettlementLineFromPopup=async function(){
+    if(!openSpecialIfNeeded()) return false;
+    if(typeof oldSavePopup==='function') return await oldSavePopup.apply(this,arguments);
+    copyPopupToMain();
+    if(typeof window.addLine==='function') await window.addLine();
+    hide('settlementLinePopup');
+    var no=currentSettlementNo(); if(no && typeof window.loadLines==='function') await window.loadLines(no);
+  };
+
+  var oldOpenSearch=window.openSettlementFromSearch;
+  if(typeof oldOpenSearch==='function'){
+    window.openSettlementFromSearch=async function(no){ if(no) setCurrentSettlementNo(no); var r=await oldOpenSearch.apply(this,arguments); setCurrentSettlementNo(currentSettlementNo()||no); return r; };
+  }
+  var oldQuick=window.quickOpenSettlementByNumber;
+  if(typeof oldQuick==='function'){
+    window.quickOpenSettlementByNumber=async function(){ var r=await oldQuick.apply(this,arguments); setCurrentSettlementNo(currentSettlementNo()); return r; };
+  }
+
+  function bind(){
+    var b=el('v128EnterLinesBtn'); if(b){ b.onclick=function(ev){ if(ev) ev.preventDefault(); return window.openSettlementLinePopup(); }; }
+    var s=el('popupSubDirection'); if(s) s.onchange=openSpecialIfNeeded;
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',bind); else bind();
+  setTimeout(bind,300); setTimeout(bind,1200);
+})();
+</script>
+<!-- ===== END V136 FINAL FIX ===== -->
 </body>
 </html>
