@@ -593,6 +593,30 @@ button.small{padding:6px 10px;font-size:12px}
 
 @media(max-width:900px){.active-settlement-summary .summary-grid{grid-template-columns:1fr}}
 </style>
+
+<style id="v137-invoice-print-fix">
+/* V137: إصلاح طباعة فاتورة الخامات فقط ومنع تعارض CSS الخاص بالـ PO/Quotation */
+@media print{
+  body.printing-invoice *{visibility:hidden!important;}
+  body.printing-invoice #invoiceModal,
+  body.printing-invoice #invoiceModal *{visibility:visible!important;}
+  body.printing-invoice #invoiceModal{display:block!important;position:absolute!important;inset:0!important;background:#fff!important;margin:0!important;padding:0!important;overflow:visible!important;}
+  body.printing-invoice #invoiceModal .modal{display:block!important;width:210mm!important;max-width:210mm!important;min-height:297mm!important;margin:0 auto!important;padding:8mm!important;background:#fff!important;box-shadow:none!important;border-radius:0!important;overflow:visible!important;}
+  body.printing-invoice #invoiceModal .modal-header button,
+  body.printing-invoice #invoiceModal .invoice-actions,
+  body.printing-invoice #invoiceModal input[type=file],
+  body.printing-invoice #invoiceModal .inv-suggest-box{display:none!important;visibility:hidden!important;}
+  body.printing-invoice #invoiceModal input,
+  body.printing-invoice #invoiceModal select{border:0!important;outline:0!important;box-shadow:none!important;background:transparent!important;color:#000!important;appearance:none!important;}
+  body.printing-invoice #invoiceModal .invoice-box{display:block!important;width:100%!important;font-size:11px!important;background:#fff!important;color:#000!important;}
+  body.printing-invoice #invoiceModal table{page-break-inside:auto!important;}
+  body.printing-invoice #invoiceModal tr{page-break-inside:avoid!important;}
+  body.printing-invoice .sidebar,
+  body.printing-invoice #poPage,
+  body.printing-invoice #quotePage{display:none!important;visibility:hidden!important;}
+  @page{size:A4 portrait;margin:8mm;}
+}
+</style>
 </head>
 
 <body>
@@ -2155,8 +2179,76 @@ setTimeout(()=>w.print(),500);
 }
 
 function printInvoiceA4(){
-calcInvoice();
-window.print();
+  // V138: طباعة الفاتورة في نافذة مستقلة حتى لا تتأثر بتعارضات @media print الخاصة بالـ PO أو عروض الأسعار
+  try{ if(typeof calcInvoice==='function') calcInvoice(); }catch(e){}
+  const modal = document.getElementById('invoiceModal');
+  const source = modal ? (modal.querySelector('.modal') || modal.querySelector('.invoice-box') || modal) : null;
+  if(!source){ alert('لا توجد فاتورة مفتوحة للطباعة'); return; }
+
+  const clone = source.cloneNode(true);
+
+  // حذف أزرار التحكم والملفات من نسخة الطباعة
+  clone.querySelectorAll('button,.invoice-actions,.modal-header button,input[type="file"],.inv-suggest-box').forEach(el=>el.remove());
+
+  // تحويل الحقول إلى نص ثابت حتى تظهر القيم في PDF ولا تظهر الصفحة فاضية
+  clone.querySelectorAll('input, textarea, select').forEach(el=>{
+    let text = '';
+    if(el.tagName === 'SELECT'){
+      text = el.options && el.selectedIndex >= 0 ? (el.options[el.selectedIndex].text || el.value || '') : (el.value || '');
+    }else{
+      text = el.value || el.getAttribute('value') || '';
+    }
+    const span = document.createElement('div');
+    span.className = 'print-field';
+    span.textContent = text;
+    span.style.cssText = 'min-height:18px;white-space:pre-wrap;word-break:break-word;text-align:inherit;font-weight:inherit;';
+    el.replaceWith(span);
+  });
+
+  const html = `<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>فاتورة خامات</title>
+  <style>
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0;background:#fff;color:#000;font-family:Arial,Tahoma,sans-serif;direction:rtl}
+    body{padding:8mm}
+    .modal{width:100%!important;max-width:none!important;min-height:auto!important;padding:0!important;margin:0!important;box-shadow:none!important;border:0!important;border-radius:0!important;overflow:visible!important;background:#fff!important}
+    .modal-header{display:block!important;text-align:right;margin-bottom:6mm}
+    .modal-header h2{margin:0 0 4mm 0;font-size:20px;text-align:right;color:#000}
+    .invoice-box{border:1px solid #000;background:#fff;color:#000;font-size:11px;width:100%}
+    .invoice-top{display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:1px solid #000}
+    .invoice-top div{border-left:1px solid #000;padding:5px;min-height:28px}
+    .invoice-top div:last-child{border-left:none}
+    .invoice-title{font-weight:bold;text-align:center;background:#f8fafc}
+    .invoice-seller{display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:1px solid #000}
+    .invoice-seller div{border-left:1px solid #000;padding:5px;min-height:28px}
+    .invoice-seller div:last-child{border-left:none}
+    table{width:100%;border-collapse:collapse;table-layout:fixed}
+    th,td{border:1px solid #000;padding:3px;text-align:center;vertical-align:middle;color:#000}
+    th{font-weight:bold;background:#f8fafc}
+    .invoice-table th:nth-child(1),.invoice-table td:nth-child(1){width:8mm}
+    .invoice-table th:nth-child(2),.invoice-table td:nth-child(2){width:auto;text-align:right}
+    .invoice-table th:nth-child(3),.invoice-table td:nth-child(3){width:18mm}
+    .invoice-table th:nth-child(4),.invoice-table td:nth-child(4){width:18mm}
+    .invoice-table th:nth-child(5),.invoice-table td:nth-child(5){width:24mm}
+    .invoice-table th:nth-child(6),.invoice-table td:nth-child(6){width:25mm}
+    .print-field{font-size:11px;color:#000;background:transparent!important;border:0!important;outline:0!important;padding:0!important;margin:0!important}
+    a{color:#000;text-decoration:none}
+    @page{size:A4 portrait;margin:8mm}
+    @media print{body{padding:0}.modal-header h2{font-size:18px}thead{display:table-header-group}tr{page-break-inside:avoid}}
+  </style></head><body>${clone.outerHTML}</body></html>`;
+
+  const w = window.open('', '_blank');
+  if(!w){
+    // احتياطي لو المتصفح منع النافذة الجديدة
+    document.body.classList.add('printing-invoice');
+    setTimeout(()=>window.print(),100);
+    setTimeout(()=>document.body.classList.remove('printing-invoice'),1600);
+    return;
+  }
+  w.document.open();
+  w.document.write(html);
+  w.document.close();
+  w.focus();
+  setTimeout(()=>{ try{ w.print(); }catch(e){} }, 500);
 }
 
 function readFileAsDataUrl(file){
